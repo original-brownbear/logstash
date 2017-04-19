@@ -9,6 +9,9 @@ pkg/*.rpm
 *.tar.gz
 *.jar
 .bundle
+Gemfile.jruby-1.9.lock
+.gradle/
+logstash-core/lib/logstash-core_jars.rb
 build
 local
 test/setup/elasticsearch/elasticsearch-*

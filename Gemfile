@@ -2,6 +2,7 @@
 # If you modify this file manually all comments and formatting will be lost.
 
 source "https://rubygems.org"
+ruby "1.9.3", :engine => "jruby", :engine_version => "1.7.26"
 gem "logstash-core", :path => "./logstash-core"
 gem "logstash-core-plugin-api", :path => "./logstash-core-plugin-api"
 gem "paquet", "~> 0.2.0"
