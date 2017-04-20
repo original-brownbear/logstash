@@ -39,3 +39,5 @@ qa/Gemfile.lock
 .idea
 logs
 qa/integration/services/installed/
+.gradle/
+Gemfile.jruby-1.9.lock
