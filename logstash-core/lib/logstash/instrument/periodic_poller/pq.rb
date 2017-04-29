@@ -11,7 +11,7 @@ module LogStash module Instrument module PeriodicPoller
     end
 
     def collect
-      pipeline_id, pipeline = @agent.running_pipelines.first
+      _, pipeline = @agent.running_pipelines.first
       unless pipeline.nil?
         pipeline.collect_stats
       end

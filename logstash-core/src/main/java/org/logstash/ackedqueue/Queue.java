@@ -47,7 +47,7 @@ public class Queue implements Closeable {
     protected final List<TailPage> unreadTailPages;
 
     // checkpoints that were not purged in the acking code to keep contiguous checkpoint files
-    // regardless of the correcponding data file purge.
+    // regardless of the corresponding data file purge.
     protected final Set<Integer> preservedCheckpoints;
 
     protected volatile long unreadCount;
