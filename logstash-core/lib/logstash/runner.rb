@@ -247,6 +247,11 @@ class LogStash::Runner < Clamp::StrictCommand
 
     return start_shell(setting("interactive"), binding) if setting("interactive")
 
+    if @settings.get("queue.type") == "persisted"
+      queue_path = ::File.path(settings.get("path.queue"))
+
+    end
+
     begin
       @bootstrap_checks.each { |bootstrap| bootstrap.check(@settings) }
     rescue LogStash::BootstrapCheckError => e

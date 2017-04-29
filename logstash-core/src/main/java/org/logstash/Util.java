@@ -1,7 +1,7 @@
 package org.logstash;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,5 +76,31 @@ public class Util {
                 target.put(e.getKey(), e.getValue());
             }
         }
+    }
+
+    /**
+     * Checks if the request number of bytes of free disk space are available under the given
+     * path.
+     * @param path Directory to check
+     * @param space Bytes of free space requested
+     * @return True iff the
+     * @throws IOException on failure to determine free space for given path's partition
+     */
+    public static boolean hasFreeSpace(final String path, final long space) throws IOException {
+        final File[] partitions = File.listRoots();
+        File location = new File(path).getCanonicalFile();
+        boolean found = false;
+        while (!found) {
+            for (final File partition : partitions) {
+                found = partition.equals(location);
+            }
+            location = location.getParentFile();
+            if (location == null) {
+                throw new IllegalStateException(
+                    String.format("Unable to determine the partition that contains '%s'.", path)
+                );
+            }
+        }
+        return location.getFreeSpace() >= space;
     }
 }
