@@ -8,6 +8,7 @@ describe LogStash::BootstrapCheck::FullDisk do
     let(:settings) do
       settings = LogStash::SETTINGS.dup
       settings.set_value("queue.type", "persisted")
+      settings.set_value("queue.max_bytes", 512)
       settings.set_value("path.queue", ::File.join(Dir.tmpdir, "some/path"))
       settings
     end
