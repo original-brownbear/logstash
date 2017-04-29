@@ -13,7 +13,7 @@ describe LogStash::BootstrapCheck::FullDisk do
     end
 
     it "should not throw if enough space available" do
-      subject.check(settings)
+      expect(subject.check(settings)).to_not raise_error
     end
   end
 end
