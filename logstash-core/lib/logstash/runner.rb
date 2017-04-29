@@ -6,6 +6,8 @@ $DEBUGLIST = (ENV["DEBUG"] || "").split(",")
 require "clamp"
 require "net/http"
 
+require "java"
+
 require "logstash/namespace"
 require "logstash-core/logstash-core"
 require "logstash/environment"
@@ -248,8 +250,11 @@ class LogStash::Runner < Clamp::StrictCommand
     return start_shell(setting("interactive"), binding) if setting("interactive")
 
     if @settings.get("queue.type") == "persisted"
-      queue_path = ::File.path(settings.get("path.queue"))
-
+      unless org.logstash.ackedqueue.FsUtil.has_free_space(
+        ::File.path(settings.get("path.queue")), settings.get("queue.page_capacity")
+      )
+        raise "Not enough disk space to allocate persisted queue page"
+      end
     end
 
     begin
