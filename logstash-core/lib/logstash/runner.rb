@@ -249,14 +249,6 @@ class LogStash::Runner < Clamp::StrictCommand
 
     return start_shell(setting("interactive"), binding) if setting("interactive")
 
-    if @settings.get("queue.type") == "persisted"
-      unless org.logstash.ackedqueue.FsUtil.has_free_space(
-        ::File.path(settings.get("path.queue")), settings.get("queue.page_capacity")
-      )
-        raise "Not enough disk space to allocate persisted queue page"
-      end
-    end
-
     begin
       @bootstrap_checks.each { |bootstrap| bootstrap.check(@settings) }
     rescue LogStash::BootstrapCheckError => e
