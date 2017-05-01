@@ -22,7 +22,7 @@ require "logstash/plugins/registry"
 require "logstash/bootstrap_check/bad_java"
 require "logstash/bootstrap_check/bad_ruby"
 require "logstash/bootstrap_check/default_config"
-require "logstash/bootstrap_check/full_disk"
+require "logstash/bootstrap_check/persisted_queue_config"
 require "set"
 
 java_import 'org.logstash.FileLockFactory'
@@ -42,7 +42,7 @@ class LogStash::Runner < Clamp::StrictCommand
       LogStash::BootstrapCheck::BadRuby,
       LogStash::BootstrapCheck::BadJava,
       LogStash::BootstrapCheck::DefaultConfig,
-      LogStash::BootstrapCheck::FullDisk
+      LogStash::BootstrapCheck::PersistedQueueConfig
   ]
 
   # Node Settings
@@ -456,7 +456,7 @@ class LogStash::Runner < Clamp::StrictCommand
       nil
     end
   end
-  
+
   # is the user asking for CLI help subcommand?
   def cli_help?(args)
     # I know, double negative
