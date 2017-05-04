@@ -42,3 +42,4 @@ Gemfile
 logs
 qa/integration/services/installed/
 .gradle
+logstash-core/lib/logstash-core_jars.rb
