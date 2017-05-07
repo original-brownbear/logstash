@@ -2,6 +2,8 @@ package org.logstash.ackedqueue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * File System Utility Methods.
@@ -38,5 +40,18 @@ public final class FsUtil {
             }
         }
         return location.getFreeSpace() >= size;
+    }
+
+    public static long getPersistedSize(final String path) throws IOException {
+        final File file = new File(path).getCanonicalFile();
+        long size = 0L;
+        if(file.isDirectory()) {
+            for (final Path sub: Files.newDirectoryStream(file.toPath())) {
+                size += getPersistedSize(sub.toString());
+            }
+        } else {
+            size = Files.size(file.toPath());
+        }
+        return size;
     }
 }

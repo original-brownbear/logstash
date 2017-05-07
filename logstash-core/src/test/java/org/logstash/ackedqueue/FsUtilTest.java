@@ -1,14 +1,20 @@
 package org.logstash.ackedqueue;
 
+import java.io.File;
 import java.nio.file.Paths;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Tests for {@link FsUtil}.
  */
 public final class FsUtilTest {
+
+    @Rule
+    public final TemporaryFolder temp = new TemporaryFolder();
 
     /**
      * {@link FsUtil#hasFreeSpace(String, long)} should return true when asked for 1kb of free
@@ -36,5 +42,24 @@ public final class FsUtilTest {
                 Long.MAX_VALUE
             ), CoreMatchers.is(false)
         );
+    }
+
+    @Test
+    public void getPersistedSize() throws Exception {
+        final File folder = this.temp.newFolder();
+        Settings settings = TestSettings.persistedQueueSettings(100, folder.getAbsolutePath());
+        try (final Queue queue = new Queue(settings)) {
+            queue.open();
+            for (int i = 0; i < 50; ++i) {
+                queue.write(new StringElement("foooo"));
+            }
+            queue.ensurePersistedUpto(queue.nextSeqNum());
+            final long size = queue.getPersistedByteSize();
+            queue.close();
+            MatcherAssert.assertThat(
+                FsUtil.getPersistedSize(folder.getAbsolutePath()),
+                CoreMatchers.is(size)
+            );
+        }
     }
 }
