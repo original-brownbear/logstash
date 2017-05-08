@@ -1,7 +1,6 @@
 package org.logstash.ackedqueue;
 
 import java.io.File;
-import java.nio.file.Paths;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
@@ -23,10 +22,8 @@ public final class FsUtilTest {
     @Test
     public void trueIfEnoughSpace() throws Exception {
         MatcherAssert.assertThat(
-            FsUtil.hasFreeSpace(
-                Paths.get(System.getProperty("java.io.tmpdir"), "some", "path").toString(),
-                1024L
-            ), CoreMatchers.is(true)
+            FsUtil.hasFreeSpace(temp.newFolder().getAbsolutePath(), 1024L),
+            CoreMatchers.is(true)
         );
     }
 
@@ -37,10 +34,8 @@ public final class FsUtilTest {
     @Test
     public void falseIfNotEnoughSpace() throws Exception {
         MatcherAssert.assertThat(
-            FsUtil.hasFreeSpace(
-                Paths.get(System.getProperty("java.io.tmpdir"), "some", "path").toString(),
-                Long.MAX_VALUE
-            ), CoreMatchers.is(false)
+            FsUtil.hasFreeSpace(temp.newFolder().getAbsolutePath(), Long.MAX_VALUE),
+            CoreMatchers.is(false)
         );
     }
 
