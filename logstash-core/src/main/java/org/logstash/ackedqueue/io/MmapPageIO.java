@@ -84,10 +84,10 @@ public class MmapPageIO extends AbstractByteBufferPageIO {
     @Override
     public void activate() throws IOException {
         if (this.channel == null) {
-            RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
-            this.channel = raf.getChannel();
-            this.buffer = this.channel.map(FileChannel.MapMode.READ_WRITE, 0, this.capacity);
-            raf.close();
+            try (RandomAccessFile raf = new RandomAccessFile(this.file, "rw")) {
+                this.channel = raf.getChannel();
+                this.buffer = this.channel.map(FileChannel.MapMode.READ_WRITE, 0, this.capacity);
+            }
             this.buffer.load();
         }
         // TODO: do we need to check is the channel is still open? not sure how it could be closed

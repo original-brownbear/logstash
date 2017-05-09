@@ -1,10 +1,13 @@
 package org.logstash.ackedqueue;
 
 import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.CRC32;
+import java.util.zip.Checksum;
 
 /**
  * File System Utility Methods.
@@ -57,8 +60,22 @@ public final class FsUtil {
         } else {
             try (final DataInputStream datain =
                      new DataInputStream(Files.newInputStream(file.toPath()))) {
-                datain.readInt();
-                size = datain.readInt();
+                datain.read();
+                while(true) {
+                    datain.readLong();
+                    final int len = datain.readInt();
+                    final byte[] data = new byte[len];
+                    datain.readFully(data);
+                    final int checksum = datain.readInt();
+                    final Checksum crc = new CRC32();
+                    crc.update(data, 0, len);
+                    if ((int)crc.getValue() != checksum) {
+                        throw new EOFException();
+                    }
+                    size += len + 12;
+                }
+            } catch (final EOFException ex) {
+                //ignored
             }
         }
         return size;
