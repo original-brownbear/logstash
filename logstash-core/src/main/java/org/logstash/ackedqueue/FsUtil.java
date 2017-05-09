@@ -1,5 +1,6 @@
 package org.logstash.ackedqueue;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -46,11 +47,19 @@ public final class FsUtil {
         final File file = new File(path).getCanonicalFile();
         long size = 0L;
         if(file.isDirectory()) {
-            for (final Path sub: Files.newDirectoryStream(file.toPath())) {
+            for (
+                final Path sub: Files.newDirectoryStream(
+                file.toPath(),
+                entry -> entry.getFileName().toString().matches("page\\.\\d+"))
+            ) {
                 size += getPersistedSize(sub.toString());
             }
         } else {
-            size = Files.size(file.toPath());
+            try (final DataInputStream datain =
+                     new DataInputStream(Files.newInputStream(file.toPath()))) {
+                datain.readInt();
+                size = datain.readInt();
+            }
         }
         return size;
     }

@@ -43,18 +43,17 @@ public final class FsUtilTest {
     public void getPersistedSize() throws Exception {
         final File folder = this.temp.newFolder();
         Settings settings = TestSettings.persistedQueueSettings(100, folder.getAbsolutePath());
+        final long size;
         try (final Queue queue = new Queue(settings)) {
             queue.open();
             for (int i = 0; i < 50; ++i) {
                 queue.write(new StringElement("foooo"));
             }
-            queue.ensurePersistedUpto(queue.nextSeqNum());
-            final long size = queue.getPersistedByteSize();
-            queue.close();
-            MatcherAssert.assertThat(
-                FsUtil.getPersistedSize(folder.getAbsolutePath()),
-                CoreMatchers.is(size)
-            );
+            size = queue.getPersistedByteSize();
         }
+        MatcherAssert.assertThat(
+            FsUtil.getPersistedSize(folder.getAbsolutePath()),
+            CoreMatchers.is(size)
+        );
     }
 }

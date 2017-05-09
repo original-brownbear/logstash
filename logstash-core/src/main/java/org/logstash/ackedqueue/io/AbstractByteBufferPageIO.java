@@ -133,33 +133,39 @@ public abstract class AbstractByteBufferPageIO implements PageIO {
     private void readNextElement(long expectedSeqNum, boolean verifyChecksum) throws PageIOInvalidElementException {
         // if there is no room for the seqNum and length bytes stop here
         // TODO: I know this isn't a great exception message but at the time of writing I couldn't come up with anything better :P
-        if (this.head + SEQNUM_SIZE + LENGTH_SIZE > capacity) { throw new PageIOInvalidElementException("cannot read seqNum and length bytes past buffer capacity"); }
+        if (this.head + SEQNUM_SIZE + LENGTH_SIZE > capacity) {
+            throw new PageIOInvalidElementException("cannot read seqNum and length bytes past buffer capacity");
+        }
 
         int elementOffset = this.head;
         int newHead = this.head;
-        ByteBuffer buffer = getBuffer();
 
-        long seqNum = buffer.getLong();
-        newHead += SEQNUM_SIZE;
+        final ByteBuffer buffer = getBuffer();
+        final long seqNum = buffer.getLong();
+        if (seqNum != expectedSeqNum) {
+            throw new PageIOInvalidElementException(
+                String.format("Element seqNum %d is expected to be %d", seqNum, expectedSeqNum)
+            );
+        }
 
-        if (seqNum != expectedSeqNum) { throw new PageIOInvalidElementException(String.format("Element seqNum %d is expected to be %d", seqNum, expectedSeqNum)); }
+        newHead += LENGTH_SIZE + SEQNUM_SIZE;
 
-        int length = buffer.getInt();
-        newHead += LENGTH_SIZE;
-
+        final int length = buffer.getInt();
         // length must be > 0
         if (length <= 0) { throw new PageIOInvalidElementException("Element invalid length"); }
 
         // if there is no room for the proposed data length and checksum just stop here
-        if (newHead + length + CHECKSUM_SIZE > capacity) { throw new PageIOInvalidElementException("cannot read element payload and checksum past buffer capacity"); }
+        if (newHead + length + CHECKSUM_SIZE > capacity) {
+            throw new PageIOInvalidElementException("cannot read element payload and checksum past buffer capacity");
+        }
 
         if (verifyChecksum) {
             // read data and compute checksum;
-            byte[] readBytes = new byte[length];
+            final byte[] readBytes = new byte[length];
             buffer.get(readBytes);
-            int checksum = buffer.getInt();
-            int computedChecksum = checksum(readBytes);
-            if (computedChecksum != checksum) { throw new PageIOInvalidElementException("Element invalid checksum"); }
+            if (checksum(readBytes) != buffer.getInt()) {
+                throw new PageIOInvalidElementException("Element invalid checksum");
+            }
         }
 
         // at this point we recovered a valid element
