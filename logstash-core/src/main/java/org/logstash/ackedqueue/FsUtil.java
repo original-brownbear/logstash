@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
+import org.logstash.ackedqueue.io.AbstractByteBufferPageIO;
 
 /**
  * File System Utility Methods.
@@ -49,30 +50,38 @@ public final class FsUtil {
     public static long getPersistedSize(final String path) throws IOException {
         final File file = new File(path).getCanonicalFile();
         long size = 0L;
-        if(file.isDirectory()) {
+        if (file.isDirectory()) {
             for (
-                final Path sub: Files.newDirectoryStream(
+                final Path sub : Files.newDirectoryStream(
                 file.toPath(),
-                entry -> entry.getFileName().toString().matches("page\\.\\d+"))
-            ) {
+                entry -> entry.getFileName().toString().matches("page\\.\\d+")
+            )
+                ) {
                 size += getPersistedSize(sub.toString());
             }
         } else {
             try (final DataInputStream datain =
                      new DataInputStream(Files.newInputStream(file.toPath()))) {
-                datain.read();
-                while(true) {
+                if (datain.read() == AbstractByteBufferPageIO.VERSION_ONE) {
+                    size += 1L;
+                } else {
+                    throw new IllegalStateException("Broken Queue File");
+                }
+                while (true) {
                     datain.readLong();
                     final int len = datain.readInt();
+                    if (len == 0) {
+                        break;
+                    }
                     final byte[] data = new byte[len];
                     datain.readFully(data);
                     final int checksum = datain.readInt();
                     final Checksum crc = new CRC32();
                     crc.update(data, 0, len);
-                    if ((int)crc.getValue() != checksum) {
+                    if ((int) crc.getValue() != checksum) {
                         throw new EOFException();
                     }
-                    size += len + 12;
+                    size += len + 12 + 4;
                 }
             } catch (final EOFException ex) {
                 //ignored
