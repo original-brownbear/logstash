@@ -21,12 +21,17 @@ public final class Grok {
     }
 
     public static void main(final String... args) throws ScriptException, NoSuchMethodException {
-        try (final Reader reader = new InputStreamReader(
+        try (
+            final Reader shared = new InputStreamReader(
+                Grok.class.getResourceAsStream("/shared.js")
+            );
+            final Reader reader = new InputStreamReader(
                      Grok.class.getResourceAsStream("/ingest-grok.js")
              )
         ) {
             final ScriptEngine engine =
                 new ScriptEngineManager().getEngineByName("nashorn");
+            engine.eval(shared);
             engine.eval(reader);
             Files.write(Paths.get(args[1]), ((String) ((Invocable) engine).invokeFunction(
                 "ingest_to_logstash_grok",
