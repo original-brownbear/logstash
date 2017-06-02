@@ -53,3 +53,43 @@ function create_hash(name, content) {
 function join_hash_fields(fields) {
     return fields.join("\n");
 }
+
+/**
+ * Fixes indentation in LS string.
+ * @param string LS string to fix indentation in, that has no indentation intentionally with
+ * all lines starting on a token without preceding spaces.
+ * @returns {string} LS string indented by 3 spaces per level
+ */
+function fix_indent(string) {
+
+    function indent(string, shifts) {
+        return new Array(shifts * 3 + 1).join(" ") + string;
+    }
+
+    var lines = string.split("\n");
+    var count = 0;
+    var i;
+    for (i = 0; i < lines.length; ++i) {
+        if (lines[i].match(/(\{|\[)$/)) {
+            lines[i] = indent(lines[i], count);
+            ++count;
+        } else if (lines[i].match(/(\}|\])$/)) {
+            --count;
+            lines[i] = indent(lines[i], count);
+            // Only indent line if previous line ended on relevant control char.
+        } else if (i > 0 && lines[i - 1].match(/(=>\s+".+"|,|\{|\}|\[|\])$/)) {
+            lines[i] = indent(lines[i], count);
+        }
+    }
+    return lines.join("\n");
+}
+
+/**
+ * Converts Ingest/JSON style pattern array to LS pattern array, performing necessary variable
+ * name and quote escaping adjustments.
+ * @param patterns Pattern Array in JSON formatting
+ * @returns {string} Pattern array in LS formatting
+ */
+function create_pattern_array(patterns) {
+    return "[\n" + patterns.map(dots_to_square_brackets).map(quote_string).join(",\n") + "\n]";
+}
