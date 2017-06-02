@@ -8,8 +8,11 @@
 function dots_to_square_brackets(string) {
 
     function token_dots_to_square_brackets(string) {
-        return string.replace(/(\w*)\.(\w*)/g, "$1][$2").replace(/(\w+)}/g, "$1]}")
-            .replace(/{(\w+):(\w+)]/g, "{$1:[$2]");
+        return string.replace(/(\w*)\.(\w*)/g, "$1][$2")
+            .replace(/(\w+)}/g, "$1]}")
+            .replace(/\[(\w+)$/g, "[$1]")
+            .replace(/{(\w+):(\w+)]/g, "{$1:[$2]")
+            .replace(/^(\w+)]\[/g, "[$1][");
     }
 
     var literals = string.match(/\(\?:%{.*\|-\)/);
