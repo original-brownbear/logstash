@@ -1,6 +1,8 @@
 package org.logstash.ackedqueue.io;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
@@ -14,11 +16,14 @@ import sun.nio.ch.DirectBuffer;
 // TODO: this essentially a copy of ByteBufferPageIO and should be DRY'ed - temp impl to test file based stress test
 
 @SuppressWarnings("sunapi")
-public class MmapPageIO extends AbstractByteBufferPageIO {
+public final class MmapPageIO extends AbstractByteBufferPageIO {
 
     private final File file;
 
     private FileChannel channel;
+    
+    private FileDescriptor fd;
+    
     protected MappedByteBuffer buffer;
 
     private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(256 * 256);
@@ -70,8 +75,9 @@ public class MmapPageIO extends AbstractByteBufferPageIO {
 
     @Override
     public void create() throws IOException {
-        RandomAccessFile raf = new RandomAccessFile(this.file, "rw");
+        final FileOutputStream raf = new FileOutputStream(this.file);
         this.channel = raf.getChannel();
+        this.fd = raf.getFD();
         writeBuffer.put(VERSION_ONE).flip();
         channel.write(writeBuffer);
         this.head = 1;
@@ -96,7 +102,9 @@ public class MmapPageIO extends AbstractByteBufferPageIO {
     public void ensurePersisted() {
         try {
             this.activate();
-            this.channel.force(false);
+            if(this.fd != null) {
+                this.fd.sync();
+            }
         } catch (final IOException ex) {
             throw new IllegalStateException(ex);
         }
