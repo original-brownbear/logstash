@@ -56,7 +56,11 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
             String.format("offsetMap size=%d != elementCount=%d", this.offsetMap.size(),
                 this.elementCount
             );
-        this.writeBuffer.clear();
+        if (this.writeBuffer.remaining() < AbstractByteBufferPageIO.SEQNUM_SIZE 
+            + AbstractByteBufferPageIO.LENGTH_SIZE + bytes.length 
+            + AbstractByteBufferPageIO.CHECKSUM_SIZE) {
+            this.flush();
+        }
         this.writeBuffer.putLong(seqNum);
         this.writeBuffer.putInt(length);
         this.writeBuffer.put(bytes);
@@ -68,8 +72,6 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
         final int initialHead = this.head - writeBuffer.position();
         this.offsetMap.add(initialHead);
         this.elementCount++;
-        this.writeBuffer.flip();
-        this.channel.write(this.writeBuffer);
         return initialHead;
     }
 
@@ -78,8 +80,8 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
         final FileOutputStream output = new FileOutputStream(this.file);
         this.channel = output.getChannel();
         this.fd = output.getFD();
-        writeBuffer.put(VERSION_ONE).flip();
-        channel.write(writeBuffer);
+        writeBuffer.put(VERSION_ONE);
+        this.flush();
         this.head = 1;
         this.minSeqNum = 0L;
         this.elementCount = 0;
@@ -103,6 +105,7 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
         try {
             this.activate();
             if(this.fd != null) {
+                this.flush();
                 this.fd.sync();
             }
         } catch (final IOException ex) {
@@ -130,6 +133,7 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
         }
         if (this.channel != null) {
             if (this.channel.isOpen()) {
+                this.flush();
                 this.channel.force(false);
             }
             this.channel.close(); // close can be called multiple times
@@ -152,5 +156,13 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
             }
         }
         return this.buffer;
+    }
+
+    private void flush() throws IOException {
+        if (this.writeBuffer.position() > 0) {
+            this.writeBuffer.flip();
+            this.channel.write(this.writeBuffer);
+            this.writeBuffer.clear();
+        }
     }
 }
