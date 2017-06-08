@@ -24,9 +24,9 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
     
     private FileDescriptor fd;
     
-    protected MappedByteBuffer buffer;
+    private MappedByteBuffer buffer;
 
-    private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(256 * 256);
+    private final ByteBuffer writeBuffer = ByteBuffer.allocateDirect(1 << 16);
 
     public MmapPageIO(int pageNum, int capacity, String dirPath) {
         super(pageNum, capacity);
@@ -75,9 +75,9 @@ public final class MmapPageIO extends AbstractByteBufferPageIO {
 
     @Override
     public void create() throws IOException {
-        final FileOutputStream raf = new FileOutputStream(this.file);
-        this.channel = raf.getChannel();
-        this.fd = raf.getFD();
+        final FileOutputStream output = new FileOutputStream(this.file);
+        this.channel = output.getChannel();
+        this.fd = output.getFD();
         writeBuffer.put(VERSION_ONE).flip();
         channel.write(writeBuffer);
         this.head = 1;
