@@ -15,7 +15,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import org.logstash.Event;
 
 public interface PersistedQueue extends Closeable {
@@ -40,7 +39,7 @@ public interface PersistedQueue extends Closeable {
         private final ArrayBlockingQueue<Event> readBuffer;
 
         public Local(final int ack, final String directory) {
-            this.writeBuffer = new ArrayBlockingQueue<>(ack);
+            this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             for (int i = 0; i < CONCURRENT; ++i) {
                 try {
@@ -105,7 +104,9 @@ public interface PersistedQueue extends Closeable {
 
             private final AtomicBoolean running = new AtomicBoolean(true);
 
-            private final AtomicLong watermarkPos = new AtomicLong(0L);
+            private long watermarkPos = 0L;
+            
+            private long highWatermarkPos = 0L;
 
             private final ArrayBlockingQueue<Event> outBuffer = new ArrayBlockingQueue<>(OUT_BUFFER_SIZE);
 
@@ -123,7 +124,7 @@ public interface PersistedQueue extends Closeable {
                 this.writeBuffer = writeBuffer;
                 count = 0;
                 flushed = 0;
-                this.ack = ack;
+                this.ack = ack / 2;
             }
 
             @Override
@@ -132,7 +133,7 @@ public interface PersistedQueue extends Closeable {
                     try {
                         final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
                         final boolean fullyRead =
-                            out.position() + obuf.position() == this.watermarkPos.get();
+                            highWatermarkPos + obuf.position() == this.watermarkPos;
                         if (event != null) {
                             write(event);
                             if (count == flushed - 1 && this.readBuffer.offer(event)) {
@@ -181,8 +182,8 @@ public interface PersistedQueue extends Closeable {
                 this.out.close();
             }
 
-            private void completeWatermark() throws IOException {
-                watermarkPos.set(out.position() + obuf.position());
+            private void completeWatermark() {
+                watermarkPos = highWatermarkPos + obuf.position();
             }
 
             private void write(final Event event) throws IOException {
@@ -201,7 +202,7 @@ public interface PersistedQueue extends Closeable {
 
             private void flush() throws IOException {
                 obuf.flip();
-                out.write(obuf);
+                highWatermarkPos += out.write(obuf);
                 fd.sync();
                 obuf.clear();
             }
@@ -222,14 +223,14 @@ public interface PersistedQueue extends Closeable {
             private boolean advanceFile() throws IOException {
                 final boolean result;
                 if (flushed + outBuffer.size() < count &&
-                    this.watermarkPos.get() == this.out.position()) {
+                    this.watermarkPos == highWatermarkPos) {
                     this.flush();
                 }
                 while(this.advanceBuffers()) {}
                 int remaining = outBuffer.remainingCapacity();
                 if (remaining > 0 &&
-                    this.watermarkPos.get() < this.out.position()) {
-                    this.in.position(watermarkPos.get());
+                    this.watermarkPos < highWatermarkPos) {
+                    this.in.position(watermarkPos);
                     ibuf.clear();
                     this.in.read(ibuf);
                     ibuf.flip();
@@ -238,7 +239,7 @@ public interface PersistedQueue extends Closeable {
                         final byte[] data = new byte[len];
                         ibuf.get(data);
                         outBuffer.add(Event.deserialize(data));
-                        this.watermarkPos.addAndGet(len + Integer.BYTES);
+                        this.watermarkPos += (long) (len + Integer.BYTES);
                         --remaining;
                     }
                     result = true;

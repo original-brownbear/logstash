@@ -4,7 +4,6 @@ import java.io.File;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -23,14 +22,11 @@ public final class PersistedQueueTest {
         final File dir = temp.newFolder();
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         final int count = 1_000_000;
-        try (PersistedQueue queue = new PersistedQueue.Local(1, dir.getAbsolutePath())) {
+        try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
             final Future<?> future = exec.submit(() -> {
                 try {
                     for (int i = 0; i < count; ++i) {
                         assertThat(queue.dequeue().getField("foo"), is(i));
-                        if (i % (count / 10) == 0) {
-                            TimeUnit.SECONDS.sleep(1L);
-                        }
                     }
                 } catch (final InterruptedException ex) {
                     throw new IllegalStateException(ex);
