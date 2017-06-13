@@ -67,7 +67,7 @@ public interface PersistedQueue extends Closeable {
 
         @Override
         public Event poll(final long timeout, final TimeUnit unit) throws InterruptedException {
-            return writeBuffer.poll(timeout, unit);
+            return readBuffer.poll(timeout, unit);
         }
 
         @Override
@@ -82,6 +82,8 @@ public interface PersistedQueue extends Closeable {
         private static final class LogWorker implements Runnable {
 
             private static final int ACK_INTERVAL = 1024;
+
+            private static final int OUT_BUFFER_SIZE = 10;
 
             private final FileOutputStream file;
 
@@ -103,7 +105,7 @@ public interface PersistedQueue extends Closeable {
 
             private final AtomicLong watermarkPos = new AtomicLong(0L);
 
-            private final ArrayDeque<Event> outBuffer = new ArrayDeque<>(10);
+            private final ArrayDeque<Event> outBuffer = new ArrayDeque<>(OUT_BUFFER_SIZE);
 
             private int count;
 
@@ -132,7 +134,7 @@ public interface PersistedQueue extends Closeable {
                             if (count == flushed - 1 && this.readBuffer.offer(event)) {
                                 watermarkPos.set(out.position() + obuf.position());
                             } else {
-                                if (fullyRead && outBuffer.size() < 10) {
+                                if (fullyRead && outBuffer.size() < OUT_BUFFER_SIZE) {
                                     outBuffer.add(event);
                                     watermarkPos.set(out.position() + obuf.position());
                                 }
@@ -207,7 +209,8 @@ public interface PersistedQueue extends Closeable {
                     this.watermarkPos.get() == this.out.position()) {
                     this.flush();
                 }
-                if (outBuffer.size() < 10 && this.watermarkPos.get() < this.out.position()) {
+                if (outBuffer.size() < OUT_BUFFER_SIZE &&
+                    this.watermarkPos.get() < this.out.position()) {
                     this.in.position(watermarkPos.get());
                     ibuf.clear();
                     this.in.read(ibuf);
