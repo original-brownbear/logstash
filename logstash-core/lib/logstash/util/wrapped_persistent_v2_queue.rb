@@ -6,7 +6,7 @@ module LogStash; module Util
     java_import java.util.concurrent.TimeUnit
 
     def initialize(ack_interval, path)
-      @queue = org.logstash.persistedqueue.PersistedQueue.Local.new(ack_interval, path)
+      @queue = org.logstash.persistedqueue.PersistedQueue::Local.new(ack_interval, path)
     end
 
     # Push an object to the queue if the queue is full
@@ -284,7 +284,7 @@ module LogStash; module Util
       end
 
       def push(event)
-        @queue.enqueue(event)
+        @queue.push(event)
       end
       alias_method(:<<, :push)
 

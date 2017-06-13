@@ -4,6 +4,7 @@ require "logstash/event"
 require "logstash/namespace"
 require "logstash/util/wrapped_acked_queue"
 require "logstash/util/wrapped_synchronous_queue"
+require "logstash/util/wrapped_persistent_v2_queue.rb"
 
 module LogStash
   class QueueFactory
