@@ -2,13 +2,13 @@ package org.logstash.persistedqueue;
 
 import java.io.Closeable;
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayDeque;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -46,7 +46,7 @@ public interface PersistedQueue extends Closeable {
                 try {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
                         Paths.get(directory, String.format("%d.log", i)).toFile(),
-                        readBuffer, writeBuffer
+                        readBuffer, writeBuffer, ack
                     );
                 } catch (final IOException ex) {
                     throw new IllegalStateException(ex);
@@ -74,18 +74,20 @@ public interface PersistedQueue extends Closeable {
         public void close() throws IOException {
             for (int i = 0; i < CONCURRENT; ++i) {
                 this.workers[i].shutdown();
-                this.workers[i].awaitShutdown();
+                this.workers[i].close();
             }
             exec.shutdown();
         }
 
-        private static final class LogWorker implements Runnable {
+        private static final class LogWorker implements Runnable, Closeable {
 
-            private static final int ACK_INTERVAL = 1024;
+            private final int ack;
 
-            private static final int OUT_BUFFER_SIZE = 10;
+            private static final int OUT_BUFFER_SIZE = 100;
 
             private final FileOutputStream file;
+
+            private final FileDescriptor fd;
 
             private final FileChannel out;
 
@@ -105,21 +107,23 @@ public interface PersistedQueue extends Closeable {
 
             private final AtomicLong watermarkPos = new AtomicLong(0L);
 
-            private final ArrayDeque<Event> outBuffer = new ArrayDeque<>(OUT_BUFFER_SIZE);
+            private final ArrayBlockingQueue<Event> outBuffer = new ArrayBlockingQueue<>(OUT_BUFFER_SIZE);
 
             private int count;
 
             private int flushed;
 
             LogWorker(final File file, final ArrayBlockingQueue<Event> readBuffer,
-                final ArrayBlockingQueue<Event> writeBuffer) throws IOException {
+                final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
                 this.file = new FileOutputStream(file);
+                this.fd = this.file.getFD();
                 this.out = this.file.getChannel();
                 this.in = FileChannel.open(file.toPath(), StandardOpenOption.READ);
                 this.readBuffer = readBuffer;
                 this.writeBuffer = writeBuffer;
                 count = 0;
                 flushed = 0;
+                this.ack = ack;
             }
 
             @Override
@@ -132,18 +136,19 @@ public interface PersistedQueue extends Closeable {
                         if (event != null) {
                             write(event);
                             if (count == flushed - 1 && this.readBuffer.offer(event)) {
-                                watermarkPos.set(out.position() + obuf.position());
+                                this.completeWatermark();
                             } else {
-                                if (fullyRead && outBuffer.size() < OUT_BUFFER_SIZE) {
-                                    outBuffer.add(event);
-                                    watermarkPos.set(out.position() + obuf.position());
+                                if (fullyRead && outBuffer.offer(event)) {
+                                    this.completeWatermark();
                                 }
                             }
                         }
-                        if (obuf.position() > 0 && count % ACK_INTERVAL == 0) {
+                        if (obuf.position() > 0 && count % ack == 0) {
                             flush();
                         }
-                        while (advanceFile() || advanceBuffers()) {
+                        int j = 0;
+                        while (j < 5 && advanceFile()) {
+                            ++j;
                         }
                     } catch (final InterruptedException | IOException ex) {
                         throw new IllegalStateException(ex);
@@ -169,6 +174,17 @@ public interface PersistedQueue extends Closeable {
                 }
             }
 
+            @Override
+            public void close() throws IOException {
+                this.awaitShutdown();
+                this.in.close();
+                this.out.close();
+            }
+
+            private void completeWatermark() throws IOException {
+                watermarkPos.set(out.position() + obuf.position());
+            }
+
             private void write(final Event event) throws IOException {
                 ++count;
                 final byte[] data = event.serialize();
@@ -186,15 +202,15 @@ public interface PersistedQueue extends Closeable {
             private void flush() throws IOException {
                 obuf.flip();
                 out.write(obuf);
-                this.file.getFD().sync();
+                fd.sync();
                 obuf.clear();
             }
 
             private boolean advanceBuffers() {
                 final boolean result;
-                Event e;
+                final Event e;
                 if ((e = outBuffer.peek()) != null && readBuffer.offer(e)) {
-                    outBuffer.pop();
+                    outBuffer.poll();
                     flushed++;
                     result = true;
                 } else {
@@ -209,17 +225,22 @@ public interface PersistedQueue extends Closeable {
                     this.watermarkPos.get() == this.out.position()) {
                     this.flush();
                 }
-                if (outBuffer.size() < OUT_BUFFER_SIZE &&
+                while(this.advanceBuffers()) {}
+                int remaining = outBuffer.remainingCapacity();
+                if (remaining > 0 &&
                     this.watermarkPos.get() < this.out.position()) {
                     this.in.position(watermarkPos.get());
                     ibuf.clear();
                     this.in.read(ibuf);
                     ibuf.flip();
-                    int len = ibuf.getInt();
-                    final byte[] data = new byte[len];
-                    ibuf.get(data);
-                    outBuffer.add(Event.deserialize(data));
-                    this.watermarkPos.addAndGet(len + Integer.BYTES);
+                    while (ibuf.remaining() >= Integer.BYTES && remaining > 0) {
+                        int len = ibuf.getInt();
+                        final byte[] data = new byte[len];
+                        ibuf.get(data);
+                        outBuffer.add(Event.deserialize(data));
+                        this.watermarkPos.addAndGet(len + Integer.BYTES);
+                        --remaining;
+                    }
                     result = true;
                 } else {
                     result = false;
