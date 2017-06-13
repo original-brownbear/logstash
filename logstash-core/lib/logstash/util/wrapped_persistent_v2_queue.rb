@@ -5,8 +5,8 @@ module LogStash; module Util
     java_import java.util.concurrent.SynchronousQueue
     java_import java.util.concurrent.TimeUnit
 
-    def initialize
-      @queue = java.util.concurrent.SynchronousQueue.new
+    def initialize(ack_interval, path)
+      @queue = org.logstash.persistedqueue.PersistedQueue.new(ack_interval, path)
     end
 
     # Push an object to the queue if the queue is full
@@ -30,7 +30,7 @@ module LogStash; module Util
 
     # Blocking
     def take
-      @queue.take
+      @queue.dequeue
     end
 
     # Block for X millis
@@ -284,7 +284,7 @@ module LogStash; module Util
       end
 
       def push(event)
-        @queue.push(event)
+        @queue.enqueue(event)
       end
       alias_method(:<<, :push)
 
