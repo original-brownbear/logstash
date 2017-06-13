@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.Event;
+import org.logstash.ext.JrubyEventExtLibrary;
 
 public interface PersistedQueue extends Closeable {
 
@@ -57,6 +58,10 @@ public interface PersistedQueue extends Closeable {
                 }
                 this.exec.execute(workers[i]);
             }
+        }
+        
+        public void enqueue(final JrubyEventExtLibrary.RubyEvent event) throws InterruptedException {
+            this.enqueue(event.getEvent());
         }
 
         @Override
