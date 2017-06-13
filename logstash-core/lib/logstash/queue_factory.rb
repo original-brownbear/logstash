@@ -27,6 +27,8 @@ module LogStash
         # persisted is the disk based acked queue
         FileUtils.mkdir_p(queue_path)
         LogStash::Util::WrappedAckedQueue.create_file_based(queue_path, queue_page_capacity, queue_max_events, checkpoint_max_writes, checkpoint_max_acks, checkpoint_max_interval, queue_max_bytes)
+      when "persisted2"
+        LogStash::Util::WrappedPersistentV2Queue.new  
       when "memory"
         # memory is the legacy and default setting
         LogStash::Util::WrappedSynchronousQueue.new
