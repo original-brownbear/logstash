@@ -99,7 +99,7 @@ public interface PersistedQueue extends Closeable {
                 try {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
                         Paths.get(directory, String.format("%d.log", i)).toFile(),
-                        readBuffer, writeBuffer, ack / (2 * CONCURRENT)
+                        readBuffer, writeBuffer, ack
                     );
                 } catch (final IOException ex) {
                     throw new IllegalStateException(ex);
@@ -319,10 +319,16 @@ public interface PersistedQueue extends Closeable {
                 this.shutdown.countDown();
             }
 
+            /**
+             * Signal this worker to stop processing {@link Event} and flush all internal buffers.
+             */
             public void shutdown() {
                 this.running.set(false);
             }
 
+            /**
+             * Wait for this worker to stop and flush all internal buffers.
+             */
             public void awaitShutdown() {
                 try {
                     this.shutdown.await();
@@ -339,12 +345,20 @@ public interface PersistedQueue extends Closeable {
             }
 
             /**
-             * Sets the watermark for number of bytes processed to
+             * Sets the watermark for number of bytes processed to the bound of all {@link Event}
+             * data that has been enqueued in either
+             * {@link PersistedQueue.Local.LogWorker#outBuffer} or
+             * {@link PersistedQueue.Local.LogWorker#readBuffer}.
              */
             private void completeWatermark() {
                 watermarkPos = highWatermarkPos + obuf.position();
             }
 
+            /**
+             * Serialize and write a {@link Event} to the backing file.
+             * @param event Event to persist
+             * @throws IOException On failure to serialize or write event to underlying storage
+             */
             private void write(final Queueable event) throws IOException {
                 ++count;
                 final byte[] data = event.serialize();
@@ -353,8 +367,15 @@ public interface PersistedQueue extends Closeable {
                 obuf.put(data);
             }
 
+            /**
+             * Flush {@link PersistedQueue.Local.LogWorker#obuf} to the filesystem if another write
+             * of given size could not be buffered to it.
+             * @param size Size of the next write
+             * @throws IOException On failure to flush buffer to filesystem
+             */
             private void maybeFlush(final int size) throws IOException {
-                if (obuf.position() > 0 && obuf.remaining() < size) {
+                final int pos = obuf.position();
+                if (pos > 0 && BYTE_BUFFER_SIZE - pos < size) {
                     flush();
                 }
             }

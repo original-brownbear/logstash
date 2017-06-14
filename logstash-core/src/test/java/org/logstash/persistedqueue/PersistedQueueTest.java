@@ -21,7 +21,7 @@ public final class PersistedQueueTest {
     public void persistsToDisk() throws Exception {
         final File dir = temp.newFolder();
         final ExecutorService exec = Executors.newSingleThreadExecutor();
-        final int count = 1_000_000_0;
+        final int count = 1_000_000;
         try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
             final Future<?> future = exec.submit(() -> {
                 try {
