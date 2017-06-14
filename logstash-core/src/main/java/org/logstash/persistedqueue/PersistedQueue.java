@@ -380,6 +380,12 @@ public interface PersistedQueue extends Closeable {
                 }
             }
 
+            /**
+             * Flushes {@link PersistedQueue.Local.LogWorker#obuf} to the filesystem.<br />
+             * Note that the method triggers `fsync` and therefore guarantees physical persistence
+             * within the limits of the backing file system.
+             * @throws IOException On failure to flush buffer to filesystem
+             */
             private void flush() throws IOException {
                 obuf.flip();
                 highWatermarkPos += (long) out.write(obuf);
@@ -387,6 +393,14 @@ public interface PersistedQueue extends Closeable {
                 obuf.clear();
             }
 
+            /**
+             * Tries to advance one {@link Event} from
+             * {@link PersistedQueue.Local.LogWorker#outBuffer} to
+             * {@link PersistedQueue.Local.LogWorker#readBuffer}.
+             * @return {@code true} iff an {@link Event} was promoted from the un-contended
+             * {@link PersistedQueue.Local.LogWorker#outBuffer} to the contended
+             * {@link PersistedQueue.Local.LogWorker#readBuffer}
+             */
             private boolean advanceBuffers() {
                 final boolean result;
                 final Event e = outBuffer.peek();
@@ -400,6 +414,12 @@ public interface PersistedQueue extends Closeable {
                 return result;
             }
 
+            /**
+             * Buffers {@link Event} that are only buffered in serialized form in the file system
+             * to deserialized buffers.
+             * @return {@code true} iff at least one {@link Event} was deserialized and buffered
+             * @throws IOException On failure to read from underlying storage
+             */
             private boolean advanceFile() throws IOException {
                 if (flushed + outBuffer.size() < count &&
                     this.watermarkPos == highWatermarkPos) {
