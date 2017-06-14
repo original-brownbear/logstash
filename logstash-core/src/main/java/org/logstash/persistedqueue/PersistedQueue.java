@@ -1,12 +1,17 @@
 package org.logstash.persistedqueue;
 
+import java.io.BufferedInputStream;
 import java.io.Closeable;
+import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -76,6 +81,8 @@ public interface PersistedQueue extends Closeable {
         private final PersistedQueue.Local.LogWorker[] workers =
             new PersistedQueue.Local.LogWorker[CONCURRENT];
 
+        private final PersistedQueue.Local.IndexFile indexFile;
+
         /**
          * Buffer for incoming {@link Event} that have yet to be written to the file system.
          * Chosen to be half the size of the upper bound of allowed in-flight {@link Event}, with
@@ -99,16 +106,18 @@ public interface PersistedQueue extends Closeable {
         public Local(final int ack, final String directory) {
             this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
-            for (int i = 0; i < CONCURRENT; ++i) {
-                try {
+            try {
+                this.indexFile = new IndexFile(CONCURRENT, Paths.get(directory));
+                for (int i = 0; i < CONCURRENT; ++i) {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
-                        Paths.get(directory, String.format("%d.log", i)).toFile(),
+                        this.indexFile,
+                        Paths.get(directory, String.format("%d.log", i)).toFile(), i,
                         readBuffer, writeBuffer, ack
                     );
-                } catch (final IOException ex) {
-                    throw new IllegalStateException(ex);
+                    this.exec.execute(workers[i]);
                 }
-                this.exec.execute(workers[i]);
+            } catch (final IOException ex) {
+                throw new IllegalStateException(ex);
             }
         }
 
@@ -152,6 +161,8 @@ public interface PersistedQueue extends Closeable {
          * file system.
          */
         private static final class LogWorker implements Runnable, Closeable {
+
+            private final PersistedQueue.Local.IndexFile index;
 
             /**
              * Size (in number of {@link Event}) of the un-contended output queue-buffer available
@@ -237,6 +248,8 @@ public interface PersistedQueue extends Closeable {
              */
             private final byte[] readByteBuffer = new byte[BYTE_BUFFER_SIZE];
 
+            private final int partition;
+
             /**
              * Offset on the backing file to read the next {@link Event} from in case
              * {@link PersistedQueue.Local.LogWorker#outBuffer} is depleted.<br />
@@ -264,6 +277,7 @@ public interface PersistedQueue extends Closeable {
 
             /**
              * Ctor.
+             * @param index {@link PersistedQueue.Local.IndexFile} storing offsets.
              * @param file Backing data {@link File}
              * @param readBuffer Same instance as {@link PersistedQueue.Local#readBuffer}
              * @param writeBuffer Same instance as {@link PersistedQueue.Local#writeBuffer}
@@ -272,8 +286,11 @@ public interface PersistedQueue extends Closeable {
              * {@link PersistedQueue.Local.LogWorker#out}, but not yet `fsync`ed to the file system
              * @throws IOException On failure to open backing data file for either reads or writes
              */
-            LogWorker(final File file, final ArrayBlockingQueue<Event> readBuffer,
+            LogWorker(final PersistedQueue.Local.IndexFile index, final File file,
+                final int partition, final ArrayBlockingQueue<Event> readBuffer,
                 final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
+                this.index = index;
+                this.partition = partition;
                 this.file = new FileOutputStream(file);
                 this.fd = this.file.getFD();
                 this.out = this.file.getChannel();
@@ -282,8 +299,8 @@ public interface PersistedQueue extends Closeable {
                 this.writeBuffer = writeBuffer;
                 count = 0;
                 flushed = 0;
-                highWatermarkPos = 0L;
-                watermarkPos = 0L;
+                highWatermarkPos = this.index.highWatermark(partition);
+                watermarkPos = this.index.watermark(partition);
                 this.ack = ack / 2;
             }
 
@@ -394,6 +411,7 @@ public interface PersistedQueue extends Closeable {
                 obuf.flip();
                 highWatermarkPos += (long) out.write(obuf);
                 fd.sync();
+                index.append(partition, watermarkPos, highWatermarkPos);
                 obuf.clear();
             }
 
@@ -452,6 +470,68 @@ public interface PersistedQueue extends Closeable {
                     result = false;
                 }
                 return result;
+            }
+        }
+
+        private static final class IndexFile implements Closeable {
+
+            private final long[] watermarks;
+
+            private final FileChannel out;
+
+            private final ByteBuffer buffer =
+                ByteBuffer.allocateDirect(Integer.BYTES + 2 * Long.BYTES);
+
+            IndexFile(final int partitions, final Path dir) throws IOException {
+                final Path path = dir.resolve("queue.index");
+                watermarks = loadWatermarks(partitions, path);
+                out = FileChannel.open(
+                    path, StandardOpenOption.APPEND,
+                    StandardOpenOption.DSYNC, StandardOpenOption.CREATE
+                );
+            }
+
+            public long watermark(final int partition) {
+                return this.watermarks[2 * partition];
+            }
+
+            public long highWatermark(final int partition) {
+                return this.watermarks[2 * partition + 1];
+            }
+
+            public synchronized void append(final int partition, final long high, final long low)
+                throws IOException {
+                buffer.position(0);
+                buffer.putInt(partition);
+                buffer.putLong(low);
+                buffer.putLong(high);
+                buffer.position(0);
+                out.write(buffer);
+            }
+
+            @Override
+            public void close() throws IOException {
+                out.close();
+            }
+
+            private static long[] loadWatermarks(final int partitions, final Path index) {
+                final long[] watermarks = new long[2 * partitions];
+                final File file = index.toFile();
+                if (file.exists()) {
+                    try (final DataInputStream stream = new DataInputStream(
+                        new BufferedInputStream(new FileInputStream(index.toFile()))
+                    )
+                    ) {
+                        final int part = stream.readInt();
+                        watermarks[2 * part] = stream.readLong();
+                        watermarks[2 * part + 1] = stream.readLong();
+                    } catch (final EOFException ignored) {
+                        //End of Index File
+                    } catch (final IOException ex) {
+                        throw new IllegalStateException(ex);
+                    }
+                }
+                return watermarks;
             }
         }
     }
