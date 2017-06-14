@@ -19,6 +19,10 @@ import org.logstash.Event;
 import org.logstash.ackedqueue.Queueable;
 import org.logstash.ext.JrubyEventExtLibrary;
 
+/**
+ * Queue of {@link Event} expected to be backed by some form of physical storage.<br />
+ * Implementations are assumed to be threadsafe.
+ */
 public interface PersistedQueue extends Closeable {
 
     /**
