@@ -265,7 +265,7 @@ public interface PersistedQueue extends Closeable {
              * @param writeBuffer Same instance as {@link PersistedQueue.Local#writeBuffer}
              * @param ack Maximum number of in-flight events, that are either stored serialized
              * in {@link PersistedQueue.Local.LogWorker#obuf} or already written to
-             * {@link PersistedQueue.Local.LogWorker#out}, but not yet `fsync`ed to the file system.
+             * {@link PersistedQueue.Local.LogWorker#out}, but not yet `fsync`ed to the file system
              * @throws IOException On failure to open backing data file for either reads or writes
              */
             LogWorker(final File file, final ArrayBlockingQueue<Event> readBuffer,
