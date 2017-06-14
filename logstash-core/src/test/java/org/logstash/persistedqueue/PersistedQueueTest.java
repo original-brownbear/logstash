@@ -1,6 +1,10 @@
 package org.logstash.persistedqueue;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -63,6 +67,38 @@ public final class PersistedQueueTest {
                     queue.enqueue(event);
                 }
                 future.get();
+            }
+        }
+    }
+
+    @Test
+    public void couldRewind() throws Exception {
+        final File dir = temp.newFolder();
+        final int count = 10_000;
+        try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
+            for (int i = 0; i < count; ++i) {
+                final Event event = new Event();
+                event.setField("foo", i);
+                queue.enqueue(event);
+            }
+            for (int i = 0; i < count; ++i) {
+                assertThat(queue.dequeue().getField("foo"), is(i));
+            }
+        }
+        final Path indexPath = dir.toPath().resolve("queue.index");
+        try (final DataOutputStream data = new DataOutputStream(
+                new FileOutputStream(indexPath.toFile(), true)
+            )
+        ) {
+            final byte[] index = Files.readAllBytes(indexPath);
+            data.writeInt(0);
+            data.writeLong(0L);
+            data.write(index, index.length - Long.BYTES, Long.BYTES);
+            data.flush();
+        }
+        try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
+            for (int i = 0; i < count; ++i) {
+                assertThat(queue.dequeue().getField("foo"), is(i));
             }
         }
     }

@@ -152,6 +152,7 @@ public interface PersistedQueue extends Closeable {
                 this.workers[i].shutdown();
                 this.workers[i].close();
             }
+            this.indexFile.close();
             exec.shutdown();
         }
 
@@ -291,7 +292,7 @@ public interface PersistedQueue extends Closeable {
                 final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
                 this.index = index;
                 this.partition = partition;
-                this.file = new FileOutputStream(file);
+                this.file = new FileOutputStream(file, true);
                 this.fd = this.file.getFD();
                 this.out = this.file.getChannel();
                 this.in = FileChannel.open(file.toPath(), StandardOpenOption.READ);
@@ -363,6 +364,7 @@ public interface PersistedQueue extends Closeable {
                 this.awaitShutdown();
                 this.in.close();
                 this.file.close();
+                this.index.append(partition, watermarkPos, highWatermarkPos);
             }
 
             /**
@@ -501,6 +503,8 @@ public interface PersistedQueue extends Closeable {
 
             public synchronized void append(final int partition, final long high, final long low)
                 throws IOException {
+                this.watermarks[2 * partition] = low;
+                this.watermarks[2 * partition + 1] = high;
                 buffer.position(0);
                 buffer.putInt(partition);
                 buffer.putLong(low);
@@ -522,9 +526,11 @@ public interface PersistedQueue extends Closeable {
                         new BufferedInputStream(new FileInputStream(index.toFile()))
                     )
                     ) {
-                        final int part = stream.readInt();
-                        watermarks[2 * part] = stream.readLong();
-                        watermarks[2 * part + 1] = stream.readLong();
+                        while(true) {
+                            final int part = stream.readInt();
+                            watermarks[2 * part] = stream.readLong();
+                            watermarks[2 * part + 1] = stream.readLong();
+                        }
                     } catch (final EOFException ignored) {
                         //End of Index File
                     } catch (final IOException ex) {
