@@ -249,6 +249,9 @@ public interface PersistedQueue extends Closeable {
              */
             private final byte[] readByteBuffer = new byte[BYTE_BUFFER_SIZE];
 
+            /**
+             * Partition of this worker.
+             */
             private final int partition;
 
             /**
@@ -493,11 +496,11 @@ public interface PersistedQueue extends Closeable {
                 );
             }
 
-            public long watermark(final int partition) {
+            public synchronized long watermark(final int partition) {
                 return this.watermarks[2 * partition];
             }
 
-            public long highWatermark(final int partition) {
+            public synchronized long highWatermark(final int partition) {
                 return this.watermarks[2 * partition + 1];
             }
 
