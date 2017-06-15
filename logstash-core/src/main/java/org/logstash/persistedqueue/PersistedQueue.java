@@ -25,13 +25,13 @@ import org.logstash.ackedqueue.Queueable;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 /**
- * Queue of {@link Event} expected to be backed by some form of physical storage.<br />
+ * <p>Queue of {@link Event} expected to be backed by some form of physical storage.</p>
  * Implementations are assumed to be threadsafe.
  */
 public interface PersistedQueue extends Closeable {
 
     /**
-     * Enqueues an {@link Event} in a blocking fashion.<br />
+     * <p>Enqueues an {@link Event} in a blocking fashion.</p>
      * Implementations should behave analogous to {@link ArrayBlockingQueue#put(Object)}.
      * @param event Event to enqueue
      * @throws InterruptedException On interrupt during enqueue
@@ -39,7 +39,7 @@ public interface PersistedQueue extends Closeable {
     void enqueue(Event event) throws InterruptedException;
 
     /**
-     * Dequeues an {@link Event} in a blocking fashion.<br />
+     * <p>Dequeues an {@link Event} in a blocking fashion.</p>
      * Implementations should behave analogous to {@link ArrayBlockingQueue#take()}.
      * @return {@link Event}.
      * @throws InterruptedException On interrupt during dequeue
@@ -47,7 +47,7 @@ public interface PersistedQueue extends Closeable {
     Event dequeue() throws InterruptedException;
 
     /**
-     * Dequeues an {@link Event} in a blocking fashion, subject to a timeout.<br />
+     * <p>Dequeues an {@link Event} in a blocking fashion, subject to a timeout.</p>
      * Implementations should behave analogous to {@link ArrayBlockingQueue#poll(long, TimeUnit)}.
      * @return {@link Event}.
      * @throws InterruptedException On interrupt during dequeue
@@ -55,14 +55,14 @@ public interface PersistedQueue extends Closeable {
     Event poll(long timeout, TimeUnit unit) throws InterruptedException;
 
     /**
-     * Implementation of a local-disk-backed {@link Event} queue.<br />
+     * <p>Implementation of a local-disk-backed {@link Event} queue.</p>
      * This queue guarantees the number of {@link Event} that are in-flight and not yet physically
      * written to disk is limited by a configurable upper bound.
      */
     final class Local implements PersistedQueue {
 
         /**
-         * Concurrency Level. <br />
+         * <p>Concurrency Level.</p>
          * A level of 1 results in complete ordering, higher levels do not come with a guaranteed
          * ordering between inputs and outputs.
          */
@@ -92,8 +92,8 @@ public interface PersistedQueue extends Closeable {
         private final ArrayBlockingQueue<Event> writeBuffer;
 
         /**
-         * Buffer for already persisted {@link Event} reader for processing and available to queue
-         * consumers via {@link PersistedQueue.Local#dequeue()}.<br />
+         * <p>Buffer for already persisted {@link Event} reader for processing and available to queue
+         * consumers via {@link PersistedQueue.Local#dequeue()}.</p>
          * Chosen to be of a fixed size of {@code 1024}.
          */
         private final ArrayBlockingQueue<Event> readBuffer;
@@ -255,8 +255,8 @@ public interface PersistedQueue extends Closeable {
             private final int partition;
 
             /**
-             * Offset on the backing file to read the next {@link Event} from in case
-             * {@link PersistedQueue.Local.LogWorker#outBuffer} is depleted.<br />
+             * <p>Offset on the backing file to read the next {@link Event} from in case
+             * {@link PersistedQueue.Local.LogWorker#outBuffer} is depleted.</p>
              * Note that {@link PersistedQueue.Local.LogWorker#obuf} must be flushed in order to
              * make this number correspond to a physical offset on
              * {@link PersistedQueue.Local.LogWorker#in}.
@@ -407,7 +407,7 @@ public interface PersistedQueue extends Closeable {
             }
 
             /**
-             * Flushes {@link PersistedQueue.Local.LogWorker#obuf} to the filesystem.<br />
+             * <p>Flushes {@link PersistedQueue.Local.LogWorker#obuf} to the filesystem.</p>
              * Note that the method triggers `fsync` and therefore guarantees physical persistence
              * within the limits of the backing file system.
              * @throws IOException On failure to flush buffer to filesystem
