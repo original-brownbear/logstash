@@ -78,8 +78,8 @@ public interface PersistedQueue extends Closeable {
          * {@link PersistedQueue.Local#readBuffer} while simultaneously persisting it to the file
          * system.
          */
-        private final PersistedQueue.Local.LogWorker[] workers =
-            new PersistedQueue.Local.LogWorker[CONCURRENT];
+        private final PersistedQueue.Local.Worker[] workers =
+            new PersistedQueue.Local.Worker[CONCURRENT];
 
         private final PersistedQueue.Local.Index indexFile;
 
@@ -107,7 +107,7 @@ public interface PersistedQueue extends Closeable {
             this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
-                this.indexFile = new IndexFile(CONCURRENT, Paths.get(directory));
+                this.indexFile = new PersistedQueue.Local.IndexFile(CONCURRENT, Paths.get(directory));
                 for (int i = 0; i < CONCURRENT; ++i) {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
                         this.indexFile,
@@ -155,13 +155,26 @@ public interface PersistedQueue extends Closeable {
             this.indexFile.close();
             exec.shutdown();
         }
+        
+        private interface Worker extends Runnable, Closeable {
+
+            /**
+             * Wait for this worker to stop and flush all internal buffers.
+             */
+            void awaitShutdown();
+
+            /**
+             * Signal this worker to stop processing {@link Event} and flush all internal buffers.
+             */
+            void shutdown();
+        }
 
         /**
          * Background worker passing events from {@link PersistedQueue.Local#writeBuffer} to
          * {@link PersistedQueue.Local#readBuffer} while simultaneously persisting them to the
          * file system.
          */
-        private static final class LogWorker implements Runnable, Closeable {
+        private static final class LogWorker implements PersistedQueue.Local.Worker {
 
             private final PersistedQueue.Local.Index index;
 
@@ -344,16 +357,12 @@ public interface PersistedQueue extends Closeable {
                 this.shutdown.countDown();
             }
 
-            /**
-             * Signal this worker to stop processing {@link Event} and flush all internal buffers.
-             */
+            @Override
             public void shutdown() {
                 this.running.set(false);
             }
 
-            /**
-             * Wait for this worker to stop and flush all internal buffers.
-             */
+            @Override
             public void awaitShutdown() {
                 try {
                     this.shutdown.await();
@@ -485,14 +494,14 @@ public interface PersistedQueue extends Closeable {
              * @param partition Partition Id
              * @return Current read offset for partition
              */
-            long watermark(final int partition);
+            long watermark(int partition);
 
             /**
              * Returns the current write offset for a partition.
              * @param partition Partition Id
              * @return Current write offset for partition
              */
-            long highWatermark(final int partition);
+            long highWatermark(int partition);
 
             /**
              * Appends a new offset pair for a partition.
@@ -501,11 +510,11 @@ public interface PersistedQueue extends Closeable {
              * @param watermark Watermark
              * @throws IOException
              */
-            void append(final int partition, final long highWatermark, 
-                final long watermark) throws IOException;
+            void append(int partition, long highWatermark, 
+                long watermark) throws IOException;
         }
         
-        private static final class IndexFile implements Index {
+        private static final class IndexFile implements PersistedQueue.Local.Index {
 
             private final long[] watermarks;
 
