@@ -479,12 +479,30 @@ public interface PersistedQueue extends Closeable {
         }
 
         private interface Index extends Closeable {
-            
+
+            /**
+             * Returns the current read offset for a partition.
+             * @param partition Partition Id
+             * @return Current read offset for partition
+             */
             long watermark(final int partition);
-            
+
+            /**
+             * Returns the current write offset for a partition.
+             * @param partition Partition Id
+             * @return Current write offset for partition
+             */
             long highWatermark(final int partition);
 
-            void append(final int partition, final long high, final long low) throws IOException;
+            /**
+             * Appends a new offset pair for a partition.
+             * @param partition Partition id
+             * @param highWatermark High watermark
+             * @param watermark Watermark
+             * @throws IOException
+             */
+            void append(final int partition, final long highWatermark, 
+                final long watermark) throws IOException;
         }
         
         private static final class IndexFile implements Index {
@@ -515,14 +533,15 @@ public interface PersistedQueue extends Closeable {
                 return this.watermarks[2 * partition + 1];
             }
 
-            public synchronized void append(final int partition, final long high, final long low)
-                throws IOException {
-                this.watermarks[2 * partition] = low;
-                this.watermarks[2 * partition + 1] = high;
+            @Override
+            public synchronized void append(final int partition, final long highWatermark,
+                final long watermark) throws IOException {
+                this.watermarks[2 * partition] = watermark;
+                this.watermarks[2 * partition + 1] = highWatermark;
                 buffer.position(0);
                 buffer.putInt(partition);
-                buffer.putLong(low);
-                buffer.putLong(high);
+                buffer.putLong(watermark);
+                buffer.putLong(highWatermark);
                 buffer.position(0);
                 out.write(buffer);
             }
