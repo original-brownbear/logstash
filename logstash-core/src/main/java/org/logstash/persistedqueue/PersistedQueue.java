@@ -21,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.Event;
-import org.logstash.ackedqueue.Queueable;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 /**
@@ -107,7 +106,8 @@ public interface PersistedQueue extends Closeable {
             this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
-                this.indexFile = new PersistedQueue.Local.IndexFile(CONCURRENT, Paths.get(directory));
+                this.indexFile =
+                    new PersistedQueue.Local.IndexFile(CONCURRENT, Paths.get(directory));
                 for (int i = 0; i < CONCURRENT; ++i) {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
                         this.indexFile,
@@ -155,7 +155,7 @@ public interface PersistedQueue extends Closeable {
             this.indexFile.close();
             exec.shutdown();
         }
-        
+
         private interface Worker extends Runnable, Closeable {
 
             /**
@@ -326,17 +326,8 @@ public interface PersistedQueue extends Closeable {
                 while (running.get()) {
                     try {
                         final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
-                        final boolean fullyRead =
-                            highWatermarkPos + obuf.position() == this.watermarkPos;
                         if (event != null) {
                             write(event);
-                            if (count == flushed - 1 && this.readBuffer.offer(event)) {
-                                this.completeWatermark();
-                            } else {
-                                if (fullyRead && outBuffer.offer(event)) {
-                                    this.completeWatermark();
-                                }
-                            }
                         }
                         if (count % ack == 0 && obuf.position() > 0) {
                             flush();
@@ -378,7 +369,7 @@ public interface PersistedQueue extends Closeable {
                 this.file.close();
                 this.index.append(partition, watermarkPos, highWatermarkPos);
             }
-
+  
             /**
              * Sets the watermark for number of bytes processed to the bound of all {@link Event}
              * data that has been enqueued in either
@@ -394,12 +385,21 @@ public interface PersistedQueue extends Closeable {
              * @param event Event to persist
              * @throws IOException On failure to serialize or write event to underlying storage
              */
-            private void write(final Queueable event) throws IOException {
+            private void write(final Event event) throws IOException {
+                final boolean fullyRead =
+                    highWatermarkPos + (long) obuf.position() == this.watermarkPos;
                 ++count;
                 final byte[] data = event.serialize();
                 maybeFlush(data.length + Integer.BYTES);
                 obuf.putInt(data.length);
                 obuf.put(data);
+                if (count == flushed - 1 && this.readBuffer.offer(event)) {
+                    this.completeWatermark();
+                } else {
+                    if (fullyRead && outBuffer.offer(event)) {
+                        this.completeWatermark();
+                    }
+                }
             }
 
             /**
@@ -508,12 +508,11 @@ public interface PersistedQueue extends Closeable {
              * @param partition Partition id
              * @param highWatermark High watermark
              * @param watermark Watermark
-             * @throws IOException
              */
-            void append(int partition, long highWatermark, 
+            void append(int partition, long highWatermark,
                 long watermark) throws IOException;
         }
-        
+
         private static final class IndexFile implements PersistedQueue.Local.Index {
 
             private final long[] watermarks;
@@ -568,7 +567,7 @@ public interface PersistedQueue extends Closeable {
                         new BufferedInputStream(new FileInputStream(index.toFile()))
                     )
                     ) {
-                        while(true) {
+                        while (true) {
                             final int part = stream.readInt();
                             watermarks[2 * part] = stream.readLong();
                             watermarks[2 * part + 1] = stream.readLong();
