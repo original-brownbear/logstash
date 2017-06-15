@@ -81,7 +81,7 @@ public interface PersistedQueue extends Closeable {
         private final PersistedQueue.Local.LogWorker[] workers =
             new PersistedQueue.Local.LogWorker[CONCURRENT];
 
-        private final PersistedQueue.Local.IndexFile indexFile;
+        private final PersistedQueue.Local.Index indexFile;
 
         /**
          * Buffer for incoming {@link Event} that have yet to be written to the file system.
@@ -163,7 +163,7 @@ public interface PersistedQueue extends Closeable {
          */
         private static final class LogWorker implements Runnable, Closeable {
 
-            private final PersistedQueue.Local.IndexFile index;
+            private final PersistedQueue.Local.Index index;
 
             /**
              * Size (in number of {@link Event}) of the un-contended output queue-buffer available
@@ -290,7 +290,7 @@ public interface PersistedQueue extends Closeable {
              * {@link PersistedQueue.Local.LogWorker#out}, but not yet `fsync`ed to the file system
              * @throws IOException On failure to open backing data file for either reads or writes
              */
-            LogWorker(final PersistedQueue.Local.IndexFile index, final File file,
+            LogWorker(final PersistedQueue.Local.Index index, final File file,
                 final int partition, final ArrayBlockingQueue<Event> readBuffer,
                 final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
                 this.index = index;
@@ -478,7 +478,16 @@ public interface PersistedQueue extends Closeable {
             }
         }
 
-        private static final class IndexFile implements Closeable {
+        private interface Index extends Closeable {
+            
+            long watermark(final int partition);
+            
+            long highWatermark(final int partition);
+
+            void append(final int partition, final long high, final long low) throws IOException;
+        }
+        
+        private static final class IndexFile implements Index {
 
             private final long[] watermarks;
 
@@ -496,10 +505,12 @@ public interface PersistedQueue extends Closeable {
                 );
             }
 
+            @Override
             public synchronized long watermark(final int partition) {
                 return this.watermarks[2 * partition];
             }
 
+            @Override
             public synchronized long highWatermark(final int partition) {
                 return this.watermarks[2 * partition + 1];
             }
