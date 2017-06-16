@@ -52,6 +52,8 @@ public interface PersistedQueue extends Closeable {
      */
     Event poll(long timeout, TimeUnit unit) throws InterruptedException;
 
+    boolean empty();
+    
     /**
      * <p>Implementation of a local-disk-backed {@link Event} queue.</p>
      * This queue guarantees the number of {@link Event} that are in-flight and not yet physically
@@ -102,6 +104,7 @@ public interface PersistedQueue extends Closeable {
          * @param directory Directory to store backing data in
          */
         public Local(final int ack, final String directory) {
+            System.err.println("starting workers");
             this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
@@ -135,6 +138,11 @@ public interface PersistedQueue extends Closeable {
             return readBuffer.poll(timeout, unit);
         }
 
+        @Override
+        public boolean empty() {
+            return readBuffer.isEmpty();
+        }
+        
         @Override
         public void close() throws IOException {
             for (int i = 0; i < CONCURRENT; ++i) {
@@ -295,6 +303,7 @@ public interface PersistedQueue extends Closeable {
             LogWorker(final PersistedQueue.Local.Index index, final File file,
                 final int partition, final ArrayBlockingQueue<Event> readBuffer,
                 final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
+                System.err.println("starting worker" + partition);
                 this.index = index;
                 this.partition = partition;
                 this.file = new FileOutputStream(file, true);
@@ -312,6 +321,7 @@ public interface PersistedQueue extends Closeable {
 
             @Override
             public void run() {
+                System.err.println("running worker");
                 while (running.get()) {
                     try {
                         final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
@@ -335,6 +345,7 @@ public interface PersistedQueue extends Closeable {
                     throw new IllegalStateException(ex);
                 }
                 this.shutdown.countDown();
+                System.err.println("clean shutdown");
             }
 
             @Override

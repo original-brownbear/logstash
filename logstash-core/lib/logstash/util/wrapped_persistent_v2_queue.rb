@@ -48,7 +48,7 @@ module LogStash; module Util
     end
 
     def close
-      # ignore
+      @queue.close
     end
 
     class ReadClient
@@ -70,11 +70,11 @@ module LogStash; module Util
       end
 
       def close
-        # noop, compat with acked queue read client
+        @queue.close
       end
 
       def empty?
-        true # synchronous queue is alway empty
+        @queue.empty?
       end
 
       def set_batch_dimensions(batch_size, wait_for)

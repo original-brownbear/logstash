@@ -68,5 +68,16 @@ public class JRubyPqLocalExtLibrary implements Library {
             }
             return result;
         }
+
+        @JRubyMethod(name = "empty?")
+        public IRubyObject emptyJava(final ThreadContext context) throws IOException {
+            return queue.empty() ? context.tru : context.fals;
+        }
+        
+        @JRubyMethod(name = "close")
+        public void closeJava(final ThreadContext context) throws IOException {
+            System.err.println("ruby close");
+            queue.close();
+        }
     }
 }
