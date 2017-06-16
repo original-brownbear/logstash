@@ -46,6 +46,10 @@ module LogStash; module Util
     def read_client
       ReadClient.new(self)
     end
+    
+    def empty?
+      @queue.empty?
+    end
 
     def close
       @queue.close

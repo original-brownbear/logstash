@@ -104,7 +104,6 @@ public interface PersistedQueue extends Closeable {
          * @param directory Directory to store backing data in
          */
         public Local(final int ack, final String directory) {
-            System.err.println("starting workers");
             this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
@@ -140,7 +139,14 @@ public interface PersistedQueue extends Closeable {
 
         @Override
         public boolean empty() {
-            return readBuffer.isEmpty();
+            boolean res = true;
+            for (int i = 0; i < CONCURRENT; ++i) {
+                res = res && this.workers[i].flushed();
+                if (!res) {
+                    break;
+                }
+            }
+            return res && readBuffer.isEmpty() && writeBuffer.isEmpty();
         }
         
         @Override
@@ -155,6 +161,8 @@ public interface PersistedQueue extends Closeable {
 
         private interface Worker extends Runnable, Closeable {
 
+            boolean flushed();
+            
             /**
              * Wait for this worker to stop and flush all internal buffers.
              */
@@ -321,7 +329,6 @@ public interface PersistedQueue extends Closeable {
 
             @Override
             public void run() {
-                System.err.println("running worker");
                 while (running.get()) {
                     try {
                         final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
@@ -345,7 +352,6 @@ public interface PersistedQueue extends Closeable {
                     throw new IllegalStateException(ex);
                 }
                 this.shutdown.countDown();
-                System.err.println("clean shutdown");
             }
 
             @Override
@@ -360,6 +366,12 @@ public interface PersistedQueue extends Closeable {
                 } catch (final InterruptedException ex) {
                     throw new IllegalStateException(ex);
                 }
+            }
+            
+            @Override
+            public boolean flushed() {
+                return highWatermarkPos == watermarkPos && obuf.position() == 0 &&
+                    outBuffer.isEmpty();
             }
 
             @Override
