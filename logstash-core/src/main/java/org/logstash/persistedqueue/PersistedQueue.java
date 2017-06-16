@@ -273,13 +273,13 @@ public interface PersistedQueue extends Closeable {
             /**
              * Number of {@link Event} written to disk.
              */
-            private int count;
+            private long count;
 
             /**
              * Number of {@link Event} successfully passed to
              * {@link PersistedQueue.Local.LogWorker#readBuffer}.
              */
-            private int flushed;
+            private long flushed;
 
             /**
              * Ctor.
@@ -318,7 +318,7 @@ public interface PersistedQueue extends Closeable {
                         if (event != null) {
                             write(event);
                         }
-                        if (count % ack == 0 && obuf.position() > 0) {
+                        if (count % (long) ack == 0L && obuf.position() > 0) {
                             flush();
                         }
                         int j = 0;
@@ -366,7 +366,7 @@ public interface PersistedQueue extends Closeable {
              * {@link PersistedQueue.Local.LogWorker#readBuffer}.
              */
             private void completeWatermark() {
-                watermarkPos = highWatermarkPos + obuf.position();
+                watermarkPos = highWatermarkPos + (long) obuf.position();
             }
 
             /**
@@ -382,7 +382,7 @@ public interface PersistedQueue extends Closeable {
                 maybeFlush(data.length + Integer.BYTES);
                 obuf.putInt(data.length);
                 obuf.put(data);
-                if (count == flushed - 1 && this.readBuffer.offer(event)) {
+                if (count == flushed - 1L && this.readBuffer.offer(event)) {
                     this.completeWatermark();
                 } else {
                     if (fullyRead && outBuffer.offer(event)) {
@@ -446,7 +446,7 @@ public interface PersistedQueue extends Closeable {
              * @throws IOException On failure to read from underlying storage
              */
             private boolean advanceFile() throws IOException {
-                if (flushed + outBuffer.size() < count &&
+                if (flushed + (long) outBuffer.size() < count &&
                     this.watermarkPos == highWatermarkPos) {
                     this.flush();
                 }
