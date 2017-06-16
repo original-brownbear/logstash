@@ -1,12 +1,13 @@
 # encoding: utf-8
 
+require "jruby_pq_local_ext"
+
 module LogStash; module Util
   class WrappedPersistentV2Queue
-    java_import java.util.concurrent.SynchronousQueue
     java_import java.util.concurrent.TimeUnit
 
     def initialize(ack_interval, path)
-      @queue = org.logstash.persistedqueue.PersistedQueue::Local.new(ack_interval, path)
+      @queue = PqLocal.new(ack_interval, path)
     end
 
     # Push an object to the queue if the queue is full
@@ -35,7 +36,7 @@ module LogStash; module Util
 
     # Block for X millis
     def poll(millis)
-      @queue.poll(millis, TimeUnit::MILLISECONDS)
+      @queue.poll(millis)
     end
 
     def write_client

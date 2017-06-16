@@ -1,12 +1,13 @@
 import java.io.IOException;
 import org.jruby.Ruby;
 import org.jruby.runtime.load.BasicLibraryService;
-import org.logstash.persistedqueue.JRubyPqLocalExtLibrary;
+import org.logstash.ackedqueue.ext.JrubyAckedBatchExtLibrary;
 
-public class JrubyAckedBatchExtService implements BasicLibraryService {
+public class JrubyPqLocalExtService implements BasicLibraryService {
+    @Override
     public boolean basicLoad(final Ruby runtime)
         throws IOException {
-        new JRubyPqLocalExtLibrary().load(runtime, false);
+        new JrubyAckedBatchExtLibrary().load(runtime, false);
         return true;
     }
 }
