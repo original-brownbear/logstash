@@ -21,7 +21,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.Event;
-import org.logstash.ext.JrubyEventExtLibrary;
 
 /**
  * <p>Queue of {@link Event} expected to be backed by some form of physical storage.</p>
@@ -119,16 +118,6 @@ public interface PersistedQueue extends Closeable {
             } catch (final IOException ex) {
                 throw new IllegalStateException(ex);
             }
-        }
-
-        /**
-         * Wrapper {@link PersistedQueue.Local#enqueue(Event)} for calls from Ruby code.
-         * @param event {@link Event} to enqueue
-         * @throws InterruptedException On interrupt during enqueuing
-         */
-        public void enqueue(final JrubyEventExtLibrary.RubyEvent event)
-            throws InterruptedException {
-            this.enqueue(event.getEvent());
         }
 
         @Override
