@@ -15,9 +15,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.Event;
@@ -89,14 +91,14 @@ public interface PersistedQueue extends Closeable {
          * the other half of the allow in-flight event count being used for worker I/O buffering
          * and timing `fsync` calls.
          */
-        private final ArrayBlockingQueue<Event> writeBuffer;
+        private final BlockingQueue<Event> writeBuffer;
 
         /**
          * <p>Buffer for already persisted {@link Event} reader for processing and available to queue
          * consumers via {@link PersistedQueue.Local#dequeue()}.</p>
          * Chosen to be of a fixed size of {@code 1024}.
          */
-        private final ArrayBlockingQueue<Event> readBuffer;
+        private final BlockingQueue<Event> readBuffer;
 
         /**
          * Ctor.
@@ -104,7 +106,7 @@ public interface PersistedQueue extends Closeable {
          * @param directory Directory to store backing data in
          */
         public Local(final int ack, final String directory) {
-            this.writeBuffer = new ArrayBlockingQueue<>(ack / 2);
+            this.writeBuffer = writebuf(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
                 this.indexFile =
@@ -157,6 +159,16 @@ public interface PersistedQueue extends Closeable {
             }
             this.indexFile.close();
             exec.shutdown();
+        }
+        
+        private static BlockingQueue<Event> writebuf(final int ack) {
+            final BlockingQueue<Event> res;
+            if (ack > 1) {
+                res = new ArrayBlockingQueue<>(ack);
+            } else {
+                res = new SynchronousQueue<>();
+            }
+            return res;
         }
 
         private interface Worker extends Runnable, Closeable {
@@ -236,13 +248,13 @@ public interface PersistedQueue extends Closeable {
              * Incoming {@link Event} buffer shared across all workers on a
              * {@link PersistedQueue.Local}.
              */
-            private final ArrayBlockingQueue<Event> writeBuffer;
+            private final BlockingQueue<Event> writeBuffer;
 
             /**
              * Outgoing {@link Event} buffer shared across all workers on a
              * {@link PersistedQueue.Local}.
              */
-            private final ArrayBlockingQueue<Event> readBuffer;
+            private final BlockingQueue<Event> readBuffer;
 
             /**
              * {@link CountDownLatch} indicating that this worker has no more in flight events or
@@ -309,9 +321,8 @@ public interface PersistedQueue extends Closeable {
              * @throws IOException On failure to open backing data file for either reads or writes
              */
             LogWorker(final PersistedQueue.Local.Index index, final File file,
-                final int partition, final ArrayBlockingQueue<Event> readBuffer,
-                final ArrayBlockingQueue<Event> writeBuffer, final int ack) throws IOException {
-                System.err.println("starting worker" + partition);
+                final int partition, final BlockingQueue<Event> readBuffer,
+                final BlockingQueue<Event> writeBuffer, final int ack) throws IOException {
                 this.index = index;
                 this.partition = partition;
                 this.file = new FileOutputStream(file, true);
@@ -324,7 +335,7 @@ public interface PersistedQueue extends Closeable {
                 flushed = 0;
                 highWatermarkPos = this.index.highWatermark(partition);
                 watermarkPos = this.index.watermark(partition);
-                this.ack = ack / 2;
+                this.ack = Math.max(1, ack / 2);
             }
 
             @Override

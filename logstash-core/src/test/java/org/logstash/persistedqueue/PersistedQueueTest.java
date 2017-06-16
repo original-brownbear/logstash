@@ -46,6 +46,30 @@ public final class PersistedQueueTest {
     }
 
     @Test
+    public void persistsToDiskAckOne() throws Exception {
+        final File dir = temp.newFolder();
+        final ExecutorService exec = Executors.newSingleThreadExecutor();
+        final int count = 100_000;
+        try (PersistedQueue queue = new PersistedQueue.Local(1, dir.getAbsolutePath())) {
+            final Future<?> future = exec.submit(() -> {
+                try {
+                    for (int i = 0; i < count; ++i) {
+                        assertThat(queue.dequeue().getField("foo"), is(i));
+                    }
+                } catch (final InterruptedException ex) {
+                    throw new IllegalStateException(ex);
+                }
+            });
+            for (int i = 0; i < count; ++i) {
+                final Event event = new Event();
+                event.setField("foo", i);
+                queue.enqueue(event);
+            }
+            future.get();
+        }
+    }
+
+    @Test
     public void reusesDirectory() throws Exception {
         final File dir = temp.newFolder();
         final ExecutorService exec = Executors.newSingleThreadExecutor();
