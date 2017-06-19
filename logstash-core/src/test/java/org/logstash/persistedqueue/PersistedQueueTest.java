@@ -17,6 +17,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public final class PersistedQueueTest {
+    
+    private static final String FIELD = "foo";
 
     @Rule
     public final TemporaryFolder temp = new TemporaryFolder();
@@ -27,20 +29,8 @@ public final class PersistedQueueTest {
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         final int count = 1_000_000;
         try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
-            final Future<?> future = exec.submit(() -> {
-                try {
-                    for (int i = 0; i < count; ++i) {
-                        assertThat(queue.dequeue().getField("foo"), is(i));
-                    }
-                } catch (final InterruptedException ex) {
-                    throw new IllegalStateException(ex);
-                }
-            });
-            for (int i = 0; i < count; ++i) {
-                final Event event = new Event();
-                event.setField("foo", i);
-                queue.enqueue(event);
-            }
+            final Future<?> future = exec.submit(() -> verifyEvents(count, queue));
+            enqueueEvents(count, queue);
             future.get();
         }
     }
@@ -51,20 +41,8 @@ public final class PersistedQueueTest {
         final ExecutorService exec = Executors.newSingleThreadExecutor();
         final int count = 100_000;
         try (PersistedQueue queue = new PersistedQueue.Local(1, dir.getAbsolutePath())) {
-            final Future<?> future = exec.submit(() -> {
-                try {
-                    for (int i = 0; i < count; ++i) {
-                        assertThat(queue.dequeue().getField("foo"), is(i));
-                    }
-                } catch (final InterruptedException ex) {
-                    throw new IllegalStateException(ex);
-                }
-            });
-            for (int i = 0; i < count; ++i) {
-                final Event event = new Event();
-                event.setField("foo", i);
-                queue.enqueue(event);
-            }
+            final Future<?> future = exec.submit(() -> verifyEvents(count, queue));
+            enqueueEvents(count, queue);
             future.get();
         }
     }
@@ -76,20 +54,8 @@ public final class PersistedQueueTest {
         final int count = 10_000;
         for (int j = 0; j < 3; ++j) {
             try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
-                final Future<?> future = exec.submit(() -> {
-                    try {
-                        for (int i = 0; i < count; ++i) {
-                            assertThat(queue.dequeue().getField("foo"), is(i));
-                        }
-                    } catch (final InterruptedException ex) {
-                        throw new IllegalStateException(ex);
-                    }
-                });
-                for (int i = 0; i < count; ++i) {
-                    final Event event = new Event();
-                    event.setField("foo", i);
-                    queue.enqueue(event);
-                }
+                final Future<?> future = exec.submit(() -> verifyEvents(count, queue));
+                enqueueEvents(count, queue);
                 future.get();
             }
         }
@@ -100,19 +66,12 @@ public final class PersistedQueueTest {
         final File dir = temp.newFolder();
         final int count = 10_000;
         try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
-            for (int i = 0; i < count; ++i) {
-                final Event event = new Event();
-                event.setField("foo", i);
-                queue.enqueue(event);
-            }
-            for (int i = 0; i < count; ++i) {
-                assertThat(queue.dequeue().getField("foo"), is(i));
-            }
+            enqueueEvents(count, queue);
+            verifyEvents(count, queue);
         }
         final Path indexPath = dir.toPath().resolve("queue.index");
-        try (final DataOutputStream data = new DataOutputStream(
-                new FileOutputStream(indexPath.toFile(), true)
-            )
+        try (final DataOutputStream data = 
+                 new DataOutputStream(new FileOutputStream(indexPath.toFile(), true))
         ) {
             final byte[] index = Files.readAllBytes(indexPath);
             data.writeInt(0);
@@ -121,8 +80,28 @@ public final class PersistedQueueTest {
             data.flush();
         }
         try (PersistedQueue queue = new PersistedQueue.Local(1024, dir.getAbsolutePath())) {
-            for (int i = 0; i < count; ++i) {
-                assertThat(queue.dequeue().getField("foo"), is(i));
+            verifyEvents(count, queue);
+        }
+    }
+
+    private static void enqueueEvents(final int count, final PersistedQueue queue) {
+        for (int i = 0; i < count; ++i) {
+            final Event event = new Event();
+            event.setField(FIELD, i);
+            try {
+                queue.enqueue(event);
+            } catch (final InterruptedException ex) {
+                throw new IllegalStateException(ex);
+            }
+        }
+    }
+
+    private static void verifyEvents(final int count, final PersistedQueue queue) {
+        for (int i = 0; i < count; ++i) {
+            try {
+                assertThat(queue.dequeue().getField(FIELD), is(i));
+            } catch (final InterruptedException ex) {
+                throw new IllegalStateException(ex);
             }
         }
     }

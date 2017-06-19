@@ -6,7 +6,6 @@ import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -117,8 +116,8 @@ public interface PersistedQueue extends Closeable {
                 for (int i = 0; i < CONCURRENT; ++i) {
                     this.workers[i] = new PersistedQueue.Local.LogWorker(
                         this.indexFile,
-                        Paths.get(directory, String.format("%d.log", i)).toFile(), i,
-                        readBuffer, writeBuffer, ack
+                        Paths.get(directory, String.format("%d.log", i)), i, readBuffer, 
+                        writeBuffer, ack
                     );
                     this.exec.execute(workers[i]);
                 }
@@ -228,12 +227,6 @@ public interface PersistedQueue extends Closeable {
             private final int ack;
 
             /**
-             * {@link FileOutputStream} of the backing data file. Referenced here to be able to
-             * safely manage closing of the output file descriptor.
-             */
-            private final FileOutputStream file;
-
-            /**
              * {@link FileChannel} used in conjunction with
              * {@link PersistedQueue.Local.LogWorker#obuf} to physically write to the file system.
              */
@@ -322,7 +315,7 @@ public interface PersistedQueue extends Closeable {
             /**
              * Ctor.
              * @param index {@link PersistedQueue.Local.IndexFile} storing offsets.
-             * @param file Backing data {@link File}
+             * @param file Backing data {@link Path}
              * @param readBuffer Same instance as {@link PersistedQueue.Local#readBuffer}
              * @param writeBuffer Same instance as {@link PersistedQueue.Local#writeBuffer}
              * @param ack Maximum number of in-flight events, that are either stored serialized
@@ -330,14 +323,14 @@ public interface PersistedQueue extends Closeable {
              * {@link PersistedQueue.Local.LogWorker#out}, but not yet `fsync`ed to the file system
              * @throws IOException On failure to open backing data file for either reads or writes
              */
-            LogWorker(final PersistedQueue.Local.Index index, final File file,
+            LogWorker(final PersistedQueue.Local.Index index, final Path file,
                 final int partition, final BlockingQueue<Event> readBuffer,
                 final BlockingQueue<Event> writeBuffer, final int ack) throws IOException {
                 this.index = index;
                 this.partition = partition;
-                this.file = new FileOutputStream(file, true);
-                this.out = this.file.getChannel();
-                this.in = FileChannel.open(file.toPath(), StandardOpenOption.READ);
+                this.out = 
+                    FileChannel.open(file, StandardOpenOption.APPEND, StandardOpenOption.CREATE);
+                this.in = FileChannel.open(file, StandardOpenOption.READ);
                 this.readBuffer = readBuffer;
                 this.writeBuffer = writeBuffer;
                 count = 0L;
@@ -391,7 +384,7 @@ public interface PersistedQueue extends Closeable {
             public void close() throws IOException {
                 this.awaitShutdown();
                 this.in.close();
-                this.file.close();
+                this.out.close();
                 this.index.append(partition, watermarkPos, highWatermarkPos);
             }
 
