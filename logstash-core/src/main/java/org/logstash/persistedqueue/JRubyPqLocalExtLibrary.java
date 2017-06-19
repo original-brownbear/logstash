@@ -28,9 +28,15 @@ public class JRubyPqLocalExtLibrary implements Library {
         clazz.defineAnnotatedMethods(RubyPqLocal.class);
     }
 
+    /**
+     * Ruby wrapper for {@link PersistedQueue.Local}.
+     */
     @JRubyClass(name = "PqLocal")
     public class RubyPqLocal extends RubyObject {
 
+        /**
+         * Java {@link PersistedQueue} that hold Java {@link Event}.
+         */
         private PersistedQueue queue;
 
         public RubyPqLocal(final Ruby runtime, final RubyClass klass) {
@@ -46,8 +52,8 @@ public class JRubyPqLocalExtLibrary implements Library {
         }
 
         @JRubyMethod(name = "enqueue", required = 1)
-        public void enqueueJava(final ThreadContext context,
-            final IRubyObject event) throws InterruptedException {
+        public void enqueueJava(final ThreadContext context, final IRubyObject event)
+            throws InterruptedException {
             this.queue.enqueue(((JrubyEventExtLibrary.RubyEvent) event).getEvent());
         }
 
