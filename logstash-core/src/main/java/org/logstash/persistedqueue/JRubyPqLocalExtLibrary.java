@@ -39,10 +39,21 @@ public class JRubyPqLocalExtLibrary implements Library {
          */
         private PersistedQueue queue;
 
+        /**
+         * JRuby Constructor Wrapper.
+         * @param runtime Ruby Runtime
+         * @param klass Ruby Class
+         */
         public RubyPqLocal(final Ruby runtime, final RubyClass klass) {
             super(runtime, klass);
         }
 
+        /**
+         * Constructor.
+         * @param context Jruby {@link ThreadContext}
+         * @param ack Ack Interval of the queue
+         * @param directory Data directory for the queue
+         */
         @JRubyMethod(name = "initialize", required = 2)
         public IRubyObject init(final ThreadContext context, final IRubyObject ack,
             final IRubyObject directory) {
@@ -67,7 +78,7 @@ public class JRubyPqLocalExtLibrary implements Library {
         /**
          * Wrapper for {@link PersistedQueue#poll(long, TimeUnit)} with the unit fixed to
          * {@link TimeUnit#MILLISECONDS}.
-         * @param context Jruby {@link ThreadContext}.
+         * @param context Jruby {@link ThreadContext}
          * @param timeout Timeout in `ms`
          * @return Polled {@link JrubyEventExtLibrary.RubyEvent} or {@link org.jruby.RubyNil} in
          * in place of {@code null} if the {@code poll} failed
