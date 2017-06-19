@@ -198,9 +198,11 @@ public interface PersistedQueue extends Closeable {
         }
 
         /**
-         * Background worker passing events from {@link PersistedQueue.Local#writeBuffer} to
+         * <p>Background worker passing events from {@link PersistedQueue.Local#writeBuffer} to
          * {@link PersistedQueue.Local#readBuffer} while simultaneously persisting them to the
-         * file system.
+         * file system.</p>
+         * <p>This worker tries to actively (in a blocking manner) promote persisted data to 
+         * deserialized in memory storage as capacity becomes available.</p>
          */
         private static final class LogWorker implements PersistedQueue.Local.Worker {
 
