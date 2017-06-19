@@ -61,7 +61,7 @@ public interface Worker extends Runnable, Closeable {
     
         /**
          * {@link FileChannel} used in conjunction with
-         * {@link LogWorker#obuf} to physically write to the file system.
+         * {@link Worker.LogWorker#obuf} to physically write to the file system.
          */
         private final FileChannel out;
     
@@ -71,12 +71,12 @@ public interface Worker extends Runnable, Closeable {
         private final FileChannel in;
     
         /**
-         * Output buffer used to buffer writes by {@link LogWorker#out}.
+         * Output buffer used to buffer writes by {@link Worker.LogWorker#out}.
          */
         private final ByteBuffer obuf = ByteBuffer.allocateDirect(BYTE_BUFFER_SIZE);
     
         /**
-         * Input buffer used to buffer reads by {@link LogWorker#in}.
+         * Input buffer used to buffer reads by {@link Worker.LogWorker#in}.
          */
         private final ByteBuffer ibuf = ByteBuffer.allocateDirect(BYTE_BUFFER_SIZE);
     
@@ -105,7 +105,7 @@ public interface Worker extends Runnable, Closeable {
     
         /**
          * Un-contended queue to buffer {@link Event} deserialized from reads on
-         * {@link LogWorker#in} to.
+         * {@link Worker.LogWorker#in} to.
          */
         private final ArrayBlockingQueue<Event> outBuffer =
             new ArrayBlockingQueue<>(OUT_BUFFER_SIZE);
@@ -122,17 +122,17 @@ public interface Worker extends Runnable, Closeable {
     
         /**
          * <p>Offset on the backing file to read the next {@link Event} from in case
-         * {@link LogWorker#outBuffer} is depleted.</p>
-         * Note that {@link LogWorker#obuf} must be flushed in order to
+         * {@link Worker.LogWorker#outBuffer} is depleted.</p>
+         * Note that {@link Worker.LogWorker#obuf} must be flushed in order to
          * make this number correspond to a physical offset on
-         * {@link LogWorker#in}.
+         * {@link Worker.LogWorker#in}.
          */
-        private long watermarkPos;
+        private long watermark;
     
         /**
          * Largest valid offset on the backing data file.
          */
-        private long highWatermarkPos;
+        private long highWatermark;
     
         /**
          * Number of {@link Event} written to disk.
@@ -141,7 +141,7 @@ public interface Worker extends Runnable, Closeable {
     
         /**
          * Number of {@link Event} successfully passed to
-         * {@link LogWorker#readBuffer}.
+         * {@link Worker.LogWorker#readBuffer}.
          */
         private long flushed;
     
@@ -152,13 +152,13 @@ public interface Worker extends Runnable, Closeable {
          * @param readBuffer Same instance as {@link PersistedQueue.Local#readBuffer}
          * @param writeBuffer Same instance as {@link PersistedQueue.Local#writeBuffer}
          * @param ack Maximum number of in-flight events, that are either stored serialized
-         * in {@link LogWorker#obuf} or already written to
-         * {@link LogWorker#out}, but not yet `fsync`ed to the file system
+         * in {@link Worker.LogWorker#obuf} or already written to
+         * {@link Worker.LogWorker#out}, but not yet `fsync`ed to the file system
          * @throws IOException On failure to open backing data file for either reads or writes
          */
-        LogWorker(final Index index, final Path file,
-            final int partition, final BlockingQueue<Event> readBuffer,
-            final BlockingQueue<Event> writeBuffer, final int ack) throws IOException {
+        LogWorker(final Index index, final Path file, final int partition,
+            final BlockingQueue<Event> readBuffer, final BlockingQueue<Event> writeBuffer, 
+            final int ack) throws IOException {
             this.index = index;
             this.partition = partition;
             this.out = 
@@ -168,8 +168,8 @@ public interface Worker extends Runnable, Closeable {
             this.writeBuffer = writeBuffer;
             count = 0L;
             flushed = 0L;
-            highWatermarkPos = this.index.highWatermark(partition);
-            watermarkPos = this.index.watermark(partition);
+            highWatermark = this.index.highWatermark(partition);
+            watermark = this.index.watermark(partition);
             // Use half the ack interval for serialized buffering, except for the case of
             // ack == 1 which has serialized buffering only
             this.ack = Math.max(1, ack / 2);
@@ -209,7 +209,7 @@ public interface Worker extends Runnable, Closeable {
         
         @Override
         public boolean flushed() {
-            return highWatermarkPos == watermarkPos && obuf.position() == 0 &&
+            return highWatermark == watermark && obuf.position() == 0 &&
                 outBuffer.isEmpty();
         }
     
@@ -218,7 +218,7 @@ public interface Worker extends Runnable, Closeable {
             this.awaitShutdown();
             this.in.close();
             this.out.close();
-            this.index.append(partition, watermarkPos, highWatermarkPos);
+            this.index.append(partition, watermark, highWatermark);
         }
     
         /**
@@ -235,11 +235,11 @@ public interface Worker extends Runnable, Closeable {
         /**
          * Sets the watermark for number of bytes processed to the bound of all {@link Event}
          * data that has been enqueued in either
-         * {@link LogWorker#outBuffer} or
-         * {@link LogWorker#readBuffer}.
+         * {@link Worker.LogWorker#outBuffer} or
+         * {@link Worker.LogWorker#readBuffer}.
          */
         private void completeWatermark() {
-            watermarkPos = highWatermarkPos + (long) obuf.position();
+            watermark = highWatermark + (long) obuf.position();
         }
     
         /**
@@ -249,7 +249,7 @@ public interface Worker extends Runnable, Closeable {
          */
         private void write(final Event event) throws IOException {
             final boolean fullyRead =
-                highWatermarkPos + (long) obuf.position() == this.watermarkPos;
+                highWatermark + (long) obuf.position() == this.watermark;
             ++count;
             final byte[] data = event.serialize();
             maybeFlush(data.length + Integer.BYTES);
@@ -262,7 +262,7 @@ public interface Worker extends Runnable, Closeable {
         }
     
         /**
-         * Flush {@link LogWorker#obuf} to the filesystem if another write
+         * Flush {@link Worker.LogWorker#obuf} to the filesystem if another write
          * of given size could not be buffered to it.
          * @param size Size of the next write
          * @throws IOException On failure to flush buffer to filesystem
@@ -275,26 +275,26 @@ public interface Worker extends Runnable, Closeable {
         }
     
         /**
-         * <p>Flushes {@link LogWorker#obuf} to the filesystem.</p>
+         * <p>Flushes {@link Worker.LogWorker#obuf} to the filesystem.</p>
          * Note that the method triggers `fsync` and therefore guarantees physical persistence
          * within the limits of the backing file system.
          * @throws IOException On failure to flush buffer to filesystem
          */
         private void flush() throws IOException {
             obuf.flip();
-            highWatermarkPos += (long) out.write(obuf);
+            highWatermark += (long) out.write(obuf);
             out.force(true);
-            index.append(partition, watermarkPos, highWatermarkPos);
+            index.append(partition, watermark, highWatermark);
             obuf.clear();
         }
     
         /**
          * Tries to advance one {@link Event} from
-         * {@link LogWorker#outBuffer} to
-         * {@link LogWorker#readBuffer}.
+         * {@link Worker.LogWorker#outBuffer} to
+         * {@link Worker.LogWorker#readBuffer}.
          * @return {@code true} iff an {@link Event} was promoted from the un-contended
-         * {@link LogWorker#outBuffer} to the contended
-         * {@link LogWorker#readBuffer}
+         * {@link Worker.LogWorker#outBuffer} to the contended
+         * {@link Worker.LogWorker#readBuffer}
          */
         private boolean advanceBuffers() {
             final boolean result;
@@ -317,7 +317,7 @@ public interface Worker extends Runnable, Closeable {
          */
         private boolean advanceFile() throws IOException {
             if (flushed + (long) outBuffer.size() < count &&
-                this.watermarkPos == highWatermarkPos) {
+                this.watermark == highWatermark) {
                 this.flush();
             }
             int i = 0;
@@ -327,8 +327,8 @@ public interface Worker extends Runnable, Closeable {
             }
             int remaining = outBuffer.remainingCapacity();
             final int before = remaining;
-            if (remaining > 0 && this.watermarkPos < highWatermarkPos) {
-                this.in.position(watermarkPos);
+            if (remaining > 0 && this.watermark < highWatermark) {
+                this.in.position(watermark);
                 ibuf.clear();
                 this.in.read(ibuf);
                 ibuf.flip();
@@ -336,7 +336,7 @@ public interface Worker extends Runnable, Closeable {
                     final int len = ibuf.getInt();
                     ibuf.get(readByteBuffer, 0, len);
                     outBuffer.add(Event.deserialize(readByteBuffer));
-                    this.watermarkPos += (long) (len + Integer.BYTES);
+                    this.watermark += (long) (len + Integer.BYTES);
                     --remaining;
                 }
             }
