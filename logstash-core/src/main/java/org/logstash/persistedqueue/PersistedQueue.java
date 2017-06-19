@@ -544,10 +544,20 @@ public interface PersistedQueue extends Closeable {
 
         private static final class IndexFile implements PersistedQueue.Local.Index {
 
+            /**
+             * Watermark offset array.
+             */
             private final long[] watermarks;
 
+            /**
+             * Output {@link FileChannel} that {@link StandardOpenOption#DSYNC} appends to the
+             * index file.
+             */
             private final FileChannel out;
 
+            /**
+             * Write Buffer.
+             */
             private final ByteBuffer buffer =
                 ByteBuffer.allocateDirect(Integer.BYTES + 2 * Long.BYTES);
 
@@ -588,6 +598,12 @@ public interface PersistedQueue extends Closeable {
                 out.close();
             }
 
+            /**
+             * Loads the watermark file from given index path.
+             * @param partitions Number of partitions expected to be found in the watermark file
+             * @param index Index file path
+             * @return Watermark array
+             */
             private static long[] loadWatermarks(final int partitions, final Path index) {
                 final long[] watermarks = new long[2 * partitions];
                 final File file = index.toFile();
