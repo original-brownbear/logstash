@@ -183,12 +183,13 @@ public interface PersistedQueue extends Closeable {
 
         private interface Worker extends Runnable, Closeable {
 
-            boolean flushed();
-            
             /**
-             * Wait for this worker to stop and flush all internal buffers.
+             * Returns {@code true} iff all data in this worker's backing datafile and associated
+             * buffers has been consumed.
+             * @return {@code true} iff all data handled by this worker has been flushed to a
+             * consumer
              */
-            void awaitShutdown();
+            boolean flushed();
 
             /**
              * Signal this worker to stop processing {@link Event} and flush all internal buffers.
@@ -379,15 +380,6 @@ public interface PersistedQueue extends Closeable {
             public void shutdown() {
                 this.running.set(false);
             }
-
-            @Override
-            public void awaitShutdown() {
-                try {
-                    this.shutdown.await();
-                } catch (final InterruptedException ex) {
-                    throw new IllegalStateException(ex);
-                }
-            }
             
             @Override
             public boolean flushed() {
@@ -402,7 +394,18 @@ public interface PersistedQueue extends Closeable {
                 this.file.close();
                 this.index.append(partition, watermarkPos, highWatermarkPos);
             }
-  
+
+            /**
+             * Wait for this worker to stop and flush all internal buffers.
+             */
+            private void awaitShutdown() {
+                try {
+                    this.shutdown.await();
+                } catch (final InterruptedException ex) {
+                    throw new IllegalStateException(ex);
+                }
+            }
+
             /**
              * Sets the watermark for number of bytes processed to the bound of all {@link Event}
              * data that has been enqueued in either
