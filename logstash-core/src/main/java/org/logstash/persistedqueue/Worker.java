@@ -176,24 +176,17 @@ public interface Worker extends Runnable, Closeable {
     
         @Override
         public void run() {
-            long wait = 100L;
             while (running) {
                 try {
-                    final Event event = this.writeBuffer.poll(wait, TimeUnit.MILLISECONDS);
-                    final int retries;
-                    if (event == null) {
-                        retries = OUT_BUFFER_SIZE;
-                        wait = 0L;
-                    } else {
+                    final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
+                    if (event != null) {
                         write(event);
-                        retries = 1;
-                        wait = 100L;
                     }
                     if (count % (long) ack == 0L && obuf.position() > 0) {
                         flush();
                     }
                     int j = 0;
-                    while (j < retries && advanceFile()) {
+                    while (j < 5 && advanceFile()) {
                         ++j;
                     }
                 } catch (final InterruptedException | IOException ex) {
