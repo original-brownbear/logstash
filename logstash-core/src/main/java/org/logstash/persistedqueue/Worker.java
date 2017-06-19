@@ -10,7 +10,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.Event;
 
 public interface Worker extends Runnable, Closeable {
@@ -99,9 +98,9 @@ public interface Worker extends Runnable, Closeable {
         private final CountDownLatch shutdown = new CountDownLatch(1);
     
         /**
-         * {@link AtomicBoolean} indicating that this worker is active.
+         * Boolean indicating whether or not this worker is active.
          */
-        private final AtomicBoolean running = new AtomicBoolean(true);
+        private volatile boolean running = true;
     
         /**
          * Un-contended queue to buffer {@link Event} deserialized from reads on
@@ -177,17 +176,21 @@ public interface Worker extends Runnable, Closeable {
     
         @Override
         public void run() {
-            while (running.get()) {
+            while (running) {
                 try {
-                    final Event event = this.writeBuffer.poll(10L, TimeUnit.MILLISECONDS);
-                    if (event != null) {
+                    final Event event = this.writeBuffer.poll(100L, TimeUnit.MILLISECONDS);
+                    final int retries;
+                    if (event == null) {
+                        retries = OUT_BUFFER_SIZE;
+                    } else {
                         write(event);
+                        retries = 1;
                     }
                     if (count % (long) ack == 0L && obuf.position() > 0) {
                         flush();
                     }
                     int j = 0;
-                    while (j < 5 && advanceFile()) {
+                    while (j < retries && advanceFile()) {
                         ++j;
                     }
                 } catch (final InterruptedException | IOException ex) {
@@ -204,7 +207,7 @@ public interface Worker extends Runnable, Closeable {
     
         @Override
         public void shutdown() {
-            this.running.set(false);
+            running = false;
         }
         
         @Override
