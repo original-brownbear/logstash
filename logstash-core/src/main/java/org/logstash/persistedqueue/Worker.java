@@ -215,33 +215,16 @@ public interface Worker extends Runnable, Closeable {
     
         @Override
         public void close() throws IOException {
-            this.awaitShutdown();
-            this.in.close();
-            this.out.close();
-            this.index.append(partition, watermark, highWatermark);
-        }
-    
-        /**
-         * Wait for this worker to stop and flush all internal buffers.
-         */
-        private void awaitShutdown() {
             try {
                 this.shutdown.await();
             } catch (final InterruptedException ex) {
                 throw new IllegalStateException(ex);
             }
+            this.in.close();
+            this.out.close();
+            this.index.append(partition, watermark, highWatermark);
         }
-    
-        /**
-         * Sets the watermark for number of bytes processed to the bound of all {@link Event}
-         * data that has been enqueued in either
-         * {@link Worker.LogWorker#outBuffer} or
-         * {@link Worker.LogWorker#readBuffer}.
-         */
-        private void completeWatermark() {
-            watermark = highWatermark + (long) obuf.position();
-        }
-    
+
         /**
          * Serialize and write a {@link Event} to the backing file.
          * @param event Event to persist
@@ -249,15 +232,15 @@ public interface Worker extends Runnable, Closeable {
          */
         private void write(final Event event) throws IOException {
             final boolean fullyRead =
-                highWatermark + (long) obuf.position() == this.watermark;
+                highWatermark + (long) obuf.position() == watermark;
             ++count;
             final byte[] data = event.serialize();
             maybeFlush(data.length + Integer.BYTES);
             obuf.putInt(data.length);
             obuf.put(data);
-            if (count == flushed - 1L && this.readBuffer.offer(event)
+            if (count == flushed - 1L && readBuffer.offer(event)
                 || fullyRead && outBuffer.offer(event)) {
-                this.completeWatermark();
+                watermark = highWatermark + (long) obuf.position();
             }
         }
     
