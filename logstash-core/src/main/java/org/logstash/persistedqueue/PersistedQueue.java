@@ -54,6 +54,10 @@ public interface PersistedQueue extends Closeable {
      */
     Event poll(long timeout, TimeUnit unit) throws InterruptedException;
 
+    /**
+     * Returns {@code true} iff the queue is empty.
+     * @return {@code true} iff the queue is empty
+     */
     boolean empty();
     
     /**
@@ -160,7 +164,13 @@ public interface PersistedQueue extends Closeable {
             this.indexFile.close();
             exec.shutdown();
         }
-        
+
+        /**
+         * Sets up the queue's write buffer.
+         * @param ack Ack interval to set up buffer for
+         * @return {@link ArrayBlockingQueue} of half the ack interval if ack interval is larger 
+         * than 1, {@link SynchronousQueue} without capacity if it is 1.
+         */
         private static BlockingQueue<Event> writebuf(final int ack) {
             final BlockingQueue<Event> res;
             if (ack > 1) {
