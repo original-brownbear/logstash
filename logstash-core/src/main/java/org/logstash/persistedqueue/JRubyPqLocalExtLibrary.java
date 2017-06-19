@@ -15,6 +15,9 @@ import org.jruby.runtime.load.Library;
 import org.logstash.Event;
 import org.logstash.ext.JrubyEventExtLibrary;
 
+/**
+ * JRuby wrapper for {@link PersistedQueue}.
+ */
 public class JRubyPqLocalExtLibrary implements Library {
 
     @Override
@@ -55,6 +58,15 @@ public class JRubyPqLocalExtLibrary implements Library {
                 .newRubyEvent(context.runtime, this.queue.dequeue());
         }
 
+        /**
+         * Wrapper for {@link PersistedQueue#poll(long, TimeUnit)} with the unit fixed to
+         * {@link TimeUnit#MILLISECONDS}.
+         * @param context Jruby {@link ThreadContext}.
+         * @param timeout Timeout in `ms`
+         * @return Polled {@link JrubyEventExtLibrary.RubyEvent} or {@link org.jruby.RubyNil} in
+         * in place of {@code null} if the {@code poll} failed
+         * @throws InterruptedException If interrupted during {@code poll}
+         */
         @JRubyMethod(name = "poll", required = 1)
         public IRubyObject pollJava(final ThreadContext context,
             final IRubyObject timeout) throws InterruptedException {
@@ -73,7 +85,7 @@ public class JRubyPqLocalExtLibrary implements Library {
         public IRubyObject emptyJava(final ThreadContext context) throws IOException {
             return queue.empty() ? context.tru : context.fals;
         }
-        
+
         @JRubyMethod(name = "close")
         public void closeJava(final ThreadContext context) throws IOException {
             System.err.println("ruby close");
