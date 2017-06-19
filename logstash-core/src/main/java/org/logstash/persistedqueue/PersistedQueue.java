@@ -494,8 +494,8 @@ public interface PersistedQueue extends Closeable {
                 while (i < OUT_BUFFER_SIZE && this.advanceBuffers()) {
                     ++i;
                 }
-                final boolean result;
                 int remaining = outBuffer.remainingCapacity();
+                final int before = remaining;
                 if (remaining > 0 && this.watermarkPos < highWatermarkPos) {
                     this.in.position(watermarkPos);
                     ibuf.clear();
@@ -508,11 +508,8 @@ public interface PersistedQueue extends Closeable {
                         this.watermarkPos += (long) (len + Integer.BYTES);
                         --remaining;
                     }
-                    result = true;
-                } else {
-                    result = false;
                 }
-                return result;
+                return before > remaining;
             }
         }
 
