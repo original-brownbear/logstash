@@ -94,7 +94,6 @@ public class JRubyPqLocalExtLibrary implements Library {
 
         @JRubyMethod(name = "close")
         public void closeJava(final ThreadContext context) throws IOException {
-            System.err.println("ruby close");
             queue.close();
         }
     }
