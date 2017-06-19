@@ -5,7 +5,6 @@ import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -206,6 +205,9 @@ public interface PersistedQueue extends Closeable {
          */
         private static final class LogWorker implements PersistedQueue.Local.Worker {
 
+            /**
+             * Offset Index Database.
+             */
             private final PersistedQueue.Local.Index index;
 
             /**
@@ -230,11 +232,6 @@ public interface PersistedQueue extends Closeable {
              * safely manage closing of the output file descriptor.
              */
             private final FileOutputStream file;
-
-            /**
-             * {@link FileDescriptor} of the backing append file used to trigger `fsync`.
-             */
-            private final FileDescriptor fd;
 
             /**
              * {@link FileChannel} used in conjunction with
@@ -339,15 +336,16 @@ public interface PersistedQueue extends Closeable {
                 this.index = index;
                 this.partition = partition;
                 this.file = new FileOutputStream(file, true);
-                this.fd = this.file.getFD();
                 this.out = this.file.getChannel();
                 this.in = FileChannel.open(file.toPath(), StandardOpenOption.READ);
                 this.readBuffer = readBuffer;
                 this.writeBuffer = writeBuffer;
-                count = 0;
-                flushed = 0;
+                count = 0L;
+                flushed = 0L;
                 highWatermarkPos = this.index.highWatermark(partition);
                 watermarkPos = this.index.watermark(partition);
+                // Use half the ack interval for serialized buffering, except for the case of
+                // ack == 1 which has serialized buffering only
                 this.ack = Math.max(1, ack / 2);
             }
 
@@ -462,7 +460,7 @@ public interface PersistedQueue extends Closeable {
             private void flush() throws IOException {
                 obuf.flip();
                 highWatermarkPos += (long) out.write(obuf);
-                fd.sync();
+                out.force(true);
                 index.append(partition, watermarkPos, highWatermarkPos);
                 obuf.clear();
             }
@@ -489,7 +487,7 @@ public interface PersistedQueue extends Closeable {
             }
 
             /**
-             * Buffers {@link Event} that are only buffered in serialized form in the file system
+             * Promotes {@link Event}s that are only buffered in serialized form in the file system
              * to deserialized buffers.
              * @return {@code true} iff at least one {@link Event} was deserialized and buffered
              * @throws IOException On failure to read from underlying storage
