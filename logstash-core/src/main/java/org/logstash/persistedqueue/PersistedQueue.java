@@ -55,24 +55,16 @@ public interface PersistedQueue extends Closeable {
     final class Local implements PersistedQueue {
 
         /**
-         * <p>Concurrency Level.</p>
-         * A level of 1 results in complete ordering, higher levels do not come with a guaranteed
-         * ordering between inputs and outputs.
-         */
-        private static final int CONCURRENT = 1;
-
-        /**
          * {@link ExecutorService} managing worker threads.
          */
-        private final ExecutorService exec = Executors.newFixedThreadPool(CONCURRENT);
+        private final ExecutorService exec = Executors.newSingleThreadExecutor();
 
         /**
          * Workers moving data from {@link PersistedQueue.Local#writeBuffer} and
          * {@link PersistedQueue.Local#readBuffer} while simultaneously persisting it to the file
          * system.
          */
-        private final Worker[] workers =
-            new Worker[CONCURRENT];
+        private final Worker worker;
 
         /**
          * Watermark Database.
@@ -103,16 +95,13 @@ public interface PersistedQueue extends Closeable {
             this.writeBuffer = writebuf(ack / 2);
             this.readBuffer = new ArrayBlockingQueue<>(1024);
             try {
-                this.index =
-                    new Index.IndexFile(CONCURRENT, Paths.get(directory));
-                for (int i = 0; i < CONCURRENT; ++i) {
-                    this.workers[i] = new Worker.LogWorker(
-                        this.index,
-                        Paths.get(directory, String.format("%d.log", i)), i, readBuffer, 
-                        writeBuffer, ack
-                    );
-                    this.exec.execute(workers[i]);
-                }
+                this.index = new Index.IndexFile(1, Paths.get(directory));
+                this.worker = new Worker.LogWorker(
+                    this.index,
+                    Paths.get(directory, String.format("%d.log", 0)), 0, readBuffer,
+                    writeBuffer, ack
+                );
+                this.exec.execute(worker);
             } catch (final IOException ex) {
                 throw new IllegalStateException(ex);
             }
@@ -135,22 +124,13 @@ public interface PersistedQueue extends Closeable {
 
         @Override
         public boolean empty() {
-            boolean res = true;
-            for (int i = 0; i < CONCURRENT; ++i) {
-                res = res && this.workers[i].flushed();
-                if (!res) {
-                    break;
-                }
-            }
-            return res && readBuffer.isEmpty() && writeBuffer.isEmpty();
+            return readBuffer.isEmpty() && writeBuffer.isEmpty() && this.worker.flushed();
         }
-        
+
         @Override
         public void close() throws IOException {
-            for (int i = 0; i < CONCURRENT; ++i) {
-                this.workers[i].shutdown();
-                this.workers[i].close();
-            }
+            this.worker.shutdown();
+            this.worker.close();
             this.index.close();
             exec.shutdown();
         }
