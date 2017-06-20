@@ -269,27 +269,19 @@ public interface Worker extends Runnable, Closeable {
         }
     
         /**
-         * Tries to advance one {@link Event} from
-         * {@link Worker.LogWorker#outBuffer} to
-         * {@link Worker.LogWorker#readBuffer}.
-         * @return {@code true} iff an {@link Event} was promoted from the un-contended
-         * {@link Worker.LogWorker#outBuffer} to the contended
-         * {@link Worker.LogWorker#readBuffer}
+         * Tries to advance as many {@link Event}s as possible from
+         * {@link Worker.LogWorker#outBuffer} to {@link Worker.LogWorker#readBuffer}.
          */
-        private boolean advanceBuffers() {
-            final boolean result;
-            if(outBuffer.size() > 0) {
+        private void advanceBuffers() {
+            final int size = outBuffer.size();
+            for (int i = 0; i < size; ++i) {
                 if (readBuffer.offer(outBuffer.get())) {
                     flushed++;
-                    result = true;
                 } else {
                     outBuffer.rewindOne();
-                    result = false;
+                    break;
                 }
-            } else {
-                result = false;
             }
-            return result;
         }
     
         /**
@@ -303,11 +295,7 @@ public interface Worker extends Runnable, Closeable {
                 this.watermark == highWatermark) {
                 this.flush();
             }
-            int i = 0;
-            final int size = outBuffer.size();
-            while (i < size && this.advanceBuffers()) {
-                ++i;
-            }
+            this.advanceBuffers();
             int remaining = OUT_BUFFER_SIZE - outBuffer.size();
             final int before = remaining;
             if (remaining > 0 && this.watermark < highWatermark) {
