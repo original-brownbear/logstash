@@ -6,7 +6,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -106,8 +105,7 @@ public interface Worker extends Runnable, Closeable {
          * Un-contended queue to buffer {@link Event} deserialized from reads on
          * {@link Worker.LogWorker#in} to.
          */
-        private final ArrayBlockingQueue<Event> outBuffer =
-            new ArrayBlockingQueue<>(OUT_BUFFER_SIZE);
+        private final CircularFifoQueue outBuffer = new CircularFifoQueue(OUT_BUFFER_SIZE);
     
         /**
          * Deserialization buffer used to pass data to {@link Event#deserialize(byte[])}.
@@ -209,7 +207,7 @@ public interface Worker extends Runnable, Closeable {
         @Override
         public boolean flushed() {
             return highWatermark == watermark && obuf.position() == 0 &&
-                outBuffer.isEmpty();
+                outBuffer.size() == 0;
         }
     
         @Override
@@ -238,7 +236,7 @@ public interface Worker extends Runnable, Closeable {
             obuf.putInt(data.length);
             obuf.put(data);
             if (count == flushed - 1L && readBuffer.offer(event)
-                || fullyRead && outBuffer.offer(event)) {
+                || fullyRead && outBuffer.add(event)) {
                 watermark = highWatermark + (long) obuf.position();
             }
         }
@@ -280,11 +278,14 @@ public interface Worker extends Runnable, Closeable {
          */
         private boolean advanceBuffers() {
             final boolean result;
-            final Event e = outBuffer.peek();
-            if (e != null && readBuffer.offer(e)) {
-                outBuffer.poll();
-                flushed++;
-                result = true;
+            if(outBuffer.size() > 0) {
+                if (readBuffer.offer(outBuffer.get())) {
+                    flushed++;
+                    result = true;
+                } else {
+                    outBuffer.rewindOne();
+                    result = false;
+                }
             } else {
                 result = false;
             }
@@ -307,7 +308,7 @@ public interface Worker extends Runnable, Closeable {
             while (i < size && this.advanceBuffers()) {
                 ++i;
             }
-            int remaining = outBuffer.remainingCapacity();
+            int remaining = OUT_BUFFER_SIZE - outBuffer.size();
             final int before = remaining;
             if (remaining > 0 && this.watermark < highWatermark) {
                 this.in.position(watermark);
