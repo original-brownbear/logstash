@@ -116,6 +116,8 @@ public interface Worker extends Runnable, Closeable {
          * Partition of this worker.
          */
         private final int partition;
+        
+        private long lastReadFileOffset;
     
         /**
          * <p>Offset on the backing file to read the next {@link Event} from in case
@@ -298,16 +300,18 @@ public interface Worker extends Runnable, Closeable {
             this.advanceBuffers();
             int remaining = OUT_BUFFER_SIZE - outBuffer.size();
             final int before = remaining;
-            if (remaining > 0 && this.watermark < highWatermark) {
-                this.in.position(watermark);
+            if (remaining > 0 && watermark < highWatermark) {
+                if(lastReadFileOffset != watermark) {
+                    this.in.position(watermark);
+                }
                 ibuf.clear();
-                this.in.read(ibuf);
+                lastReadFileOffset += (long) in.read(ibuf);
                 ibuf.flip();
                 while (ibuf.remaining() >= Integer.BYTES && remaining > 0) {
                     final int len = ibuf.getInt();
                     ibuf.get(readByteBuffer, 0, len);
                     outBuffer.add(Event.deserialize(readByteBuffer));
-                    this.watermark += (long) (len + Integer.BYTES);
+                    watermark += (long) (len + Integer.BYTES);
                     --remaining;
                 }
             }
