@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -97,12 +98,14 @@ public final class PersistedQueueTest {
     }
 
     private static void verifyEvents(final int count, final PersistedQueue queue) {
-        for (int i = 0; i < count; ++i) {
-            try {
+        try {
+            for (int i = 0; i < count; ++i) {
                 assertThat(queue.dequeue().getField(FIELD), is(i));
-            } catch (final InterruptedException ex) {
-                throw new IllegalStateException(ex);
             }
+            TimeUnit.MILLISECONDS.sleep(100L);
+        } catch (final InterruptedException ex) {
+            throw new IllegalStateException(ex);
         }
+        assertThat(queue.empty(), is(true));
     }
 }

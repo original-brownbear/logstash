@@ -182,7 +182,8 @@ public interface Worker extends Runnable, Closeable {
                     if (event != null) {
                         write(event);
                     }
-                    if (count % (long) ack == 0L && obuf.position() > 0) {
+                    if ((count % (long) ack == 0L || event == null && count == flushed)
+                        && obuf.position() > 0) {
                         flush();
                     }
                     int j = 0;

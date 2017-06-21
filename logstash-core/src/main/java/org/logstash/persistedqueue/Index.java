@@ -48,8 +48,7 @@ public interface Index extends Closeable {
         private final long[] watermarks;
 
         /**
-         * Output {@link FileChannel} that {@link StandardOpenOption#DSYNC} appends to the
-         * index file.
+         * Output {@link FileChannel} that appends to the index file.
          */
         private final FileChannel out;
 
@@ -63,8 +62,7 @@ public interface Index extends Closeable {
             final Path path = dir.resolve("queue.index");
             watermarks = loadWatermarks(partitions, path);
             out = FileChannel.open(
-                path, StandardOpenOption.APPEND,
-                StandardOpenOption.DSYNC, StandardOpenOption.CREATE
+                path, StandardOpenOption.APPEND, StandardOpenOption.CREATE
             );
         }
 
@@ -89,10 +87,12 @@ public interface Index extends Closeable {
             buffer.putLong(highWatermark);
             buffer.position(0);
             out.write(buffer);
+            out.force(false);
         }
 
         @Override
         public void close() throws IOException {
+            out.force(true);
             out.close();
         }
 
