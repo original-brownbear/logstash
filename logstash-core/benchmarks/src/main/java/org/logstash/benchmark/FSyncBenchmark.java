@@ -99,6 +99,16 @@ public class FSyncBenchmark {
 
     @Benchmark
     @Group("g")
+    @GroupThreads(4)
+    public void increment() throws Exception {
+        for (int i = 0; i < 1_000_000; ++i) {
+            counter.incrementAndGet();
+        }
+    }
+
+
+    @Benchmark
+    @Group("g")
     @GroupThreads
     public void fsync() throws Exception {
         for (int i = 0; i < 500_000; ++i) {
