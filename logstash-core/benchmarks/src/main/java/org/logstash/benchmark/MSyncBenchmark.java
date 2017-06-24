@@ -7,6 +7,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import org.logstash.Event;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -20,6 +21,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
+import org.openjdk.jmh.infra.Blackhole;
 
 @Warmup(iterations = 3, time = 100, timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
@@ -37,14 +39,14 @@ public class MSyncBenchmark {
 
     private MappedByteBuffer map;
 
-    private ByteBuffer data = ByteBuffer.allocateDirect(1024);
+    private ByteBuffer data = ByteBuffer.allocateDirect(200);
 
     @Setup
     public void up() throws Exception {
         counter = new AtomicLong(0);
         tmp = new File("tmp.tmp");
         file = new RandomAccessFile(tmp, "rw");
-        map = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 1024 * 100_000);
+        map = file.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, 200 * 500_000);
     }
 
     @TearDown
@@ -56,9 +58,9 @@ public class MSyncBenchmark {
     @Benchmark
     @Group("g")
     @GroupThreads(4)
-    public void increment() throws Exception {
+    public void increment(final Blackhole blackhole) throws Exception {
         for (int i = 0; i < 1_000_000; ++i) {
-            counter.incrementAndGet();
+            blackhole.consume(new Event());
         }
     }
 
@@ -66,7 +68,7 @@ public class MSyncBenchmark {
     @Group("g")
     @GroupThreads
     public void msync() throws Exception {
-        for (int i = 0; i < 100_000; ++i) {
+        for (int i = 0; i < 500_000; ++i) {
             data.clear();
             map.put(data);
             if (i % 1000 == 0) {
