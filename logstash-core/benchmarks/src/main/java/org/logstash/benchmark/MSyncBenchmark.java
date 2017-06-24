@@ -7,7 +7,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import org.logstash.Event;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -21,7 +20,6 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import org.openjdk.jmh.infra.Blackhole;
 
 @Warmup(iterations = 3, time = 100, timeUnit = TimeUnit.MILLISECONDS)
 @Measurement(iterations = 10, time = 100, timeUnit = TimeUnit.MILLISECONDS)
@@ -53,15 +51,6 @@ public class MSyncBenchmark {
     public void down() throws Exception {
         file.close();
         tmp.delete();
-    }
-
-    @Benchmark
-    @Group("g")
-    @GroupThreads(4)
-    public void increment(final Blackhole blackhole) throws Exception {
-        for (int i = 0; i < 1_000_000; ++i) {
-            blackhole.consume(new Event());
-        }
     }
 
     @Benchmark
