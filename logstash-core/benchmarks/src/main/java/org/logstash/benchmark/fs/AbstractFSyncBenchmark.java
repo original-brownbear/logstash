@@ -15,10 +15,6 @@ public abstract class AbstractFSyncBenchmark extends AbstractSyncBenchmark {
     @Setup
     public void up() throws Exception {
         create();
-        file = FileChannel.open(
-            tmp.toPath(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
-            StandardOpenOption.WRITE
-        );
         fillRandom(data);
     }
 
@@ -32,6 +28,10 @@ public abstract class AbstractFSyncBenchmark extends AbstractSyncBenchmark {
     @Group(GROUP)
     @GroupThreads
     public void fsync() throws Exception {
+        file = FileChannel.open(
+            tmp.toPath(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+        );
         for (int i = 0; i < MESSAGES_PER_INVOCATION; ++i) {
             data.position(0);
             file.write(data);
@@ -39,6 +39,7 @@ public abstract class AbstractFSyncBenchmark extends AbstractSyncBenchmark {
                 file.force(true);
             }
         }
-        file.position(0L);
+        file.close();
+        tmp.delete();
     }
 }

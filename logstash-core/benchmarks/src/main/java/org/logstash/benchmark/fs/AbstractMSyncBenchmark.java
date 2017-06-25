@@ -18,11 +18,6 @@ public abstract class AbstractMSyncBenchmark extends AbstractSyncBenchmark {
     @Setup
     public void up() throws Exception {
         create();
-        file = new RandomAccessFile(tmp, "rw");
-        map = file.getChannel().map(
-            FileChannel.MapMode.READ_WRITE, 0L,
-            (long) (MESSAGE_SIZE * MESSAGES_PER_INVOCATION)
-        );
         fillRandom(data);
     }
 
@@ -36,6 +31,11 @@ public abstract class AbstractMSyncBenchmark extends AbstractSyncBenchmark {
     @Group(GROUP)
     @GroupThreads
     public void msync() throws Exception {
+        file = new RandomAccessFile(tmp, "rw");
+        map = file.getChannel().map(
+            FileChannel.MapMode.READ_WRITE, 0L,
+            (long) (MESSAGE_SIZE * MESSAGES_PER_INVOCATION)
+        );
         for (int i = 0; i < MESSAGES_PER_INVOCATION; ++i) {
             data.position(0);
             map.put(data);
@@ -43,6 +43,7 @@ public abstract class AbstractMSyncBenchmark extends AbstractSyncBenchmark {
                 map.force();
             }
         }
-        map.position(0);
+        file.close();
+        tmp.delete();
     }
 }
