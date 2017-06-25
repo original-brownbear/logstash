@@ -18,7 +18,7 @@ import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 
 @Warmup(iterations = 3, time = 1)
-@Measurement(iterations = 30, time = 1)
+@Measurement(iterations = 10, time = 1)
 @Fork(1)
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.SECONDS)
@@ -27,7 +27,7 @@ public abstract class AbstractSyncBenchmark {
 
     public static final String GROUP = "GROUP";
 
-    protected static final int SYNC_INTERVAL = 1000;
+    protected static final int SYNC_INTERVAL = 100;
 
     protected static final int MESSAGES_PER_INVOCATION = 500_000;
 
