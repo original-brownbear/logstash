@@ -65,6 +65,7 @@ task jmh(type: JavaExec, dependsOn: [':logstash-core-benchmarks:clean', ':logsta
 
   doFirst {
     args = [
+      "-Djava.io.tmpdir=$buildDir.getAbsolutePath()",
       "-XX:+UseParNewGC", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
       "-XX:+UseCMSInitiatingOccupancyOnly", "-XX:+DisableExplicitGC",
       "-XX:+HeapDumpOnOutOfMemoryError", "-Xms2g", "-Xmx2g",
