@@ -65,10 +65,10 @@ task jmh(type: JavaExec, dependsOn: [':logstash-core-benchmarks:clean', ':logsta
 
   doFirst {
     args = [
-      shadowJar.archivePath,
       "-XX:+UseParNewGC", "-XX:+UseConcMarkSweepGC", "-XX:CMSInitiatingOccupancyFraction=75",
       "-XX:+UseCMSInitiatingOccupancyOnly", "-XX:+DisableExplicitGC",
-      "-XX:+HeapDumpOnOutOfMemoryError", "-Xms2g", "-Xmx2g"
+      "-XX:+HeapDumpOnOutOfMemoryError", "-Xms2g", "-Xmx2g",
+      shadowJar.archivePath,
     ]
   }
 }
