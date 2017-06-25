@@ -49,9 +49,12 @@ public abstract class AbstractSyncBenchmark {
         for (int i = 0; i < 1_000_000; ++i) {
             final Event event = new Event();
             event.setField("foo", "bar");
-            NullOutputStream.NULL_OUTPUT_STREAM
-                .write(event.serialize());
+            final byte[] raw = event.serialize();
+            NullOutputStream.NULL_OUTPUT_STREAM.write(raw);
             blackhole.consume(event);
+            final Event deserialized = Event.deserialize(raw);
+            blackhole.consume(raw);
+            blackhole.consume(deserialized);
         }
     }
 
