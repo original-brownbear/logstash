@@ -1,7 +1,16 @@
 package org.logstash.ext;
 
-import org.logstash.*;
-import org.jruby.*;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import org.jruby.Ruby;
+import org.jruby.RubyArray;
+import org.jruby.RubyBoolean;
+import org.jruby.RubyClass;
+import org.jruby.RubyHash;
+import org.jruby.RubyModule;
+import org.jruby.RubyObject;
+import org.jruby.RubyString;
 import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.exceptions.RaiseException;
@@ -12,9 +21,11 @@ import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.runtime.load.Library;
-
-import java.io.IOException;
-import java.util.Map;
+import org.logstash.ConvertedMap;
+import org.logstash.Event;
+import org.logstash.PathCache;
+import org.logstash.Rubyfier;
+import org.logstash.Valuefier;
 
 public class JrubyEventExtLibrary implements Library {
 
@@ -59,6 +70,9 @@ public class JrubyEventExtLibrary implements Library {
 
     @JRubyClass(name = "Event", parent = "Object")
     public static class RubyEvent extends RubyObject {
+
+        private final Map<RubyString, IRubyObject> cache = new HashMap<>(64);
+        
         private Event event;
 
         public RubyEvent(Ruby runtime, RubyClass klass) {
@@ -108,15 +122,15 @@ public class JrubyEventExtLibrary implements Library {
         }
 
         @JRubyMethod(name = "get", required = 1)
-        public IRubyObject ruby_get_field(ThreadContext context, RubyString reference)
-        {
-            Object value = this.event.getUnconvertedField(reference.asJavaString());
-            return Rubyfier.deep(context.runtime, value);
+        public IRubyObject ruby_get_field(ThreadContext context, RubyString reference) {
+            final IRubyObject result = cache.get(context);
+            return result == null ? context.nil : result;
         }
 
         @JRubyMethod(name = "set", required = 2)
         public IRubyObject ruby_set_field(ThreadContext context, RubyString reference, IRubyObject value)
         {
+            cache.put(reference, value);
             String r = reference.asJavaString();
 
             if (PathCache.getInstance().isTimestamp(r)) {
