@@ -411,7 +411,11 @@ module LogStash; class Pipeline < BasePipeline
       pipeline_workers.times do |t|
         @worker_threads << Thread.new do
           Util.set_thread_name("[#{pipeline_id}]>worker#{t}")
-          worker_loop(batch_size, batch_delay)
+          if @queue.is_a?(LogStash::Util::WrappedAckedQueue)
+            worker_loop(batch_size, batch_delay)
+          else
+            worker_loop_sync(batch_size, batch_delay)
+          end
         end
       end
 
@@ -448,6 +452,48 @@ module LogStash; class Pipeline < BasePipeline
 
       batch = @filter_queue_client.read_batch # metrics are started in read_batch
       if (batch.size > 0)
+        @events_consumed.increment(batch.size)
+        filter_batch(batch)
+        flush_filters_to_batch(batch, :final => false) if signal.flush?
+        output_batch(batch)
+        unless @force_shutdown.true? # ack the current batch
+          @filter_queue_client.close_batch(batch)
+        end
+      end
+
+      # keep break at end of loop, after the read_batch operation, some pipeline specs rely on this "final read_batch" before shutdown.
+      break if (shutdown_requested && !draining_queue?) || @force_shutdown.true?
+    end
+
+    # we are shutting down, queue is drained if it was required, now  perform a final flush.
+    # for this we need to create a new empty batch to contain the final flushed events
+    batch = @filter_queue_client.new_batch
+    @filter_queue_client.start_metrics(batch) # explicitly call start_metrics since we dont do a read_batch here
+    flush_filters_to_batch(batch, :final => true)
+    return if @force_shutdown.true? # Do not ack the current batch
+    output_batch(batch)
+    @filter_queue_client.close_batch(batch)
+  end
+
+  # Main body of what a worker thread does
+  # Repeatedly takes batches off the queue, filters, then outputs them
+  def worker_loop_sync(batch_size, batch_delay)
+    shutdown_requested = false
+
+    @filter_queue_client.set_batch_dimensions(batch_size, batch_delay)
+
+    batch = nil
+    while true
+      signal = @signal_queue.empty? ? NO_SIGNAL : @signal_queue.pop
+      shutdown_requested |= signal.shutdown? # latch on shutdown signal
+
+      if batch.nil?
+        batch = @filter_queue_client.read_batch # metrics are started in read_batch
+      else
+        batch = @filter_queue_client.read_batch_reusable batch
+      end
+
+      if batch.size > 0
         @events_consumed.increment(batch.size)
         filter_batch(batch)
         flush_filters_to_batch(batch, :final => false) if signal.flush?

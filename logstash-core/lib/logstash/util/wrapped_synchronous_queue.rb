@@ -128,6 +128,17 @@ module LogStash; module Util
         batch
       end
 
+      def read_batch_reusable(batch)
+        @mutex.lock
+        begin
+          batch.read_next
+        ensure
+          @mutex.unlock
+        end
+        start_metrics(batch)
+        batch
+      end
+
       def start_metrics(batch)
         @mutex.lock
         # there seems to be concurrency issues with metrics, keep it in the mutex
@@ -202,7 +213,11 @@ module LogStash; module Util
       end
 
       def read_next
-        @size.times do |t|
+        @originals.clear
+        @generated.clear
+        @iterating_temp.clear
+        @iterating = false
+        @size.times do |_|
           event = @queue.poll(@wait)
           return if event.nil? # queue poll timed out
 
