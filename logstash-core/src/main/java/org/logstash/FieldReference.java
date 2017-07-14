@@ -2,44 +2,58 @@ package org.logstash;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-// TODO: implement thread-safe path cache singleton to avoid parsing
 
 public class FieldReference {
 
-    private static final Pattern SPLIT_PATTERN = Pattern.compile("[\\[\\]]");
+    private static final ThreadLocal<List<String>> PART_BUFFER =
+        new ThreadLocal<List<String>>() {
+            @Override
+            protected List<String> initialValue() {
+                return new ArrayList<>(5);
+            }
 
-    private List<String> path;
-    private String key;
-    private String reference;
+            @Override
+            public List<String> get() {
+                List<String> b = super.get();
+                b.clear(); // clear/reset the buffer
+                return b;
+            }
 
-    public FieldReference(List<String> path, String key, String reference) {
+        };
+
+    private static final String[] EMPTY_STRING_ARRAY = new String[0];
+
+    private String[] path;
+
+    private FieldReference(String[] path) {
         this.path = path;
-        this.key = key;
-        this.reference = reference;
     }
 
-    public List<String> getPath() {
+    public String[] getPath() {
         return path;
     }
 
     public String getKey() {
-        return key;
+        return path[path.length - 1];
     }
 
-    public String getReference() {
-        return reference;
-    }
-
-    public static FieldReference parse(String reference) {
-        final String[] parts = SPLIT_PATTERN.split(reference);
-        List<String> path = new ArrayList<>(parts.length);
-        for (final String part : parts) {
-            if (!part.isEmpty()) {
-                path.add(part);
-            }
+    public static FieldReference parse(final String reference) {
+        int open = reference.indexOf('[');
+        int close = reference.indexOf(']', open);
+        final List<String> path = PART_BUFFER.get();
+        final String[] retpath;
+        if (open == -1 || close == -1) {
+            retpath = new String[]{reference};
+        } else {
+            do {
+                if (open + 1 < close) {
+                    path.add(reference.substring(open + 1, close));
+                }
+                open = reference.indexOf('[', close);
+                close = reference.indexOf(']', open);
+            } while (open != -1 && close != -1);
+            retpath = path.toArray(EMPTY_STRING_ARRAY);
         }
-        String key = path.remove(path.size() - 1);
-        return new FieldReference(path, key, reference);
+        return new FieldReference(retpath);
     }
 }

@@ -4,7 +4,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class PathCache {
 
-    private static final ConcurrentHashMap<String, FieldReference> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, FieldReference> cache =
+        new ConcurrentHashMap<>(10, 0.5F, 1);
 
     private static final FieldReference timestamp = cache(Event.TIMESTAMP);
 

@@ -16,19 +16,19 @@ public class Accessors {
 
     public Object get(String reference) {
         FieldReference field = PathCache.cache(reference);
-        Object target = findTarget(field);
+        Object target = findTarget(reference, field);
         return (target == null) ? null : fetch(target, field.getKey());
     }
 
     public Object set(String reference, Object value) {
         FieldReference field = PathCache.cache(reference);
-        Object target = findCreateTarget(field);
+        Object target = findCreateTarget(reference, field);
         return store(target, field.getKey(), value);
     }
 
     public Object del(String reference) {
         FieldReference field = PathCache.cache(reference);
-        Object target = findTarget(field);
+        Object target = findTarget(reference, field);
         if (target != null) {
             if (target instanceof Map) {
                 return ((Map<String, Object>) target).remove(field.getKey());
@@ -49,7 +49,7 @@ public class Accessors {
 
     public boolean includes(String reference) {
         FieldReference field = PathCache.cache(reference);
-        Object target = findTarget(field);
+        Object target = findTarget(reference, field);
         if (target instanceof Map && foundInMap((Map<String, Object>) target, field.getKey())) {
             return true;
         } else if (target instanceof List) {
@@ -64,27 +64,29 @@ public class Accessors {
         }
     }
 
-    private Object findTarget(FieldReference field) {
+    private Object findTarget( final String reference, final FieldReference field) {
         Object target;
-
-        if ((target = this.lut.get(field.getReference())) != null) {
+        
+        if ((target = this.lut.get(reference)) != null) {
             return target;
         }
 
         target = this.data;
-        for (String key : field.getPath()) {
+        final String[] path = field.getPath();
+        for (int i = 0; i < path.length - 1; i++) {
+            final String key = path[i];
             target = fetch(target, key);
-            if (! isCollection(target)) {
+            if (!isCollection(target)) {
                 return null;
             }
         }
 
-        this.lut.put(field.getReference(), target);
+        this.lut.put(reference, target);
 
         return target;
     }
 
-    private Object findCreateTarget(FieldReference field) {
+    private Object findCreateTarget(final String reference, final FieldReference field) {
         Object target;
 
         // flush the @lut to prevent stale cached fieldref which may point to an old target
@@ -96,17 +98,19 @@ public class Accessors {
         this.lut.clear();
 
         target = this.data;
-        for (String key : field.getPath()) {
+        final String[] path = field.getPath();
+        for (int i1 = 0; i1 < path.length - 1; i1++) {
+            final String key = path[i1];
             Object result = fetch(target, key);
             if (result == null) {
                 result = new HashMap<String, Object>();
                 if (target instanceof Map) {
-                    ((Map<String, Object>)target).put(key, result);
+                    ((Map<String, Object>) target).put(key, result);
                 } else if (target instanceof List) {
                     try {
                         int i = Integer.parseInt(key);
                         // TODO: what about index out of bound?
-                        ((List<Object>)target).set(i, result);
+                        ((List<Object>) target).set(i, result);
                     } catch (NumberFormatException e) {
                         continue;
                     }
@@ -117,7 +121,7 @@ public class Accessors {
             target = result;
         }
 
-        this.lut.put(field.getReference(), target);
+        this.lut.put(reference, target);
 
         return target;
     }
