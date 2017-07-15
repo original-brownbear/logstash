@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * A {@link GaugeMetric} that is backed by a {@link String}
  */
-public class TextGauge extends AbstractMetric<String> implements GaugeMetric<String> {
+public final class TextGauge extends AbstractMetric<String> implements GaugeMetric<String> {
 
     private volatile String value;
 

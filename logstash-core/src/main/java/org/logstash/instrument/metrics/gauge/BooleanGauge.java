@@ -1,15 +1,13 @@
 package org.logstash.instrument.metrics.gauge;
 
+import java.util.List;
 import org.logstash.instrument.metrics.AbstractMetric;
 import org.logstash.instrument.metrics.MetricType;
-import org.logstash.instrument.metrics.counter.CounterMetric;
-
-import java.util.List;
 
 /**
  * A {@link GaugeMetric} that is backed by a {@link Boolean}
  */
-public class BooleanGauge extends AbstractMetric<Boolean> implements GaugeMetric<Boolean> {
+public final class BooleanGauge extends AbstractMetric<Boolean> implements GaugeMetric<Boolean> {
 
     private volatile Boolean value;
 

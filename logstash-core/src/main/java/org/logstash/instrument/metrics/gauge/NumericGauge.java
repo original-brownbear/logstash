@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * A {@link GaugeMetric} that is backed by a {@link Number}
  */
-public class NumericGauge extends AbstractMetric<Number> implements GaugeMetric<Number> {
+public final class NumericGauge extends AbstractMetric<Number> implements GaugeMetric<Number> {
 
     private volatile Number value;
 

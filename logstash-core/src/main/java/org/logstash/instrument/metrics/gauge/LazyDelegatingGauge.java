@@ -1,13 +1,11 @@
 package org.logstash.instrument.metrics.gauge;
 
+import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.RubyHash;
 import org.logstash.instrument.metrics.AbstractMetric;
 import org.logstash.instrument.metrics.MetricType;
-import org.logstash.instrument.metrics.counter.CounterMetric;
-
-import java.util.List;
 
 /**
  * A lazy proxy to a more specific typed {@link GaugeMetric}. The metric will only be initialized if the initial value is set, or once the {@code set} operation is called.
@@ -18,7 +16,7 @@ public class LazyDelegatingGauge extends AbstractMetric<Object> implements Gauge
     private final static Logger LOGGER = LogManager.getLogger(LazyDelegatingGauge.class);
 
     protected final String key;
-    protected final List<String> nameSpaces;
+    private final List<String> nameSpaces;
 
     private GaugeMetric lazyMetric;
 

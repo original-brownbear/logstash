@@ -139,8 +139,7 @@ public class Event implements Cloneable, Serializable, Queueable {
     }
 
     public Object getField(String reference) {
-        Object val = getUnconvertedField(reference);
-        return Javafier.deep(val);
+        return Javafier.deep(getUnconvertedField(reference));
     }
 
     public Object getUnconvertedField(String reference) {

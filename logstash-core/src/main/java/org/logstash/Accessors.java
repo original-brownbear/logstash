@@ -6,10 +6,15 @@ import java.util.Map;
 
 public class Accessors {
 
-    private Map<String, Object> data;
-    protected Map<String, Object> lut;
+    private final Map<String, Object> data;
 
-    public Accessors(Map<String, Object> data) {
+    protected final Map<String, Object> lut;
+
+    public Accessors(Map data) {
+        this(ConvertedMap.newFromMap(data));
+    }
+
+    public Accessors(ConvertedMap data) {
         this.data = data;
         this.lut = new HashMap<>(); // reference -> target LUT
     }
@@ -100,7 +105,7 @@ public class Accessors {
             final String key = field[j];
             Object result = fetch(target, key);
             if (result == null) {
-                result = new HashMap<String, Object>();
+                result = ConvertedMap.create(1);
                 if (target instanceof Map) {
                     ((Map<String, Object>) target).put(key, result);
                 } else if (target instanceof List) {

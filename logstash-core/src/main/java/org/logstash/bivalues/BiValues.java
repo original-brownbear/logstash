@@ -90,7 +90,7 @@ public enum BiValues {
     }
 
     private static String fetchName(Object o) {
-        String cls = o.getClass().getName();
+        final String cls = o.getClass().getName();
         if (nameCache.containsKey(cls)) {
             return nameCache.get(cls);
         }
@@ -102,7 +102,7 @@ public enum BiValues {
 
     private enum BiValueType {
         STRING {
-            BiValue build(Object value) {
+            StringBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new StringBiValue((RubyString) value);
                 }
@@ -110,7 +110,7 @@ public enum BiValues {
             }
         },
         SYMBOL {
-            BiValue build(Object value) {
+            SymbolBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new SymbolBiValue((RubySymbol) value);
                 }
@@ -118,7 +118,7 @@ public enum BiValues {
             }
         },
         LONG {
-            BiValue build(Object value) {
+            LongBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new LongBiValue((RubyInteger) value);
                 }
@@ -126,7 +126,7 @@ public enum BiValues {
             }
         },
         INT {
-            BiValue build(Object value) {
+            IntegerBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new IntegerBiValue((RubyInteger) value);
                 }
@@ -134,7 +134,7 @@ public enum BiValues {
             }
         },
         DOUBLE {
-            BiValue build(Object value) {
+            DoubleBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new DoubleBiValue((RubyFloat) value);
                 }
@@ -142,15 +142,15 @@ public enum BiValues {
             }
         },
         FLOAT {
-            BiValue build(Object value) {
+            FloatBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
-                    return new DoubleBiValue((RubyFloat) value);
+                    return new FloatBiValue((RubyFloat) value);
                 }
                 return new FloatBiValue((Float) value);
             }
         },
         DECIMAL {
-            BiValue build(Object value) {
+            BigDecimalBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new BigDecimalBiValue((RubyBigDecimal) value);
                 }
@@ -158,7 +158,7 @@ public enum BiValues {
             }
         },
         BOOLEAN {
-            BiValue build(Object value) {
+            BooleanBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new BooleanBiValue((RubyBoolean) value);
                 }
@@ -166,7 +166,7 @@ public enum BiValues {
             }
         },
         TIMESTAMP {
-            BiValue build(Object value) {
+            TimestampBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new TimestampBiValue((RubyTimestamp) value);
                 }
@@ -174,7 +174,7 @@ public enum BiValues {
             }
         },
         NULL {
-            BiValue build(Object value) {
+            NullBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new NullBiValue((RubyNil) value);
                 }
@@ -182,7 +182,7 @@ public enum BiValues {
             }
         },
         BIGINT {
-            BiValue build(Object value) {
+            BigIntegerBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new BigIntegerBiValue((RubyBignum) value);
                 }
@@ -190,14 +190,14 @@ public enum BiValues {
             }
         },
         JAVAPROXY {
-            BiValue build(Object value) {
+            JavaProxyBiValue build(Object value) {
                 if (value instanceof IRubyObject) {
                     return new JavaProxyBiValue((JavaProxy) value);
                 }
                 return new JavaProxyBiValue(value);
             }
         };
-        abstract BiValue build(Object value);
+        abstract BiValue<?, ?> build(Object value);
     }
 
 }

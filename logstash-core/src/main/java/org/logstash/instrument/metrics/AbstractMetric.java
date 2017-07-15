@@ -13,7 +13,7 @@ import java.util.List;
  */
 public abstract class AbstractMetric<T> implements Metric<T> {
     final protected String key;
-    final protected List<String> nameSpace;
+    private final List<String> nameSpace;
 
     /**
      * Constructor

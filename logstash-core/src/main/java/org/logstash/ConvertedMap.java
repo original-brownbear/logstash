@@ -11,6 +11,10 @@ public final class ConvertedMap extends HashMap<String, Object> {
     private ConvertedMap(final int size) {
         super((size << 2) / 3 + 2);
     }
+
+    public static ConvertedMap create(final int expected) {
+        return new ConvertedMap(expected);
+    }
     
     public static ConvertedMap newFromMap(Map<Serializable, Object> o) {
         ConvertedMap cm = new ConvertedMap(o.size());
