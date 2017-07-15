@@ -69,6 +69,10 @@
 #-XX:+PrintTenuringDistribution
 #-XX:+PrintGCApplicationStoppedTime
 
+-XX:+PrintCompilation
+-XX:+UnlockDiagnosticVMOptions
+-XX:+PrintInlining
+
 # log GC status to a file with time stamps
 # ensure the directory exists
 #-Xloggc:${LS_GC_LOG_FILE}

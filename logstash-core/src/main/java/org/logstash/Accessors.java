@@ -28,7 +28,7 @@ public class Accessors {
     public Object del(String reference) {
         final String[] field = PathCache.cache(reference);
         final String key = field[field.length - 1];
-        Object target = findTarget(reference, field);
+        final Object target = findTarget(reference, field);
         if (target != null) {
             if (target instanceof Map) {
                 return ((Map<String, Object>) target).remove(key);
@@ -52,7 +52,7 @@ public class Accessors {
     public boolean includes(String reference) {
         final String[] field = PathCache.cache(reference);
         final String key = field[field.length - 1];
-        Object target = findTarget(reference, field);
+        final Object target = findTarget(reference, field);
         if (target instanceof Map && ((Map<String, Object>) target).containsKey(key)) {
             return true;
         } else if (target instanceof List) {
@@ -88,8 +88,6 @@ public class Accessors {
     }
 
     private Object findCreateTarget(final String reference, final String[] field) {
-        Object target;
-
         // flush the @lut to prevent stale cached fieldref which may point to an old target
         // which was overwritten with a new value. for example, if "[a][b]" is cached and we
         // set a new value for "[a]" then reading again "[a][b]" would point in a stale target.
@@ -97,8 +95,7 @@ public class Accessors {
         // to be able to invalidate fieldrefs from a common root.
         // see https://github.com/elastic/logstash/pull/5132
         this.lut.clear();
-
-        target = this.data;
+        Object target = this.data;
         for (int j = 0; j < field.length - 1; j++) {
             final String key = field[j];
             Object result = fetch(target, key);
