@@ -1,8 +1,8 @@
 package org.logstash;
 
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 public class Accessors {
 
@@ -15,26 +15,27 @@ public class Accessors {
     }
 
     public Object get(String reference) {
-        FieldReference field = PathCache.cache(reference);
+        final String[] field = PathCache.cache(reference);
         Object target = findTarget(reference, field);
-        return (target == null) ? null : fetch(target, field.getKey());
+        return (target == null) ? null : fetch(target, field[field.length - 1]);
     }
 
     public Object set(String reference, Object value) {
-        FieldReference field = PathCache.cache(reference);
+        final String[] field = PathCache.cache(reference);
         Object target = findCreateTarget(reference, field);
-        return store(target, field.getKey(), value);
+        return store(target, field[field.length - 1], value);
     }
 
     public Object del(String reference) {
-        FieldReference field = PathCache.cache(reference);
+        final String[] field = PathCache.cache(reference);
+        final String key = field[field.length - 1];
         Object target = findTarget(reference, field);
         if (target != null) {
             if (target instanceof Map) {
-                return ((Map<String, Object>) target).remove(field.getKey());
+                return ((Map<String, Object>) target).remove(key);
             } else if (target instanceof List) {
                 try {
-                    int i = Integer.parseInt(field.getKey());
+                    int i = Integer.parseInt(key);
                     int offset = listIndex(i, ((List) target).size());
                     return ((List)target).remove(offset);
                 } catch (IndexOutOfBoundsException|NumberFormatException e) {
@@ -48,13 +49,14 @@ public class Accessors {
     }
 
     public boolean includes(String reference) {
-        FieldReference field = PathCache.cache(reference);
+        final String[] field = PathCache.cache(reference);
+        final String key = field[field.length - 1];
         Object target = findTarget(reference, field);
-        if (target instanceof Map && foundInMap((Map<String, Object>) target, field.getKey())) {
+        if (target instanceof Map && foundInMap((Map<String, Object>) target, key)) {
             return true;
         } else if (target instanceof List) {
             try {
-                int i = Integer.parseInt(field.getKey());
+                int i = Integer.parseInt(key);
                 return (foundInList((List<Object>) target, i) ? true : false);
             } catch (NumberFormatException e) {
                 return false;
@@ -64,7 +66,7 @@ public class Accessors {
         }
     }
 
-    private Object findTarget( final String reference, final FieldReference field) {
+    private Object findTarget( final String reference, final String[] field) {
         Object target;
         
         if ((target = this.lut.get(reference)) != null) {
@@ -72,9 +74,8 @@ public class Accessors {
         }
 
         target = this.data;
-        final String[] path = field.getPath();
-        for (int i = 0; i < path.length - 1; i++) {
-            final String key = path[i];
+        for (int i = 0; i < field.length - 1; i++) {
+            final String key = field[i];
             target = fetch(target, key);
             if (!isCollection(target)) {
                 return null;
@@ -86,7 +87,7 @@ public class Accessors {
         return target;
     }
 
-    private Object findCreateTarget(final String reference, final FieldReference field) {
+    private Object findCreateTarget(final String reference, final String[] field) {
         Object target;
 
         // flush the @lut to prevent stale cached fieldref which may point to an old target
@@ -98,9 +99,8 @@ public class Accessors {
         this.lut.clear();
 
         target = this.data;
-        final String[] path = field.getPath();
-        for (int i1 = 0; i1 < path.length - 1; i1++) {
-            final String key = path[i1];
+        for (int j = 0; j < field.length - 1; j++) {
+            final String key = field[j];
             Object result = fetch(target, key);
             if (result == null) {
                 result = new HashMap<String, Object>();

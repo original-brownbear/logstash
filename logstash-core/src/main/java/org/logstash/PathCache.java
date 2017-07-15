@@ -4,10 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class PathCache {
 
-    private static final ConcurrentHashMap<String, FieldReference> cache =
+    private static final ConcurrentHashMap<String, String[]> cache =
         new ConcurrentHashMap<>(10, 0.5F, 1);
 
-    private static final FieldReference timestamp = cache(Event.TIMESTAMP);
+    private static final String[] timestamp = cache(Event.TIMESTAMP);
 
     private static final String BRACKETS_TIMESTAMP = "[" + Event.TIMESTAMP + "]";
 
@@ -20,9 +20,9 @@ public final class PathCache {
         return cache(reference) == timestamp;
     }
 
-    public static FieldReference cache(String reference) {
+    public static String[] cache(String reference) {
         // atomicity between the get and put is not important
-        FieldReference result = cache.get(reference);
+        String[] result = cache.get(reference);
         if (result == null) {
             result = FieldReference.parse(reference);
             cache.put(reference, result);
@@ -30,7 +30,7 @@ public final class PathCache {
         return result;
     }
 
-    public static FieldReference cache(String reference, FieldReference field) {
+    public static String[] cache(String reference, String[] field) {
         cache.put(reference, field);
         return field;
     }

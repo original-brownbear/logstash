@@ -3,7 +3,7 @@ package org.logstash;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FieldReference {
+public final class FieldReference {
 
     private static final ThreadLocal<List<String>> PART_BUFFER =
         new ThreadLocal<List<String>>() {
@@ -23,21 +23,11 @@ public class FieldReference {
 
     private static final String[] EMPTY_STRING_ARRAY = new String[0];
 
-    private String[] path;
-
-    private FieldReference(String[] path) {
-        this.path = path;
+    private FieldReference() {
+        // Utility Class
     }
-
-    public String[] getPath() {
-        return path;
-    }
-
-    public String getKey() {
-        return path[path.length - 1];
-    }
-
-    public static FieldReference parse(final String reference) {
+    
+    public static String[] parse(final String reference) {
         int open = reference.indexOf('[');
         int close = reference.indexOf(']', open);
         final List<String> path = PART_BUFFER.get();
@@ -54,6 +44,6 @@ public class FieldReference {
             } while (open != -1 && close != -1);
             retpath = path.toArray(EMPTY_STRING_ARRAY);
         }
-        return new FieldReference(retpath);
+        return retpath;
     }
 }
