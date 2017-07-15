@@ -262,8 +262,7 @@ public class AccessorsTest {
 
       @Theory
       public void testListIndexOutOfBounds(int i) {
-        exception.expect(IndexOutOfBoundsException.class);
-        Accessors.listIndex(i, size);
+          assertEquals(-1, Accessors.listIndex(i, size));
       }
     }
 

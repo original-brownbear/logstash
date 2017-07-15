@@ -52,7 +52,7 @@ public class Accessors {
         final String[] field = PathCache.cache(reference);
         final String key = field[field.length - 1];
         Object target = findTarget(reference, field);
-        if (target instanceof Map && foundInMap((Map<String, Object>) target, key)) {
+        if (target instanceof Map && ((Map<String, Object>) target).containsKey(key)) {
             return true;
         } else if (target instanceof List) {
             try {
@@ -126,18 +126,9 @@ public class Accessors {
         return target;
     }
 
-    private static boolean foundInList(List<Object> target, int index) {
-        try {
-            int offset = listIndex(index, target.size());
-            return target.get(offset) != null;
-        } catch (IndexOutOfBoundsException e) {
-            return false;
-        }
-
-    }
-
-    private static boolean foundInMap(Map<String, Object> target, String key) {
-        return target.containsKey(key);
+    private static boolean foundInList(final List<Object> target, final int index) {
+        final int offset = listIndex(index, target.size());
+        return offset >= 0 && target.get(offset) != null;
     }
 
     private static Object fetch(Object target, String key) {
@@ -146,9 +137,13 @@ public class Accessors {
             return result;
         } else if (target instanceof List) {
             try {
-                int offset = listIndex(Integer.parseInt(key), ((List) target).size());
-                return ((List<Object>) target).get(offset);
-            } catch (IndexOutOfBoundsException|NumberFormatException e) {
+                final List<Object> list = (List<Object>) target;
+                final int offset = listIndex(Integer.parseInt(key), list.size());
+                if (offset < 0) {
+                    return null;
+                }
+                return list.get(offset);
+            } catch (NumberFormatException e) {
                 return null;
             }
         } else if (target == null) {
@@ -199,16 +194,16 @@ public class Accessors {
         return new ClassCastException("expecting List or Map, found "  + target.getClass());
     }
 
-    /* 
+    /**
      * Returns a positive integer offset for a list of known size.
      *
      * @param i if positive, and offset from the start of the list. If negative, the offset from the end of the list, where -1 means the last element.
      * @param size the size of the list.
      * @return the positive integer offset for the list given by index i.
      */
-    public static int listIndex(int i, int size) {
+    public static int listIndex(final int i, final int size) {
         if (i >= size || i < -size) {
-            throw new IndexOutOfBoundsException("Index " + i + " is out of bounds for a list with size " + size);
+            return -1;
         }
 
         if (i < 0) { // Offset from the end of the array.
