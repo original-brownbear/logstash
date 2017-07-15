@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
 public class AccessorsTest {
 
@@ -140,12 +141,12 @@ public class AccessorsTest {
         String reference = "[map1][IdNonNumeric]";
 
         TestableAccessors accessors = new TestableAccessors(data);
-        assertEquals(accessors.lutGet(reference), null);
-        assertEquals(accessors.get(reference), null);
-        assertEquals(accessors.set(reference, "obj3"), null);
-        assertEquals(accessors.lutGet(reference), inner);
+        assertNull(accessors.lutGet(reference));
+        assertNull(accessors.get(reference));
+        assertNull(accessors.set(reference, "obj3"));
+        assertEquals(inner, accessors.lutGet(reference));
         assertFalse(accessors.includes(reference));
-        assertEquals(accessors.del(reference), null);
+        assertNull(accessors.del(reference));
     }
 
     @Test

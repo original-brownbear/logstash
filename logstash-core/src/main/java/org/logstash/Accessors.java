@@ -17,13 +17,12 @@ public class Accessors {
     public Object get(String reference) {
         final String[] field = PathCache.cache(reference);
         Object target = findTarget(reference, field);
-        return (target == null) ? null : fetch(target, field[field.length - 1]);
+        return target == null ? null : fetch(target, field[field.length - 1]);
     }
 
     public Object set(String reference, Object value) {
         final String[] field = PathCache.cache(reference);
-        Object target = findCreateTarget(reference, field);
-        return store(target, field[field.length - 1], value);
+        return store(findCreateTarget(reference, field), field[field.length - 1], value);
     }
 
     public Object del(String reference) {
@@ -35,10 +34,12 @@ public class Accessors {
                 return ((Map<String, Object>) target).remove(key);
             } else if (target instanceof List) {
                 try {
-                    int i = Integer.parseInt(key);
-                    int offset = listIndex(i, ((List) target).size());
+                    int offset = listIndex(Integer.parseInt(key), ((List) target).size());
+                    if (offset < 0) {
+                        return null;
+                    }
                     return ((List)target).remove(offset);
-                } catch (IndexOutOfBoundsException|NumberFormatException e) {
+                } catch (NumberFormatException e) {
                     return null;
                 }
             } else {
@@ -56,8 +57,7 @@ public class Accessors {
             return true;
         } else if (target instanceof List) {
             try {
-                int i = Integer.parseInt(key);
-                return (foundInList((List<Object>) target, i) ? true : false);
+                return foundInList((List<Object>) target, Integer.parseInt(key));
             } catch (NumberFormatException e) {
                 return false;
             }
@@ -77,7 +77,7 @@ public class Accessors {
         for (int i = 0; i < field.length - 1; i++) {
             final String key = field[i];
             target = fetch(target, key);
-            if (!isCollection(target)) {
+            if (!(target instanceof Map || target instanceof List)) {
                 return null;
             }
         }
@@ -108,9 +108,8 @@ public class Accessors {
                     ((Map<String, Object>) target).put(key, result);
                 } else if (target instanceof List) {
                     try {
-                        int i = Integer.parseInt(key);
                         // TODO: what about index out of bound?
-                        ((List<Object>) target).set(i, result);
+                        ((List<Object>) target).set(Integer.parseInt(key), result);
                     } catch (NumberFormatException e) {
                         continue;
                     }
@@ -136,20 +135,23 @@ public class Accessors {
             Object result = ((Map<String, Object>) target).get(key);
             return result;
         } else if (target instanceof List) {
-            try {
-                final List<Object> list = (List<Object>) target;
-                final int offset = listIndex(Integer.parseInt(key), list.size());
-                if (offset < 0) {
-                    return null;
-                }
-                return list.get(offset);
-            } catch (NumberFormatException e) {
-                return null;
-            }
+            return fetchFromList((List<Object>) target, key);
         } else if (target == null) {
             return null;
         } else {
             throw newCollectionException(target);
+        }
+    }
+    
+    private static Object fetchFromList(final List<Object> list, final String key) {
+        try {
+            final int offset = listIndex(Integer.parseInt(key), list.size());
+            if (offset < 0) {
+                return null;
+            }
+            return list.get(offset);
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -157,37 +159,35 @@ public class Accessors {
         if (target instanceof Map) {
             ((Map<String, Object>) target).put(key, value);
         } else if (target instanceof List) {
-            int i;
-            try {
-                i = Integer.parseInt(key);
-            } catch (NumberFormatException e) {
-                return null;
-            }
-            int size = ((List<Object>) target).size();
-            if (i >= size) {
-                // grow array by adding trailing null items
-                // this strategy reflects legacy Ruby impl behaviour and is backed by specs
-                // TODO: (colin) this is potentially dangerous, and could produce OOM using arbitrary big numbers
-                // TODO: (colin) should be guard against this?
-                for (int j = size; j < i; j++) {
-                    ((List<Object>) target).add(null);
-                }
-                ((List<Object>) target).add(value);
-            } else {
-                int offset = listIndex(i, ((List) target).size());
-                ((List<Object>) target).set(offset, value);
-            }
+            return storeToList((List<Object>) target, key, value); 
         } else {
             throw newCollectionException(target);
         }
         return value;
     }
 
-    private static boolean isCollection(Object target) {
-        if (target == null) {
-            return false;
+    private static Object storeToList(final List<Object> target, final String key,
+        final Object value) {
+        final int i;
+        try {
+            i = Integer.parseInt(key);
+        } catch (NumberFormatException e) {
+            return null;
         }
-        return (target instanceof Map || target instanceof List);
+        final int size = target.size();
+        if (i >= size) {
+            // grow array by adding trailing null items
+            // this strategy reflects legacy Ruby impl behaviour and is backed by specs
+            // TODO: (colin) this is potentially dangerous, and could produce OOM using arbitrary big numbers
+            // TODO: (colin) should be guard against this?
+            for (int j = size; j < i; j++) {
+                target.add(null);
+            }
+            target.add(value);
+        } else {
+            target.set(listIndex(i, size), value);
+        }
+        return value;
     }
 
     private static ClassCastException newCollectionException(Object target) {
