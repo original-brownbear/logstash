@@ -1,5 +1,6 @@
 package org.logstash.config.ir.expression;
 
+import java.time.Instant;
 import org.logstash.config.ir.SourceComponent;
 import org.logstash.config.ir.InvalidIRException;
 import org.logstash.common.SourceWithMetadata;
@@ -25,7 +26,7 @@ public class ValueExpression extends Expression {
                 value instanceof BigDecimal ||
                 value instanceof String ||
                 value instanceof List ||
-                value instanceof java.time.Instant
+                value instanceof Instant
         )) {
             // This *should* be caught by the treetop grammar, but we need this case just in case there's a bug
             // somewhere
@@ -46,9 +47,9 @@ public class ValueExpression extends Expression {
         if (sourceComponent instanceof ValueExpression) {
             ValueExpression other = (ValueExpression) sourceComponent;
             if (this.get() == null) {
-                return (other.get() == null);
+                return other.get() == null;
             } else {
-                return (this.get().equals(other.get()));
+                return this.get().equals(other.get());
             }
         }
         return false;

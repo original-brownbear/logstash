@@ -7,7 +7,7 @@ import org.logstash.config.ir.expression.Expression;
 /**
  * Created by andrewvc on 9/21/16.
  */
-public class Lte extends BinaryBooleanExpression {
+public final class Lte extends BinaryBooleanExpression {
     public Lte(SourceWithMetadata meta, Expression left, Expression right) {
         super(meta, left, right);
     }

@@ -1,7 +1,7 @@
 package org.logstash.config.ir.expression;
 
-import org.logstash.config.ir.SourceComponent;
 import org.logstash.common.SourceWithMetadata;
+import org.logstash.config.ir.SourceComponent;
 
 /**
  * Created by andrewvc on 9/13/16.
@@ -14,7 +14,7 @@ public class EventValueExpression extends Expression {
         this.fieldName = fieldName;
     }
 
-    public String getFieldName() {
+    private String getFieldName() {
         return fieldName;
     }
 
@@ -23,8 +23,7 @@ public class EventValueExpression extends Expression {
         if (sourceComponent == null) return false;
         if (this == sourceComponent) return true;
         if (sourceComponent instanceof EventValueExpression) {
-            EventValueExpression other = (EventValueExpression) sourceComponent;
-            return (this.getFieldName().equals(other.getFieldName()));
+            return this.getFieldName().equals(((EventValueExpression) sourceComponent).fieldName);
         }
         return false;
     }

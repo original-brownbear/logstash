@@ -9,7 +9,7 @@ import org.logstash.config.ir.expression.UnaryBooleanExpression;
 /**
  * Created by andrewvc on 9/21/16.
  */
-public class Not extends UnaryBooleanExpression {
+public final class Not extends UnaryBooleanExpression {
     public Not(SourceWithMetadata meta, Expression expression) throws InvalidIRException {
         super(meta, expression);
     }

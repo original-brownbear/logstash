@@ -2,27 +2,25 @@ package org.logstash.config.ir;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.logstash.common.SourceWithMetadata;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.logstash.common.SourceWithMetadata;
 
 /**
  * Created by andrewvc on 9/20/16.
  */
-public class PluginDefinition implements SourceComponent, HashableWithSource {
-    private static ObjectMapper om = new ObjectMapper();
+public final class PluginDefinition implements SourceComponent, HashableWithSource {
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public String hashSource() {
         try {
-            String serializedArgs = om.writeValueAsString(this.getArguments());
             return this.getClass().getCanonicalName() + "|" +
-                    this.getType().toString() + "|" +
-                    this.getName() + "|" +
-                   serializedArgs;
+                this.getType().toString() + "|" +
+                this.getName() + "|" +
+                OBJECT_MAPPER.writeValueAsString(this.getArguments());
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Could not serialize plugin args as JSON", e);
         }
@@ -77,21 +75,20 @@ public class PluginDefinition implements SourceComponent, HashableWithSource {
 
     @Override
     public boolean sourceComponentEquals(SourceComponent o) {
-        if (o == null) return false;
         if (o instanceof PluginDefinition) {
             PluginDefinition oPluginDefinition = (PluginDefinition) o;
 
-            Set<String> allArgs = new HashSet<>();
-            allArgs.addAll(getArguments().keySet());
-            allArgs.addAll(oPluginDefinition.getArguments().keySet());
+            final Set<String> allArgs = new HashSet<>();
+            allArgs.addAll(arguments.keySet());
+            allArgs.addAll(oPluginDefinition.arguments.keySet());
 
             // Compare all arguments except the unique id
             boolean argsMatch = allArgs.stream().
-                    filter(k -> !k.equals("id")).
-                    allMatch(k -> Objects.equals(getArguments().get(k), oPluginDefinition.getArguments().get(k)));
+                    filter(k -> !"id".equals(k)).
+                    allMatch(k -> Objects.equals(arguments.get(k), oPluginDefinition.arguments.get(k)));
 
 
-            return argsMatch && type.equals(oPluginDefinition.type) && name.equals(oPluginDefinition.name);
+            return argsMatch && type == oPluginDefinition.type && name.equals(oPluginDefinition.name);
         }
         return false;
     }

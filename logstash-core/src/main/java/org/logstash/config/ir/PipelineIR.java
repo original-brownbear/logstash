@@ -14,7 +14,8 @@ import java.util.stream.Stream;
  * Created by andrewvc on 9/20/16.
  */
 public class PipelineIR implements Hashable {
-    private String uniqueHash;
+
+    private final String uniqueHash;
 
     public Graph getGraph() {
         return graph;
@@ -50,8 +51,7 @@ public class PipelineIR implements Hashable {
         this.graph = tempGraph.chain(outputSection);
 
         this.graph.validate();
-
-        if (this.getOriginalSource() != null && !this.getOriginalSource().matches("^\\s+$")) {
+        if (this.originalSource != null && !this.originalSource.matches("^\\s+$")) {
             uniqueHash = Util.digest(this.getOriginalSource());
         } else {
             uniqueHash = this.graph.uniqueHash();

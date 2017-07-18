@@ -7,7 +7,7 @@ import org.logstash.config.ir.expression.Expression;
 /**
  * Created by andrewvc on 9/21/16.
  */
-public class Neq extends BinaryBooleanExpression {
+public final class Neq extends BinaryBooleanExpression {
     public Neq(SourceWithMetadata meta, Expression left, Expression right) {
         super(meta, left, right);
     }
