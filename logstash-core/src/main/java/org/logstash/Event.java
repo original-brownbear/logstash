@@ -9,10 +9,11 @@ import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.jruby.RubyString;
 import org.jruby.RubySymbol;
 import org.logstash.ackedqueue.Queueable;
+import org.logstash.bivalues.BiValues;
 import org.logstash.bivalues.NullBiValue;
-import org.logstash.bivalues.StringBiValue;
 import org.logstash.bivalues.TimeBiValue;
 import org.logstash.bivalues.TimestampBiValue;
 import org.logstash.ext.JrubyTimestampExtLibrary;
@@ -304,8 +305,8 @@ public final class Event implements Cloneable, Queueable {
             if (o instanceof String) {
                 // second most frequent
                 return new Timestamp((String) o);
-            } else if (o instanceof StringBiValue) {
-                return new Timestamp(((StringBiValue) o).javaValue());
+            } else if (o instanceof RubyString) {
+                return new Timestamp(o.toString());
             } else if (o instanceof TimeBiValue) {
                 return new Timestamp(((TimeBiValue) o).javaValue());
             } else if (o instanceof JrubyTimestampExtLibrary.RubyTimestamp) {
@@ -345,7 +346,7 @@ public final class Event implements Cloneable, Queueable {
      */
     private void initTag(final String tag) {
         final ConvertedList list = new ConvertedList(1);
-        list.add(new StringBiValue(tag));
+        list.add(BiValues.RUBY.newString(tag));
         accessors.set("tags", list);
     }
 
