@@ -57,7 +57,7 @@ public final class Event implements Cloneable, Queueable {
     /**
      * Constructor from a map that will be copied and the copy will have its contents converted to
      * Java objects.
-     * @param data Map that is assumed to have either {@link String} or {@link org.jruby.RubyString}
+     * @param data Map that is assumed to have either {@link String} or {@link RubyString}
      * keys and may contain Java and Ruby objects.
      */
     public Event(Map data) {
@@ -202,9 +202,7 @@ public final class Event implements Cloneable, Queueable {
         }
     }
 
-    public String toJson()
-            throws IOException
-    {
+    public String toJson() throws IOException {
         return JSON_MAPPER.writeValueAsString(this.data);
     }
 
