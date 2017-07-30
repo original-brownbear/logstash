@@ -5,23 +5,27 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class PathCache {
 
-    private static final Map<String, FieldReference> cache =
+    private static final Map<CharSequence, FieldReference> cache =
         new ConcurrentHashMap<>(64, 0.2F, 1);
 
     private static final FieldReference timestamp = cache(Event.TIMESTAMP);
 
-    private static final String BRACKETS_TIMESTAMP = "[" + Event.TIMESTAMP + "]";
+    private static final CharSequence BRACKETS_TIMESTAMP =
+        new StringBuilder().append('[').append(Event.TIMESTAMP).append(']').toString();
 
     static {
         // inject @timestamp
         cache.put(BRACKETS_TIMESTAMP, timestamp);
     }
 
-    public static boolean isTimestamp(String reference) {
-        return cache(reference) == timestamp;
+    private PathCache() {
     }
 
-    public static FieldReference cache(String reference) {
+    public static boolean isTimestamp(final CharSequence reference) {
+        return Event.compareString(Event.TIMESTAMP, reference);
+    }
+
+    public static FieldReference cache(final CharSequence reference) {
         // atomicity between the get and put is not important
         final FieldReference result = cache.get(reference);
         if (result != null) {
@@ -30,7 +34,7 @@ public final class PathCache {
         return parseToCache(reference);
     }
     
-    private static FieldReference parseToCache(final String reference) {
+    private static FieldReference parseToCache(final CharSequence reference) {
         final FieldReference result = FieldReference.parse(reference);
         cache.put(reference, result);
         return result;
