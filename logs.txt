@@ -1,0 +1,589 @@
+
+gstash git:(fix-jruby) ✗ repeat 10000 bin/ruby -J-Djruby.jit.logging=true -J-Djruby.jit.threshold=0 -J-Djruby.jit.logging.verbose=true -Xcompile.invokedynamic=true reproducer.rb > /dev/null
+
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:15:26.262+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:15:26.295+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:15:26.306+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:15:26.328+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:15:26.345+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:15:26.378+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:15:26.388+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:15:26.397+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:15:26.431+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:15:26.434+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:15:26.434+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:15:26.437+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:26.437+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:15:26.441+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:26.441+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:15:26.441+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:15:26.441+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:15:26.441+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:26.446+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:26.478+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:15:26.546+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:15:46.002+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:15:46.048+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:15:46.062+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:15:46.093+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:15:46.114+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:15:46.153+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:15:46.167+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:15:46.176+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:15:46.209+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:15:46.226+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:15:46.226+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:15:46.233+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:15:46.233+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:46.233+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:15:46.234+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:15:46.241+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:46.241+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:15:46.243+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:46.251+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:46.283+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:15:46.327+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:15:55.977+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:15:56.016+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:15:56.029+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:15:56.054+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:15:56.073+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:15:56.116+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:15:56.130+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:15:56.141+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:15:56.177+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:15:56.199+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:15:56.200+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:15:56.206+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:15:56.206+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:15:56.206+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:15:56.207+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:15:56.215+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:15:56.222+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:15:56.278+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:15:56.347+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:04.617+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:04.646+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:04.656+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:04.679+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:04.697+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:04.738+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:04.751+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:04.760+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:04.791+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:04.805+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:04.805+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:04.809+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:04.809+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:04.810+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:04.811+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:04.815+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:04.815+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:04.815+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:04.815+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:04.815+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:04.818+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:04.847+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:04.877+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:12.396+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:12.424+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:12.434+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:12.458+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:12.474+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:12.511+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:12.525+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:12.534+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:12.567+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:12.580+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:12.580+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:12.583+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:12.583+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:12.585+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:12.585+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:12.587+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:12.587+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:12.591+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:12.595+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:12.620+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:12.665+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:20.329+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:20.357+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:20.366+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:20.389+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:20.405+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:20.445+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:20.459+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:20.468+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:20.499+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:20.514+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:20.514+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:20.517+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:20.517+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:20.519+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:20.519+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:20.522+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:20.522+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:20.522+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:20.522+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:20.522+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:20.526+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:20.555+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:20.583+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:28.216+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:28.243+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:28.252+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:28.275+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:28.292+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:28.332+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:28.346+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:28.355+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:28.381+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:28.401+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:28.401+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:28.403+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:28.403+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:28.406+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:28.406+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:28.408+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:28.408+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:28.408+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:28.408+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:28.408+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:28.440+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:28.464+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:35.860+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:35.887+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:35.897+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:35.920+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:35.937+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:35.976+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:35.989+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:35.999+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:36.031+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:36.046+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:36.046+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:36.050+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:36.050+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:36.050+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:36.050+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:36.054+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:36.054+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:36.054+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:36.055+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:36.054+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:36.057+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:36.062+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:36.088+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:36.110+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:43.582+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:43.609+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:43.618+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:43.641+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:43.657+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:43.695+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:43.709+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:43.718+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:43.745+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:43.762+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:43.762+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:43.766+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:43.767+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:43.767+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:43.767+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:43.767+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:43.767+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:43.772+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:43.772+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:43.772+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:43.772+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:43.772+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:43.807+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:43.839+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:51.079+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:51.106+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:51.115+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:51.138+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:51.154+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:51.193+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:51.207+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:51.216+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:51.243+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:51.263+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:51.263+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:51.266+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:51.266+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:51.267+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:51.267+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:51.271+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:51.271+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:51.271+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:51.271+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:51.271+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:51.274+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:51.305+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:51.329+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:16:58.618+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:16:58.645+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:16:58.654+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:16:58.678+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:16:58.694+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:16:58.733+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:16:58.746+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:16:58.755+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:16:58.782+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:16:58.800+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:16:58.800+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:16:58.803+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:16:58.803+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:16:58.805+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:16:58.806+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:16:58.809+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:58.809+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:58.809+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:16:58.809+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:58.809+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:16:58.845+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:16:58.870+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:06.144+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:06.169+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:06.178+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:06.202+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:06.219+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:06.259+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:06.273+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:06.283+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:06.308+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:06.329+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:06.330+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:06.332+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:06.332+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:06.334+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:06.334+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:06.337+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:06.337+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:06.337+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:06.337+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:06.341+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:06.371+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:06.393+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:13.503+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:13.528+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:13.537+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:13.560+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:13.577+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:13.615+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:13.627+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:13.637+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:13.664+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:13.682+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:13.682+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:13.686+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:13.686+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:13.686+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:13.686+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:13.691+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:13.691+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:13.691+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:13.691+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:13.691+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:13.693+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:13.723+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:13.748+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:21.137+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:21.163+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:21.171+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:21.194+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:21.210+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:21.249+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:21.261+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:21.271+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:21.315+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:21.316+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:21.317+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:21.318+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:21.321+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:21.322+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:21.326+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:21.327+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:21.327+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:21.327+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:21.327+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:21.327+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:21.327+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:21.332+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:21.333+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:21.334+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:21.368+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:21.477+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:28.573+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:28.600+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:28.610+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:28.635+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:28.652+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:28.691+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:28.704+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:28.713+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:28.738+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:28.759+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:28.762+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:28.762+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:28.763+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:28.764+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:28.766+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:28.767+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:28.768+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:28.768+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:28.772+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:28.778+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:28.794+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:28.813+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:35.750+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:35.776+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:35.785+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:35.808+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:35.824+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:35.863+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:35.876+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:35.885+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:35.912+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:35.931+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:35.931+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:35.934+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:35.934+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:35.935+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:35.936+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:35.939+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-6: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.939+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:35.942+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:35.974+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:35.998+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:43.166+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:43.191+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:43.200+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:43.224+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:43.240+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:43.279+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:43.291+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:43.300+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:43.327+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:43.349+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:43.350+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:43.350+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:43.352+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:43.353+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:43.354+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:43.355+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:43.356+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:43.356+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:43.361+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:43.366+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:43.385+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:43.407+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:50.824+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:50.852+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:50.861+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:50.884+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:50.901+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:17:50.940+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:17:50.958+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:17:50.969+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:17:51.020+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:17:51.020+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:17:51.024+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:51.025+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:17:51.026+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:17:51.026+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1.do_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/other.rb:16
+2017-08-16T15:17:51.030+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2.do_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/other.rb:19
+2017-08-16T15:17:51.032+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:51.034+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:17:51.034+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:17:51.037+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:17:51.039+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:17:51.040+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:17:51.041+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:17:51.042+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5_CLOSURE_6.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5_CLOSURE_6 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:17:51.048+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:17:51.054+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+2017-08-16T15:17:51.090+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:17:51.149+02:00 [main] INFO JITCompiler : done jitting: SomeConstClass SomeConstClass.some_method at /Users/brownbear/src/logstash/constants.rb:2
+WARNING: Default JAVA_OPTS will be overridden by the JAVA_OPTS defined in the environment. Environment JAVA_OPTS are -Xms4g -Xmx4g -Djava.net.preferIPv4Stack=true
+2017-08-16T15:17:59.838+02:00 [main] INFO Ruby : done compiling target script: reproducer.rb
+2017-08-16T15:17:59.885+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.require_relative at uri:classloader:/jruby/kernel/kernel.rb:2
+2017-08-16T15:17:59.907+02:00 [main] INFO JITCompiler : done jitting: <anon class> Module.convert_to_str at uri:classloader:/jruby/kernel/jruby/type.rb:35
+2017-08-16T15:17:59.963+02:00 [main] INFO JITCompiler : done jitting: Kernel Kernel.initialize_dup at uri:classloader:/jruby/kernel/kernel.rb:20
+2017-08-16T15:17:59.996+02:00 [main] INFO JITCompiler : done jitting: Object Object.java_import at uri:classloader:/jruby/java/core_ext/object.rb:26
+2017-08-16T15:18:00.068+02:00 [main] INFO JITCompiler : done jitting: SomeClass SomeClass.initialize at /Users/brownbear/src/logstash/some.rb:2
+2017-08-16T15:18:00.093+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.initialize at /Users/brownbear/src/logstash/other.rb:2
+2017-08-16T15:18:00.106+02:00 [main] INFO JITCompiler : done jitting: SomeYetOtherClass SomeYetOtherClass.initialize at /Users/brownbear/src/logstash/yetother.rb:2
+2017-08-16T15:18:00.153+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_3.do_block_stuff_CLOSURE_1_CLOSURE_3 at /Users/brownbear/src/logstash/some.rb:9
+2017-08-16T15:18:00.153+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.synchronize at /Users/brownbear/src/logstash/some.rb:23
+2017-08-16T15:18:00.159+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: SomeClass SomeClass.do_block_stuff at /Users/brownbear/src/logstash/some.rb:6
+2017-08-16T15:18:00.159+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:18:00.169+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1.do_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/other.rb:16
+2017-08-16T15:18:00.169+02:00 [Ruby-0-Thread-7: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:18:00.169+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_4_CLOSURE_5[(eval):0]
+2017-08-16T15:18:00.170+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:18:00.170+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2.do_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/other.rb:19
+2017-08-16T15:18:00.171+02:00 [Ruby-0-Thread-8: reproducer.rb:1] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_2_CLOSURE_3[(eval):0]
+2017-08-16T15:18:00.171+02:00 [Ruby-0-Thread-3: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:18:00.172+02:00 [Ruby-0-Thread-5: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5_CLOSURE_6.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4_CLOSURE_5_CLOSURE_6 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:18:00.172+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3_CLOSURE_4 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:18:00.174+02:00 [Ruby-0-Thread-9: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3.do_stuff_CLOSURE_1_CLOSURE_2_CLOSURE_3 at /Users/brownbear/src/logstash/other.rb:20
+2017-08-16T15:18:00.176+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1.do_block_stuff_CLOSURE_1 at /Users/brownbear/src/logstash/some.rb:7
+2017-08-16T15:18:00.185+02:00 [Ruby-0-Thread-4: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:18:00.185+02:00 [Ruby-0-Thread-2: reproducer.rb:1] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.print at /Users/brownbear/src/logstash/other.rb:25
+2017-08-16T15:18:00.191+02:00 [main] INFO JITCompiler : done jitting: SomeOtherClass SomeOtherClass.do_stuff at /Users/brownbear/src/logstash/other.rb:15
+2017-08-16T15:18:00.203+02:00 [Ruby-0-Thread-1: reproducer.rb:1] INFO JITCompiler : done jitting: <block> do_block_stuff_CLOSURE_1_CLOSURE_2.do_block_stuff_CLOSURE_1_CLOSURE_2 at /Users/brownbear/src/logstash/some.rb:16
+2017-08-16T15:18:00.210+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_8_CLOSURE_9[(eval):0]
+2017-08-16T15:18:00.217+02:00 [main] INFO InterpretedIRBlockBody : JIT failed; no protocol found in block: CLOSURE initializeEVAL_6_CLOSURE_7[(eval):0]
+Unhandled Java exception: java.lang.RuntimeException: org.jruby.runtime.scopes.DynamicScope0 only supports scopes with 0 variables
+java.lang.RuntimeException: org.jruby.runtime.scopes.DynamicScope0 only supports scopes with 0 variables
+                           sizeError at org/jruby/runtime/scopes/DynamicScope0:-1
+                   getValueDepthZero at org/jruby/runtime/scopes/DynamicScope0:6
+              getValueDepthZeroOrNil at org/jruby/runtime/DynamicScope.java:257
+                       getValueOrNil at org/jruby/runtime/DynamicScope.java:249
+                       getValueOrNil at org/jruby/runtime/DynamicScope.java:247
+                       getValueOrNil at org/jruby/runtime/DynamicScope.java:247
+                       getValueOrNil at org/jruby/runtime/DynamicScope.java:247
+                       getValueOrNil at org/jruby/runtime/DynamicScope.java:247
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                          callDirect at org/jruby/runtime/CompiledIRBlockBody.java:145
+                                call at org/jruby/runtime/IRBlockBody.java:71
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                                call at org/jruby/RubyProc$INVOKER$i$0$0$call19.gen:-1
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:204
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:200
+                                call at org/jruby/runtime/callsite/CachingCallSite.java:161
+                         processCall at org/jruby/ir/interpreter/InterpreterEngine.java:314
+                           interpret at org/jruby/ir/interpreter/StartupInterpreterEngine.java:73
+                     INTERPRET_BLOCK at org/jruby/ir/interpreter/Interpreter.java:132
+                     commonYieldPath at org/jruby/runtime/MixedModeIRBlockBody.java:148
+                                call at org/jruby/runtime/IRBlockBody.java:73
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                          callDirect at org/jruby/runtime/CompiledIRBlockBody.java:145
+                                call at org/jruby/runtime/IRBlockBody.java:71
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                                call at org/jruby/RubyProc$INVOKER$i$0$0$call19.gen:-1
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:204
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:200
+                        cacheAndCall at org/jruby/runtime/callsite/CachingCallSite.java:338
+                                call at org/jruby/runtime/callsite/CachingCallSite.java:163
+                         processCall at org/jruby/ir/interpreter/InterpreterEngine.java:314
+                           interpret at org/jruby/ir/interpreter/StartupInterpreterEngine.java:73
+                     INTERPRET_BLOCK at org/jruby/ir/interpreter/Interpreter.java:132
+                     commonYieldPath at org/jruby/runtime/MixedModeIRBlockBody.java:148
+                                call at org/jruby/runtime/IRBlockBody.java:73
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                          callDirect at org/jruby/runtime/CompiledIRBlockBody.java:145
+                                call at org/jruby/runtime/IRBlockBody.java:71
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                                call at org/jruby/RubyProc$INVOKER$i$0$0$call19.gen:-1
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:204
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:200
+                                call at org/jruby/runtime/callsite/CachingCallSite.java:161
+                         processCall at org/jruby/ir/interpreter/InterpreterEngine.java:314
+                           interpret at org/jruby/ir/interpreter/StartupInterpreterEngine.java:73
+                     INTERPRET_BLOCK at org/jruby/ir/interpreter/Interpreter.java:132
+                     commonYieldPath at org/jruby/runtime/MixedModeIRBlockBody.java:148
+                                call at org/jruby/runtime/IRBlockBody.java:73
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                          callDirect at org/jruby/runtime/CompiledIRBlockBody.java:145
+                                call at org/jruby/runtime/IRBlockBody.java:71
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                                call at org/jruby/RubyProc$INVOKER$i$0$0$call19.gen:-1
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:204
+                                call at org/jruby/internal/runtime/methods/DynamicMethod.java:200
+                        cacheAndCall at org/jruby/runtime/callsite/CachingCallSite.java:338
+                                call at org/jruby/runtime/callsite/CachingCallSite.java:163
+                         processCall at org/jruby/ir/interpreter/InterpreterEngine.java:314
+                           interpret at org/jruby/ir/interpreter/StartupInterpreterEngine.java:73
+                     INTERPRET_BLOCK at org/jruby/ir/interpreter/Interpreter.java:132
+                     commonYieldPath at org/jruby/runtime/MixedModeIRBlockBody.java:148
+                                call at org/jruby/runtime/IRBlockBody.java:73
+                                call at org/jruby/runtime/Block.java:124
+                                call at org/jruby/RubyProc.java:289
+                              call19 at org/jruby/RubyProc.java:273
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                         yieldDirect at org/jruby/runtime/CompiledIRBlockBody.java:156
+                               yield at org/jruby/runtime/BlockBody.java:114
+                               yield at org/jruby/runtime/Block.java:165
+                             match19 at org/jruby/RubyString.java:1626
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:21
+                         yieldDirect at org/jruby/runtime/CompiledIRBlockBody.java:156
+                               yield at org/jruby/runtime/BlockBody.java:114
+                               yield at org/jruby/runtime/Block.java:165
+                                each at org/jruby/RubyArray.java:1734
+                   block in do_stuff at /Users/brownbear/src/logstash/other.rb:20
+                         yieldDirect at org/jruby/runtime/CompiledIRBlockBody.java:156
+                               yield at org/jruby/runtime/BlockBody.java:114
+                               yield at org/jruby/runtime/Block.java:165
+                          fixnumEach at org/jruby/RubyRange.java:530
+                                each at org/jruby/RubyRange.java:485
+                                call at org/jruby/RubyRange$INVOKER$i$0$0$each.gen:-1
+                                call at org/jruby/internal/runtime/methods/JavaMethod.java:498
+                              invoke at org/jruby/ir/targets/InvokeSite.java:145
+                            do_stuff at /Users/brownbear/src/logstash/other.rb:17
+  RUBY$method$do_stuff$0$__VARARGS__ at Users/brownbear/src/logstash//Users/brownbear/src/logstash/other.rb:-1
+                                call at org/jruby/internal/runtime/methods/CompiledIRMethod.java:77
+                                call at org/jruby/internal/runtime/methods/MixedModeIRMethod.java:93
+                              invoke at org/jruby/ir/targets/InvokeSite.java:145
+                              <main> at reproducer.rb:38
+                 invokeWithArguments at java/lang/invoke/MethodHandle.java:627
+                                load at org/jruby/ir/Compiler.java:95
+                           runScript at org/jruby/Ruby.java:827
+                         runNormally at org/jruby/Ruby.java:746
+                         runNormally at org/jruby/Ruby.java:764
+                         runFromMain at org/jruby/Ruby.java:577
+                       doRunFromMain at org/jruby/Main.java:417
+                         internalRun at org/jruby/Main.java:305
+                                 run at org/jruby/Main.java:232
+                                main at org/jruby/Main.java:204
+
