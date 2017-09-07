@@ -2,8 +2,9 @@
 
 require "logstash/namespace"
 require "logstash/json"
-require "jruby_event_ext"
-require "jruby_timestamp_ext"
+
+org.logstash.RubyUtil::RUBY
+
 require "logstash/timestamp"
 
 # transient pipeline events for normal in-flow signaling as opposed to
