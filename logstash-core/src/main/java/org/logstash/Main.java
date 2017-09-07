@@ -69,7 +69,7 @@ public class Main {
         return searchList;
     }
 
-    public static void processDotfile() {
+    private static void processDotfile() {
         final StringBuilder path = new StringBuilder();
         for (final String home : getDotfileDirectories()) {
             path.setLength(0);
@@ -178,8 +178,6 @@ public class Main {
             return internalRun();
         } catch (final MainExitException mee) {
             return handleMainExit(mee);
-        } catch (final OutOfMemoryError oome) {
-            return handleOutOfMemory(oome);
         } catch (final StackOverflowError soe) {
             return handleStackOverflow(soe);
         } catch (final UnsupportedClassVersionError ucve) {
@@ -271,52 +269,6 @@ public class Main {
         return new Main.Status(1);
     }
 
-    /**
-     * Print a nicer memory error since Rubyists aren't used to seeing this.
-     */
-    private Main.Status handleOutOfMemory(final OutOfMemoryError ex) {
-        System.gc(); // try to clean up a bit of space, hopefully, so we can report this error
-        final String oomeMessage = ex.getMessage();
-        boolean heapError = false;
-        if (oomeMessage != null) {
-            if (oomeMessage.contains("PermGen")) {
-                // report permgen memory error
-                config.getError()
-                    .println("Error: Your application exhausted PermGen area of the heap.");
-                config.getError().println(
-                    "Specify -J-XX:MaxPermSize=###M to increase it (### = PermGen size in MB).");
-            } else if (oomeMessage.contains("unable to create new native thread")) {
-                // report thread exhaustion error
-                config.getError().println(
-                    "Error: Your application demanded too many live threads, perhaps for Fiber or Enumerator.");
-                config.getError()
-                    .println("Ensure your old Fibers and Enumerators are being cleaned up.");
-            } else {
-                heapError = true;
-            }
-        }
-        if (heapError) { // report heap memory error
-            final String memoryMax = getRuntimeFlagValue("-Xmx");
-            if (memoryMax != null) {
-                config.getError().println(
-                    "Error: Your application used more memory than the safety cap of " + memoryMax +
-                        ".");
-            } else {
-                config.getError().println(
-                    "Error: Your application used more memory than the automatic cap of " +
-                        Runtime.getRuntime().maxMemory() / 1024L / 1024L + "MB.");
-            }
-            config.getError()
-                .println("Specify -J-Xmx####M to increase it (#### = cap size in MB).");
-        }
-        if (config.isVerbose()) {
-            ex.printStackTrace(config.getError());
-        } else {
-            config.getError().println("Specify -w for full " + ex + " stack trace");
-        }
-        return new Main.Status(1);
-    }
-
     private static String getRuntimeFlagValue(final String prefix) {
         final RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
         for (final String param : runtime.getInputArguments()) {
@@ -349,8 +301,7 @@ public class Main {
     }
 
     private Main.Status doCheckSyntax(final Ruby runtime, final InputStream in,
-        final String filename)
-        throws RaiseException {
+        final String filename) {
         // check primary script
         boolean status = checkStreamSyntax(runtime, in, filename);
         // check other scripts specified on argv
@@ -377,14 +328,14 @@ public class Main {
     private boolean checkStreamSyntax(final Ruby runtime, final InputStream in,
         final String filename) {
         final ThreadContext context = runtime.getCurrentContext();
-        final IRubyObject $ex = context.getErrorInfo();
+        final IRubyObject errors = context.getErrorInfo();
         try {
             runtime.parseFromMain(in, filename);
             config.getOutput().println("Syntax OK");
             return true;
         } catch (final RaiseException re) {
             if (re.getException().getMetaClass().getBaseName().equals("SyntaxError")) {
-                context.setErrorInfo($ex);
+                context.setErrorInfo(errors);
                 config.getError().println("SyntaxError in " + re.getException().message(context));
                 return false;
             }
