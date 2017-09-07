@@ -41,25 +41,27 @@ import org.jruby.util.log.LoggerFactory;
 public class Main {
     private static final Logger LOG = LoggerFactory.getLogger(Main.class);
 
-    private Main(boolean hardExit) {
+    private Main(final boolean hardExit) {
         // used only from main(String[]), so we process dotfile here
         processDotfile();
         this.config = new RubyInstanceConfig();
         config.setHardExit(hardExit);
     }
 
-    private static List<String> getDotfileDirectories() {
-        final ArrayList<String> searchList = new ArrayList<>(4);
-        for (String homeProp : new String[]{"user.dir", "user.home"}) {
-            String home = SafePropertyAccessor.getProperty(homeProp);
-            if (home != null) searchList.add(home);
+    private static Iterable<String> getDotfileDirectories() {
+        final List<String> searchList = new ArrayList<>(4);
+        for (final String homeProp : new String[]{"user.dir", "user.home"}) {
+            final String home = SafePropertyAccessor.getProperty(homeProp);
+            if (home != null) {
+                searchList.add(home);
+            }
         }
         // JVM sometimes picks odd location for user.home based on a registry entry
         // (see http://bugs.sun.com/view_bug.do?bug_id=4787931).  Add extra check in
         // case that entry is wrong. Add before user.home in search list.
         if (Platform.IS_WINDOWS) {
-            String homeDrive = System.getenv("HOMEDRIVE");
-            String homePath = System.getenv("HOMEPATH");
+            final String homeDrive = System.getenv("HOMEDRIVE");
+            final String homePath = System.getenv("HOMEPATH");
             if (homeDrive != null && homePath != null) {
                 searchList.add(1, (homeDrive + homePath).replace('\\', '/'));
             }
@@ -69,38 +71,43 @@ public class Main {
 
     public static void processDotfile() {
         final StringBuilder path = new StringBuilder();
-        for (String home : getDotfileDirectories()) {
+        for (final String home : getDotfileDirectories()) {
             path.setLength(0);
             path.append(home).append("/.jrubyrc");
             final File dotfile = new File(path.toString());
-            if (dotfile.exists()) loadJRubyProperties(dotfile);
+            if (dotfile.exists()) {
+                loadJRubyProperties(dotfile);
+            }
         }
     }
 
-    private static void loadJRubyProperties(File dotfile) {
+    private static void loadJRubyProperties(final File dotfile) {
         FileInputStream fis = null;
         try {
             // update system properties with long form jruby properties from .jrubyrc
-            Properties sysProps = System.getProperties();
-            Properties newProps = new Properties();
+            final Properties sysProps = System.getProperties();
+            final Properties newProps = new Properties();
             // load properties and re-set as jruby.*
             fis = new FileInputStream(dotfile);
             newProps.load(fis);
-            for (Map.Entry entry : newProps.entrySet()) {
+            for (final Map.Entry entry : newProps.entrySet()) {
                 sysProps.put("jruby." + entry.getKey(), entry.getValue());
             }
         } catch (IOException | SecurityException ex) {
-            if (LOG.isDebugEnabled())
+            if (LOG.isDebugEnabled()) {
                 LOG.debug("exception loading properties from: " + dotfile, ex);
+            }
         } finally {
-            if (fis != null) try {
-                fis.close();
-            } catch (Exception e) {
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (final Exception e) {
+                }
             }
         }
     }
 
-    public static class Status {
+    public static final class Status {
         private boolean isExit;
         private int status;
 
@@ -110,7 +117,7 @@ public class Main {
          * invoked during the run.
          * @param status The status value.
          */
-        Status(int status) {
+        Status(final int status) {
             this.isExit = true;
             this.status = status;
         }
@@ -136,22 +143,22 @@ public class Main {
      * embedding JRuby into another application.
      * @param args command-line args, provided by the JVM.
      */
-    public static void main(String[] args) {
+    public static void main(final String[] args) {
         doGCJCheck();
-        Main main;
+        final Main main;
         final String[] arguments = new String[args.length + 2];
         arguments[0] = System.getenv("LOGSTASH_HOME") + "/lib/bootstrap/environment.rb";
         arguments[1] = "logstash/runner.rb";
         System.arraycopy(args, 0, arguments, 2, args.length);
         main = new Main(true);
         try {
-            Main.Status status = main.run(arguments);
+            final Main.Status status = main.run(arguments);
             if (status.isExit()) {
                 System.exit(status.getStatus());
             }
-        } catch (RaiseException ex) {
+        } catch (final RaiseException ex) {
             System.exit(handleRaiseException(ex));
-        } catch (JumpException ex) {
+        } catch (final JumpException ex) {
             System.exit(handleUnexpectedJump(ex));
         } catch (Throwable t) {
             // print out as a nice Ruby backtrace
@@ -165,19 +172,19 @@ public class Main {
         }
     }
 
-    public Main.Status run(String[] args) {
+    private Main.Status run(final String[] args) {
         try {
             config.processArguments(args);
             return internalRun();
-        } catch (MainExitException mee) {
+        } catch (final MainExitException mee) {
             return handleMainExit(mee);
-        } catch (OutOfMemoryError oome) {
+        } catch (final OutOfMemoryError oome) {
             return handleOutOfMemory(oome);
-        } catch (StackOverflowError soe) {
+        } catch (final StackOverflowError soe) {
             return handleStackOverflow(soe);
-        } catch (UnsupportedClassVersionError ucve) {
+        } catch (final UnsupportedClassVersionError ucve) {
             return handleUnsupportedClassVersion(ucve);
-        } catch (ThreadKill kill) {
+        } catch (final ThreadKill kill) {
             return new Main.Status();
         }
     }
@@ -190,9 +197,9 @@ public class Main {
             doPrintUsage(false);
             return new Main.Status();
         }
-        InputStream in = config.getScriptSource();
-        String filename = config.displayedFileName();
-        Ruby _runtime;
+        final InputStream in = config.getScriptSource();
+        final String filename = config.displayedFileName();
+        final Ruby _runtime;
         _runtime = Ruby.newInstance(config);
         final Ruby runtime = _runtime;
         final AtomicBoolean didTeardown = new AtomicBoolean();
@@ -229,7 +236,7 @@ public class Main {
         }
     }
 
-    private Main.Status handleUnsupportedClassVersion(UnsupportedClassVersionError ex) {
+    private Main.Status handleUnsupportedClassVersion(final UnsupportedClassVersionError ex) {
         config.getError()
             .println("Error: Some library (perhaps JRuby) was built with a later JVM version.");
         config.getError().println(
@@ -245,8 +252,8 @@ public class Main {
     /**
      * Print a nicer stack size error since Rubyists aren't used to seeing this.
      */
-    private Main.Status handleStackOverflow(StackOverflowError ex) {
-        String memoryMax = getRuntimeFlagValue("-Xss");
+    private Main.Status handleStackOverflow(final StackOverflowError ex) {
+        final String memoryMax = getRuntimeFlagValue("-Xss");
         if (memoryMax != null) {
             config.getError().println(
                 "Error: Your application used more stack memory than the safety cap of " +
@@ -267,9 +274,9 @@ public class Main {
     /**
      * Print a nicer memory error since Rubyists aren't used to seeing this.
      */
-    private Main.Status handleOutOfMemory(OutOfMemoryError ex) {
+    private Main.Status handleOutOfMemory(final OutOfMemoryError ex) {
         System.gc(); // try to clean up a bit of space, hopefully, so we can report this error
-        String oomeMessage = ex.getMessage();
+        final String oomeMessage = ex.getMessage();
         boolean heapError = false;
         if (oomeMessage != null) {
             if (oomeMessage.contains("PermGen")) {
@@ -289,7 +296,7 @@ public class Main {
             }
         }
         if (heapError) { // report heap memory error
-            String memoryMax = getRuntimeFlagValue("-Xmx");
+            final String memoryMax = getRuntimeFlagValue("-Xmx");
             if (memoryMax != null) {
                 config.getError().println(
                     "Error: Your application used more memory than the safety cap of " + memoryMax +
@@ -297,7 +304,7 @@ public class Main {
             } else {
                 config.getError().println(
                     "Error: Your application used more memory than the automatic cap of " +
-                        Runtime.getRuntime().maxMemory() / 1024 / 1024 + "MB.");
+                        Runtime.getRuntime().maxMemory() / 1024L / 1024L + "MB.");
             }
             config.getError()
                 .println("Specify -J-Xmx####M to increase it (#### = cap size in MB).");
@@ -310,9 +317,9 @@ public class Main {
         return new Main.Status(1);
     }
 
-    private String getRuntimeFlagValue(String prefix) {
-        RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
-        for (String param : runtime.getInputArguments()) {
+    private static String getRuntimeFlagValue(final String prefix) {
+        final RuntimeMXBean runtime = ManagementFactory.getRuntimeMXBean();
+        for (final String param : runtime.getInputArguments()) {
             if (param.startsWith(prefix)) {
                 return param.substring(prefix.length()).toUpperCase();
             }
@@ -320,7 +327,7 @@ public class Main {
         return null;
     }
 
-    private Main.Status handleMainExit(MainExitException mee) {
+    private Main.Status handleMainExit(final MainExitException mee) {
         if (!mee.isAborted()) {
             config.getError().println(mee.getMessage());
             if (mee.isUsageError()) {
@@ -330,33 +337,35 @@ public class Main {
         return new Main.Status(mee.getStatus());
     }
 
-    private Main.Status doRunFromMain(Ruby runtime, InputStream in, String filename) {
+    private static Main.Status doRunFromMain(final Ruby runtime, final InputStream in,
+        final String filename) {
         try {
             doCheckSecurityManager();
             runtime.runFromMain(in, filename);
-        } catch (RaiseException rj) {
+        } catch (final RaiseException rj) {
             return new Main.Status(handleRaiseException(rj));
         }
         return new Main.Status();
     }
 
-    private Main.Status doCheckSyntax(Ruby runtime, InputStream in, String filename)
+    private Main.Status doCheckSyntax(final Ruby runtime, final InputStream in,
+        final String filename)
         throws RaiseException {
         // check primary script
         boolean status = checkStreamSyntax(runtime, in, filename);
         // check other scripts specified on argv
-        for (String arg : config.getArgv()) {
+        for (final String arg : config.getArgv()) {
             status = status && checkFileSyntax(runtime, arg);
         }
         return new Main.Status(status ? 0 : -1);
     }
 
-    private boolean checkFileSyntax(Ruby runtime, String filename) {
-        File file = new File(filename);
+    private boolean checkFileSyntax(final Ruby runtime, final String filename) {
+        final File file = new File(filename);
         if (file.exists()) {
             try {
                 return checkStreamSyntax(runtime, new FileInputStream(file), filename);
-            } catch (FileNotFoundException fnfe) {
+            } catch (final FileNotFoundException ignored) {
                 config.getError().println("File not found: " + filename);
                 return false;
             }
@@ -365,14 +374,15 @@ public class Main {
         }
     }
 
-    private boolean checkStreamSyntax(Ruby runtime, InputStream in, String filename) {
+    private boolean checkStreamSyntax(final Ruby runtime, final InputStream in,
+        final String filename) {
         final ThreadContext context = runtime.getCurrentContext();
         final IRubyObject $ex = context.getErrorInfo();
         try {
             runtime.parseFromMain(in, filename);
             config.getOutput().println("Syntax OK");
             return true;
-        } catch (RaiseException re) {
+        } catch (final RaiseException re) {
             if (re.getException().getMetaClass().getBaseName().equals("SyntaxError")) {
                 context.setErrorInfo($ex);
                 config.getError().println("SyntaxError in " + re.getException().message(context));
@@ -382,11 +392,11 @@ public class Main {
         }
     }
 
-    private void doSetContextClassLoader(Ruby runtime) {
+    private void doSetContextClassLoader(final Ruby runtime) {
         // set thread context JRuby classloader here, for the main thread
         try {
             Thread.currentThread().setContextClassLoader(runtime.getJRubyClassLoader());
-        } catch (SecurityException se) {
+        } catch (final SecurityException se) {
             // can't set TC classloader
             if (runtime.getInstanceConfig().isVerbose()) {
                 config.getError().println(
@@ -401,7 +411,7 @@ public class Main {
         }
     }
 
-    private void doPrintUsage(boolean force) {
+    private void doPrintUsage(final boolean force) {
         if (config.getShouldPrintUsage() || force) {
             config.getOutput().print(OutputStrings.getBasicUsageHelp());
             config.getOutput().print(OutputStrings.getFeaturesHelp());
@@ -428,7 +438,7 @@ public class Main {
         }
     }
 
-    private void doCheckSecurityManager() {
+    private static void doCheckSecurityManager() {
         if (Main.class.getClassLoader() == null && System.getSecurityManager() != null) {
             System.err
                 .println("Warning: security manager and JRuby running from boot classpath.\n" +
@@ -441,11 +451,12 @@ public class Main {
      * run should be System.err. In order to avoid the Ruby err being closed and unable
      * to write, we use System.err unconditionally.
      */
-    protected static int handleRaiseException(final RaiseException ex) {
-        RubyException raisedException = ex.getException();
+    private static int handleRaiseException(final RaiseException ex) {
+        final RubyException raisedException = ex.getException();
         final Ruby runtime = raisedException.getRuntime();
         if (runtime.getSystemExit().isInstance(raisedException)) {
-            IRubyObject status = raisedException.callMethod(runtime.getCurrentContext(), "status");
+            final IRubyObject status =
+                raisedException.callMethod(runtime.getCurrentContext(), "status");
             if (status != null && !status.isNil()) {
                 return RubyNumeric.fix2int(status);
             }
@@ -463,9 +474,11 @@ public class Main {
             // NOTE: assuming a single global runtime main(args) should have :
             if (Ruby.isGlobalRuntimeReady()) {
                 final Ruby runtime = Ruby.getGlobalRuntime();
-                RaiseException raise =
+                final RaiseException raise =
                     ((JumpException.FlowControlException) ex).buildException(runtime);
-                if (raise != null) handleRaiseException(raise);
+                if (raise != null) {
+                    handleRaiseException(raise);
+                }
             } else {
                 System.err.println("Unexpected jump: " + ex);
             }
