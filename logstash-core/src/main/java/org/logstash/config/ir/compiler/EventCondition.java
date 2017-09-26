@@ -15,7 +15,6 @@ import org.logstash.FieldReference;
 import org.logstash.PathCache;
 import org.logstash.RubyUtil;
 import org.logstash.Valuefier;
-import org.logstash.bivalues.BiValues;
 import org.logstash.config.ir.expression.BinaryBooleanExpression;
 import org.logstash.config.ir.expression.BooleanExpression;
 import org.logstash.config.ir.expression.EventValueExpression;
@@ -437,9 +436,6 @@ public interface EventCondition {
          * @return True iff value is in list
          */
         private static boolean contains(final ConvertedList list, final Object value) {
-            if (value == null || value == BiValues.NULL_BI_VALUE) {
-                return list.contains(BiValues.NULL_BI_VALUE);
-            }
             for (final Object element : list) {
                 if (value.equals(element)) {
                     return true;
