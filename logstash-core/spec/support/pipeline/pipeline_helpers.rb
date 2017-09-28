@@ -1,5 +1,5 @@
 require "logstash/agent"
-require "logstash/pipeline"
+require "logstash/java_pipeline"
 require "logstash/event"
 require "stud/try"
 require "rspec/expectations"
@@ -61,7 +61,7 @@ module PipelineHelpers
         settings = ::LogStash::SETTINGS.clone
         settings.set_value("queue.drain", true)
         settings.set_value("pipeline.workers", 1)
-        LogStash::Pipeline.new(
+        LogStash::JavaPipeline.new(
           LogStash::Config::PipelineConfig.new(
             LogStash::Config::Source::Local, :main,
             SourceWithMetadata.new(

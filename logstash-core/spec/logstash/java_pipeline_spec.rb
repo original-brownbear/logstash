@@ -5,6 +5,7 @@ require "logstash/filters/drop"
 require_relative "../support/mocks_classes"
 require_relative "../support/helpers"
 require_relative "../logstash/pipeline_reporter_spec" # for DummyOutput class
+require 'support/pipeline/pipeline_helpers'
 require "stud/try"
 require 'timeout'
 
@@ -110,11 +111,11 @@ class DummyFlushingFilterPeriodic < DummyFlushingFilter
   end
 end
 
-class TestPipeline < LogStash::Pipeline
+class JavaTestPipeline < LogStash::JavaPipeline
   attr_reader :outputs, :settings
 end
 
-describe LogStash::Pipeline do
+describe LogStash::JavaPipeline do
   let(:worker_thread_count)     { 5 }
   let(:safe_thread_count)       { 1 }
   let(:override_thread_count)   { 42 }
@@ -138,11 +139,11 @@ describe LogStash::Pipeline do
 
   describe "#ephemeral_id" do
     it "creates an ephemeral_id at creation time" do
-      pipeline = mock_pipeline_from_string("input { generator { count =>  1 } } output { null {} }")
+      pipeline = mock_java_pipeline_from_string("input { generator { count =>  1 } } output { null {} }")
       expect(pipeline.ephemeral_id).to_not be_nil
       pipeline.close
 
-      second_pipeline = mock_pipeline_from_string("input { generator { count => 1 } } output { null {} }")
+      second_pipeline = mock_java_pipeline_from_string("input { generator { count => 1 } } output { null {} }")
       expect(second_pipeline.ephemeral_id).not_to eq(pipeline.ephemeral_id)
       second_pipeline.close
     end
@@ -185,7 +186,7 @@ describe LogStash::Pipeline do
       abort_on_exception_state = Thread.abort_on_exception
       Thread.abort_on_exception = true
 
-      pipeline = mock_pipeline_from_string(config, pipeline_settings_obj)
+      pipeline = mock_java_pipeline_from_string(config, pipeline_settings_obj)
       t = Thread.new { pipeline.run }
       Timeout.timeout(timeout) do
         sleep(0.1) until pipeline.ready?
@@ -237,21 +238,21 @@ describe LogStash::Pipeline do
         let(:logger) { double("pipeline logger").as_null_object }
 
         before do
-          expect(::LogStash::Pipeline).to receive(:logger).and_return(logger)
+          expect(::LogStash::JavaPipeline).to receive(:logger).and_return(logger)
           allow(logger).to receive(:debug?).and_return(true)
         end
 
         it "should not receive a debug message with the compiled code" do
           pipeline_settings_obj.set("config.debug", false)
           expect(logger).not_to receive(:debug).with(/Compiled pipeline/, anything)
-          pipeline = mock_pipeline_from_string(test_config_with_filters)
+          pipeline = mock_java_pipeline_from_string(test_config_with_filters)
           pipeline.close
         end
 
         it "should print the compiled code if config.debug is set to true" do
           pipeline_settings_obj.set("config.debug", true)
           expect(logger).to receive(:debug).with(/Compiled pipeline/, anything)
-          pipeline = mock_pipeline_from_string(test_config_with_filters, pipeline_settings_obj)
+          pipeline = mock_java_pipeline_from_string(test_config_with_filters, pipeline_settings_obj)
           pipeline.close
         end
       end
@@ -259,7 +260,7 @@ describe LogStash::Pipeline do
       context "when there is no command line -w N set" do
         it "starts one filter thread" do
           msg = "Defaulting pipeline worker threads to 1 because there are some filters that might not work with multiple worker threads"
-          pipeline = mock_pipeline_from_string(test_config_with_filters)
+          pipeline = mock_java_pipeline_from_string(test_config_with_filters)
           expect(pipeline.logger).to receive(:warn).with(msg,
             hash_including({:count_was=>worker_thread_count, :filters=>["dummyfilter"]}))
           pipeline.run
@@ -273,7 +274,7 @@ describe LogStash::Pipeline do
         it "starts multiple filter thread" do
           msg = "Warning: Manual override - there are filters that might" +
                 " not work with multiple worker threads"
-          pipeline = mock_pipeline_from_string(test_config_with_filters, pipeline_settings_obj)
+          pipeline = mock_java_pipeline_from_string(test_config_with_filters, pipeline_settings_obj)
           expect(pipeline.logger).to receive(:warn).with(msg, hash_including({:worker_threads=> override_thread_count, :filters=>["dummyfilter"]}))
           pipeline.run
           expect(pipeline.worker_threads.size).to eq(override_thread_count)
@@ -301,7 +302,7 @@ describe LogStash::Pipeline do
 
       it "starts multiple filter threads" do
         skip("This test has been failing periodically since November 2016. Tracked as https://github.com/elastic/logstash/issues/6245")
-        pipeline = mock_pipeline_from_string(test_config_with_filters)
+        pipeline = mock_java_pipeline_from_string(test_config_with_filters)
         pipeline.run
         expect(pipeline.worker_threads.size).to eq(worker_thread_count)
         pipeline.shutdown
@@ -344,7 +345,7 @@ describe LogStash::Pipeline do
     }
 
     context "output close" do
-      let(:pipeline) { mock_pipeline_from_string(test_config_without_output_workers) }
+      let(:pipeline) { mock_java_pipeline_from_string(test_config_without_output_workers) }
       let(:output) { pipeline.outputs.first }
 
       before do
@@ -372,7 +373,7 @@ describe LogStash::Pipeline do
     end
 
     let(:config) { "input { dummyinput { codec => plain { format => 'something'  } } } filter { dummyfilter {} } output { dummyoutput {} }"}
-    let(:pipeline) { mock_pipeline_from_string(config) }
+    let(:pipeline) { mock_java_pipeline_from_string(config) }
 
     after do
       # If you don't start/stop the pipeline it won't release the queue lock and will
@@ -388,6 +389,7 @@ describe LogStash::Pipeline do
   end
 
   context "compiled flush function" do
+    extend PipelineHelpers
     describe "flusher thread" do
       before(:each) do
         allow(LogStash::Plugin).to receive(:lookup).with("input", "dummyinput").and_return(DummyInput)
@@ -398,7 +400,7 @@ describe LogStash::Pipeline do
       let(:config) { "input { dummyinput {} } output { dummyoutput {} }"}
 
       it "should start the flusher thread only after the pipeline is running" do
-        pipeline = mock_pipeline_from_string(config)
+        pipeline = mock_java_pipeline_from_string(config)
 
         expect(pipeline).to receive(:transition_to_running).ordered.and_call_original
         expect(pipeline).to receive(:start_flusher).ordered.and_call_original
@@ -415,7 +417,7 @@ describe LogStash::Pipeline do
         }
       CONFIG
 
-      sample("hello") do
+      sample_one("hello") do
         expect(subject).to eq(nil)
       end
     end
@@ -428,7 +430,8 @@ describe LogStash::Pipeline do
           }
         }
       CONFIG
-      sample(["foo", "bar"]) do
+
+      sample_one(["foo", "bar"]) do
         expect(subject.size).to eq(4)
       end
     end
@@ -438,7 +441,7 @@ describe LogStash::Pipeline do
     let(:config) { "input { dummyinput {} } output { dummyoutput {} }" }
     let(:batch_size) { 1 }
     let(:pipeline_settings) { { "pipeline.batch.size" => batch_size, "pipeline.workers" => 1 } }
-    let(:pipeline) { mock_pipeline_from_string(config, pipeline_settings_obj) }
+    let(:pipeline) { mock_java_pipeline_from_string(config, pipeline_settings_obj) }
     let(:logger) { pipeline.logger }
     let(:warning_prefix) { Regexp.new("CAUTION: Recommended inflight events max exceeded!") }
 
@@ -464,7 +467,7 @@ describe LogStash::Pipeline do
     end
 
     context "with a too large inflight count" do
-      let(:batch_size) { LogStash::Pipeline::MAX_INFLIGHT_WARN_THRESHOLD + 1 }
+      let(:batch_size) { LogStash::JavaPipeline::MAX_INFLIGHT_WARN_THRESHOLD + 1 }
 
       it "should raise a max inflight warning if the max_inflight count is exceeded" do
         expect(logger).to have_received(:warn).with(warning_prefix, hash_including(:pipeline_id => anything))
@@ -474,6 +477,7 @@ describe LogStash::Pipeline do
 
   context "compiled filter functions" do
     context "new events should propagate down the filters" do
+      extend PipelineHelpers
       config <<-CONFIG
         filter {
           clone {
@@ -485,7 +489,7 @@ describe LogStash::Pipeline do
         }
       CONFIG
 
-      sample("hello") do
+      sample_one("hello") do
         expect(subject.size).to eq(3)
 
         expect(subject[0].get("message")).to eq("hello")
@@ -507,7 +511,7 @@ describe LogStash::Pipeline do
     config = "input { } filter { } output { }"
 
     let(:settings) { LogStash::SETTINGS.clone }
-    subject { mock_pipeline_from_string(config, settings, metric) }
+    subject { mock_java_pipeline_from_string(config, settings, metric) }
 
     after :each do
       subject.close
@@ -592,38 +596,6 @@ describe LogStash::Pipeline do
     end
   end
 
-  context "Multiples pipelines" do
-    before do
-      allow(LogStash::Plugin).to receive(:lookup).with("input", "dummyinputgenerator").and_return(DummyInputGenerator)
-      allow(LogStash::Plugin).to receive(:lookup).with("codec", "plain").and_return(DummyCodec)
-      allow(LogStash::Plugin).to receive(:lookup).with("filter", "dummyfilter").and_return(DummyFilter)
-      allow(LogStash::Plugin).to receive(:lookup).with("output", "dummyoutput").and_return(::LogStash::Outputs::DummyOutput)
-      allow(LogStash::Plugin).to receive(:lookup).with("output", "dummyoutputmore").and_return(DummyOutputMore)
-    end
-
-    # multiple pipelines cannot be instantiated using the same PQ settings, force memory queue
-    before :each do
-      pipeline_workers_setting = LogStash::SETTINGS.get_setting("queue.type")
-      allow(pipeline_workers_setting).to receive(:value).and_return("memory")
-      pipeline_settings.each {|k, v| pipeline_settings_obj.set(k, v) }
-    end
-
-    let(:pipeline1) { mock_pipeline_from_string("input { dummyinputgenerator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
-    let(:pipeline2) { mock_pipeline_from_string("input { dummyinputgenerator {} } filter { dummyfilter {} } output { dummyoutputmore {}}") }
-
-    after  do
-      pipeline1.close
-      pipeline2.close
-    end
-
-    it "should handle evaluating different config" do
-      expect(pipeline1.output_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline1.filter_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline2.output_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline1.filter_func(LogStash::Event.new)).not_to include(nil)
-    end
-  end
-
   context "Periodic Flush" do
     let(:config) do
       <<-EOS
@@ -650,7 +622,7 @@ describe LogStash::Pipeline do
 
     it "flush periodically" do
       Thread.abort_on_exception = true
-      pipeline = mock_pipeline_from_string(config, pipeline_settings_obj)
+      pipeline = mock_java_pipeline_from_string(config, pipeline_settings_obj)
       t = Thread.new { pipeline.run }
       Timeout.timeout(timeout) do
         sleep(0.1) until pipeline.ready?
@@ -670,42 +642,6 @@ describe LogStash::Pipeline do
     end
   end
 
-  context "Multiple pipelines" do
-    before do
-      allow(LogStash::Plugin).to receive(:lookup).with("input", "generator").and_return(LogStash::Inputs::Generator)
-      allow(LogStash::Plugin).to receive(:lookup).with("codec", "plain").and_return(DummyCodec)
-      allow(LogStash::Plugin).to receive(:lookup).with("filter", "dummyfilter").and_return(DummyFilter)
-      allow(LogStash::Plugin).to receive(:lookup).with("output", "dummyoutput").and_return(::LogStash::Outputs::DummyOutput)
-    end
-
-    let(:pipeline1) { mock_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
-    let(:pipeline2) { mock_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
-
-    # multiple pipelines cannot be instantiated using the same PQ settings, force memory queue
-    before :each do
-      pipeline_workers_setting = LogStash::SETTINGS.get_setting("queue.type")
-      allow(pipeline_workers_setting).to receive(:value).and_return("memory")
-      pipeline_settings.each {|k, v| pipeline_settings_obj.set(k, v) }
-    end
-
-    it "should handle evaluating different config" do
-      # When the functions are compiled from the AST it will generate instance
-      # variables that are unique to the actual config, the instances are pointing
-      # to conditionals and/or plugins.
-      #
-      # Before the `defined_singleton_method`, the definition of the method was
-      # not unique per class, but the `instance variables` were unique per class.
-      #
-      # So the methods were trying to access instance variables that did not exist
-      # in the current instance and was returning an array containing nil values for
-      # the match.
-      expect(pipeline1.output_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline1.filter_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline2.output_func(LogStash::Event.new)).not_to include(nil)
-      expect(pipeline1.filter_func(LogStash::Event.new)).not_to include(nil)
-    end
-  end
-
   context "#started_at" do
     # use a run limiting count to shutdown the pipeline automatically
     let(:config) do
@@ -716,7 +652,7 @@ describe LogStash::Pipeline do
       EOS
     end
 
-    subject { mock_pipeline_from_string(config) }
+    subject { mock_java_pipeline_from_string(config) }
 
     context "when the pipeline is not started" do
       after :each do
@@ -743,7 +679,7 @@ describe LogStash::Pipeline do
       }
       EOS
     end
-    subject { mock_pipeline_from_string(config) }
+    subject { mock_java_pipeline_from_string(config) }
 
     context "when the pipeline is not started" do
       after :each do
@@ -776,7 +712,7 @@ describe LogStash::Pipeline do
   context "when collecting metrics in the pipeline" do
     let(:metric) { LogStash::Instrument::Metric.new(LogStash::Instrument::Collector.new) }
 
-    subject { mock_pipeline_from_string(config, pipeline_settings_obj, metric) }
+    subject { mock_java_pipeline_from_string(config, pipeline_settings_obj, metric) }
 
     let(:pipeline_settings) { { "pipeline.id" => pipeline_id } }
     let(:pipeline_id) { "main" }
@@ -930,8 +866,8 @@ describe LogStash::Pipeline do
       allow(LogStash::Plugin).to receive(:lookup).with("output", "dummyoutput").and_return(::LogStash::Outputs::DummyOutput)
     end
 
-    let(:pipeline1) { mock_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
-    let(:pipeline2) { mock_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
+    let(:pipeline1) { mock_java_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
+    let(:pipeline2) { mock_java_pipeline_from_string("input { generator {} } filter { dummyfilter {} } output { dummyoutput {}}") }
 
     # multiple pipelines cannot be instantiated using the same PQ settings, force memory queue
     before :each do
@@ -951,14 +887,14 @@ describe LogStash::Pipeline do
     end
 
     context "when the pipeline is a system pipeline" do
-      let(:pipeline) { mock_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.system" => true)) }
+      let(:pipeline) { mock_java_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.system" => true)) }
       it "returns true" do
         expect(pipeline.system?).to be_truthy
       end
     end
 
     context "when the pipeline is not a system pipeline" do
-      let(:pipeline) { mock_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.system" => false)) }
+      let(:pipeline) { mock_java_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.system" => false)) }
       it "returns true" do
         expect(pipeline.system?).to be_falsey
       end
@@ -971,7 +907,7 @@ describe LogStash::Pipeline do
     end
 
     context "when all plugins are reloadable and pipeline is configured as reloadable" do
-      let(:pipeline) { mock_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.reloadable" => true)) }
+      let(:pipeline) { mock_java_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.reloadable" => true)) }
 
       it "returns true" do
         expect(pipeline.reloadable?).to be_truthy
@@ -979,7 +915,7 @@ describe LogStash::Pipeline do
     end
 
     context "when the plugins are not reloadable and pipeline is configured as reloadable" do
-      let(:pipeline) { mock_pipeline_from_string("input { stdin {} } output { null {} }", mock_settings("pipeline.reloadable" => true)) }
+      let(:pipeline) { mock_java_pipeline_from_string("input { stdin {} } output { null {} }", mock_settings("pipeline.reloadable" => true)) }
 
       it "returns true" do
         expect(pipeline.reloadable?).to be_falsey
@@ -987,7 +923,7 @@ describe LogStash::Pipeline do
     end
 
     context "when all plugins are reloadable and pipeline is configured as non-reloadable" do
-      let(:pipeline) { mock_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.reloadable" => false)) }
+      let(:pipeline) { mock_java_pipeline_from_string("input { generator {} } output { null {} }", mock_settings("pipeline.reloadable" => false)) }
 
       it "returns true" do
         expect(pipeline.reloadable?).to be_falsey
