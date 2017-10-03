@@ -21,6 +21,13 @@ import org.logstash.ext.JrubyTimestampExtLibrary;
 
 public final class Rubyfier {
 
+    /**
+     * Cache holding frozen {@link RubyString} that can be reused as Keys when converting
+     * {@link Map} to {@link RubyHash}.
+     */
+    private static final ConcurrentHashMap<String, RubyString> RUBY_KEY_CACHE
+        = new ConcurrentHashMap<>(50, 0.2F, 1);
+
     private static final Rubyfier.Converter IDENTITY = (runtime, input) -> (IRubyObject) input;
 
     private static final Rubyfier.Converter FLOAT_CONVERTER =
@@ -64,10 +71,25 @@ public final class Rubyfier {
         return array;
     }
 
-    private static RubyHash deepMap(final Ruby runtime, final Map<?, ?> map) {
+    /**
+     * Converts a {@link Map} with {@link String} keys into a {@link RubyHash} with
+     * {@link RubyString} keys using {@link Rubyfier#RUBY_KEY_CACHE} to avoid having to instantiate
+     * any {@link RubyString} for repeatedly occurring keys.
+     * @param runtime Ruby Runtime
+     * @param map Java Map to Convert
+     * @return RubyHash
+     */
+    private static RubyHash deepMap(final Ruby runtime, final Map<String, ?> map) {
         final RubyHash hash = RubyHash.newHash(runtime);
         // Note: RubyHash.put calls JavaUtil.convertJavaToUsableRubyObject on keys and values
-        map.forEach((key, value) -> hash.put(key, deep(runtime, value)));
+        map.forEach((key, value) -> hash
+            .fastASetCheckString(
+                runtime, RUBY_KEY_CACHE.computeIfAbsent(
+                    key,
+                    jkey -> (RubyString) runtime.newString(jkey).freeze(runtime.getCurrentContext())
+                ), deep(runtime, value)
+            )
+        );
         return hash;
     }
 
@@ -95,7 +117,7 @@ public final class Rubyfier {
         );
         converters.put(Long.class, LONG_CONVERTER);
         converters.put(Boolean.class, (runtime, input) -> runtime.newBoolean((Boolean) input));
-        converters.put(Map.class, (runtime, input) -> deepMap(runtime, (Map<?, ?>) input));
+        converters.put(Map.class, (runtime, input) -> deepMap(runtime, (Map<String, ?>) input));
         converters.put(
             Collection.class, (runtime, input) -> deepList(runtime, (Collection<?>) input)
         );
