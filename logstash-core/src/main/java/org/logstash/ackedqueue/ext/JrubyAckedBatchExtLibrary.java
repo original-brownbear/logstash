@@ -25,7 +25,7 @@ public final class JrubyAckedBatchExtLibrary implements Library {
 
     @Override
     public void load(Ruby runtime, boolean wrap) {
-        RubyModule module = runtime.defineModule(RubyUtil.LS_MODULE_NAME);
+        RubyModule module = RubyUtil.LOGSTASH_MODULE;
 
         RubyClass clazz = runtime.defineClassUnder("AckedBatch", runtime.getObject(), new ObjectAllocator() {
             public IRubyObject allocate(Ruby runtime, RubyClass rubyClass) {
@@ -47,7 +47,7 @@ public final class JrubyAckedBatchExtLibrary implements Library {
         }
 
         public RubyAckedBatch(Ruby runtime, Batch batch) {
-            super(runtime, runtime.getModule(RubyUtil.LS_MODULE_NAME).getClass("AckedBatch"));
+            super(runtime, RubyUtil.LOGSTASH_MODULE.getClass("AckedBatch"));
             this.batch = batch;
         }
 

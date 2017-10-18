@@ -35,7 +35,7 @@ public final class JrubyEventExtLibrary implements Library {
 
     @Override
     public void load(Ruby runtime, boolean wrap) {
-        final RubyModule module = runtime.defineModule(RubyUtil.LS_MODULE_NAME);
+        final RubyModule module = RubyUtil.LOGSTASH_MODULE;
 
         RubyClass clazz = runtime.defineClassUnder(
             "Event", runtime.getObject(), RubyEvent::new, module
@@ -89,7 +89,7 @@ public final class JrubyEventExtLibrary implements Library {
 
         public static RubyEvent newRubyEvent(Ruby runtime, Event event) {
             final RubyEvent ruby =
-                new RubyEvent(runtime, runtime.getModule(RubyUtil.LS_MODULE_NAME).getClass("Event"));
+                new RubyEvent(runtime, RubyUtil.LOGSTASH_MODULE.getClass("Event"));
             ruby.setEvent(event);
             return ruby;
         }
