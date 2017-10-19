@@ -289,9 +289,12 @@ public final class CompiledPipeline {
                 final RubyIntegration.Filter ruby = filters.get(v);
                 if (ruby.hasFlush()) {
                     if (ruby.periodicFlush()) {
-                        filter = new Dataset.FilteredFlushableDataset(datasets, ruby);
+                        filter =
+                            DatasetCompiler.flushingFilterDataset(datasets, ruby.return_ruby());
                     } else {
-                        filter = new Dataset.FilteredShutdownFlushableDataset(datasets, ruby);
+                        filter = DatasetCompiler.shutdownFlushingFilterDataset(
+                            datasets, ruby.return_ruby()
+                        );
                     }
                 } else {
                     filter = DatasetCompiler.filterDataset(datasets, ruby.return_ruby());

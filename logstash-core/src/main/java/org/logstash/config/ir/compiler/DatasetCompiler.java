@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
 import org.jruby.RubyArray;
+import org.jruby.RubyHash;
 import org.jruby.internal.runtime.methods.MixedModeIRMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.RubyUtil;
@@ -21,6 +22,10 @@ import org.logstash.RubyUtil;
  * Compiler that can compile implementations of {@link Dataset} at runtime.
  */
 public final class DatasetCompiler {
+
+    public static final IRubyObject[] FLUSH_FINAL = new IRubyObject[]{flushOpts(true)};
+
+    public static final IRubyObject[] FLUSH_NOT_FINAL = new IRubyObject[]{flushOpts(false)};
 
     /**
      * Sequence number to ensure unique naming for runtime compiled classes.
@@ -159,6 +164,79 @@ public final class DatasetCompiler {
         return compile(syntax.toString(), clearSyntax.toString(), allArgs);
     }
 
+    public static Dataset flushingFilterDataset(Collection<Dataset> parents,
+        final IRubyObject filter) {
+        final RubyArray buffer = RubyUtil.RUBY.newArray();
+        final Object[] parentArr = parents.toArray();
+        final int cnt = parentArr.length;
+        final StringBuilder syntax = new StringBuilder();
+        final int bufferIndex = cnt;
+        for (int i = 0; i < cnt; ++i) {
+            syntax.append(field(bufferIndex)).append(".addAll(")
+                .append(computeDataset(i)).append(");");
+        }
+        final int filterCallsiteIndex = cnt + 1;
+        final int argArrayIndex = cnt + 2;
+        final int pluginIndex = cnt + 3;
+        final int dataIndex = cnt + 4;
+        final int flushCallsiteIndex = cnt + 5;
+        syntax.append(callFilter(filterCallsiteIndex, argArrayIndex, pluginIndex, dataIndex));
+        syntax.append(clear(bufferIndex));
+        syntax.append(callFilterFlush(flushCallsiteIndex, pluginIndex, dataIndex));
+        final Object[] allArgs = new Object[cnt + 6];
+        System.arraycopy(parentArr, 0, allArgs, 0, cnt);
+        allArgs[bufferIndex] = buffer;
+        allArgs[filterCallsiteIndex] = filter.getMetaClass().searchMethod("multi_filter");
+        allArgs[argArrayIndex] = new IRubyObject[]{buffer};
+        allArgs[pluginIndex] = filter;
+        allArgs[dataIndex] = new ArrayList<>();
+        allArgs[flushCallsiteIndex] = filter.getMetaClass().searchMethod("flush");
+        final StringBuilder clearSyntax = new StringBuilder();
+        for (int i = 0; i < cnt; ++i) {
+            clearSyntax.append(clear(i));
+        }
+        clearSyntax.append(clear(dataIndex));
+        syntax.append("return ").append(field(dataIndex)).append(';');
+        return compile(syntax.toString(), clearSyntax.toString(), allArgs);
+    }
+
+    public static Dataset shutdownFlushingFilterDataset(Collection<Dataset> parents,
+        final IRubyObject filter) {
+        final RubyArray buffer = RubyUtil.RUBY.newArray();
+        final Object[] parentArr = parents.toArray();
+        final int cnt = parentArr.length;
+        final StringBuilder syntax = new StringBuilder();
+        final int bufferIndex = cnt;
+        for (int i = 0; i < cnt; ++i) {
+            syntax.append(field(bufferIndex)).append(".addAll(")
+                .append(computeDataset(i)).append(");");
+        }
+        final int filterCallsiteIndex = cnt + 1;
+        final int argArrayIndex = cnt + 2;
+        final int pluginIndex = cnt + 3;
+        final int dataIndex = cnt + 4;
+        final int flushCallsiteIndex = cnt + 5;
+        syntax.append(callFilter(filterCallsiteIndex, argArrayIndex, pluginIndex, dataIndex));
+        syntax.append(clear(bufferIndex));
+        syntax.append(callShutdownFilterFlush(flushCallsiteIndex, pluginIndex, dataIndex));
+        final Object[] allArgs = new Object[cnt + 6];
+        System.arraycopy(parentArr, 0, allArgs, 0, cnt);
+        allArgs[bufferIndex] = buffer;
+        allArgs[filterCallsiteIndex] = filter.getMetaClass().searchMethod("multi_filter");
+        allArgs[argArrayIndex] = new IRubyObject[]{buffer};
+        allArgs[pluginIndex] = filter;
+        allArgs[dataIndex] = new ArrayList<>();
+        allArgs[flushCallsiteIndex] = filter.getMetaClass().searchMethod("flush");
+        final StringBuilder clearSyntax = new StringBuilder();
+        for (int i = 0; i < cnt; ++i) {
+            clearSyntax.append(clear(i));
+        }
+        clearSyntax.append(clear(dataIndex));
+        syntax.append("return ").append(field(dataIndex)).append(';');
+        return compile(syntax.toString(), clearSyntax.toString(), allArgs);
+    }
+    
+    
     /**
      * Compiles the {@link Dataset} representing an output plugin.
      * Note: The efficiency of the generated code rests on invoking the Ruby method
@@ -264,9 +342,31 @@ public final class DatasetCompiler {
         final int pluginIndex, final int dataIndex) {
         return new StringBuilder().append(field(dataIndex)).append(".addAll((RubyArray)")
             .append(field(callsiteIndex)).append(
-            ".call(RubyUtil.RUBY.getCurrentContext(), ").append(field(pluginIndex))
+                ".call(RubyUtil.RUBY.getCurrentContext(), ").append(field(pluginIndex))
             .append(", RubyUtil.LOGSTASH_MODULE, \"multi_filter\", ")
             .append(field(argArrayIndex)).append(", Block.NULL_BLOCK));").toString();
+    }
+
+    private static String callFilterFlush(final int callsiteIndex, final int pluginIndex,
+        final int dataIndex) {
+        return new StringBuilder().append("if(flush){").append(field(dataIndex))
+            .append(".addAll((RubyArray)")
+            .append(field(callsiteIndex)).append(
+                ".call(RubyUtil.RUBY.getCurrentContext(), ").append(field(pluginIndex))
+            .append(", RubyUtil.LOGSTASH_MODULE, \"flush\", ")
+            .append("shutdown ? DatasetCompiler.FLUSH_FINAL : DatasetCompiler.FLUSH_NOT_FINAL")
+            .append(", Block.NULL_BLOCK));}").toString();
+    }
+
+    private static String callShutdownFilterFlush(final int callsiteIndex, final int pluginIndex,
+        final int dataIndex) {
+        return new StringBuilder().append("if(flush && shutdown){").append(field(dataIndex))
+            .append(".addAll((RubyArray)")
+            .append(field(callsiteIndex)).append(
+                ".call(RubyUtil.RUBY.getCurrentContext(), ").append(field(pluginIndex))
+            .append(", RubyUtil.LOGSTASH_MODULE, \"flush\", ")
+            .append("DatasetCompiler.FLUSH_FINAL")
+            .append(", Block.NULL_BLOCK));}").toString();
     }
     
     private static String clear(final int fieldIndex) {
@@ -347,6 +447,12 @@ public final class DatasetCompiler {
             return IRubyObject.class.getTypeName();
         }
         return clazz.getTypeName();
+    }
+
+    private static RubyHash flushOpts(final boolean fin) {
+        final RubyHash res = RubyHash.newHash(RubyUtil.RUBY);
+        res.put(RubyUtil.RUBY.newSymbol("final"), RubyUtil.RUBY.newBoolean(fin));
+        return res;
     }
 
 }
