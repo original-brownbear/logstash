@@ -38,6 +38,10 @@ module LogStash
       @flushes = @filter.respond_to?(:flush)
     end
 
+    def return_ruby
+      self
+    end
+
     def config_name
       @klass.config_name
     end

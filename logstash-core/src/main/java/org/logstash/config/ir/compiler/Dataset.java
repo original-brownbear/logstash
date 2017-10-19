@@ -5,6 +5,9 @@ import java.util.Collection;
 import java.util.Collections;
 import org.jruby.RubyArray;
 import org.jruby.RubyHash;
+import org.jruby.internal.runtime.methods.MixedModeIRMethod;
+import org.jruby.runtime.Block;
+import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.RubyUtil;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -170,19 +173,25 @@ public interface Dataset {
 
         private final Collection<Dataset> parents;
 
-        private final RubyIntegration.Filter func;
+        private final MixedModeIRMethod func;
+
+        private final IRubyObject filter;
+
+        private final IRubyObject[] argsArray;
 
         private final Collection<JrubyEventExtLibrary.RubyEvent> data;
 
-        private final Collection<JrubyEventExtLibrary.RubyEvent> buffer;
+        private final RubyArray buffer;
 
         private boolean done;
 
         public FilteredDataset(Collection<Dataset> parents, final RubyIntegration.Filter func) {
             this.parents = parents;
-            this.func = func;
+            filter = func.return_ruby();
+            this.func = (MixedModeIRMethod) filter.getMetaClass().searchMethod("multi_filter");
             data = new ArrayList<>(5);
-            buffer = new ArrayList<>(5);
+            buffer = RubyUtil.RUBY.newArray();
+            argsArray = new IRubyObject[]{buffer};
             done = false;
         }
 
@@ -196,7 +205,12 @@ public interface Dataset {
                 buffer.addAll(set.compute(batch, flush, shutdown));
             }
             done = true;
-            data.addAll(func.multiFilter(buffer));
+            data.addAll(
+                (RubyArray) func.call(
+                    RubyUtil.RUBY.getCurrentContext(), filter,
+                    RubyUtil.LOGSTASH_MODULE, "multi_filter", argsArray, Block.NULL_BLOCK
+                )
+            );
             buffer.clear();
             return data;
         }

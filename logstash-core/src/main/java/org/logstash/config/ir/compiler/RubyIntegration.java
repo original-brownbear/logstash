@@ -40,6 +40,8 @@ public final class RubyIntegration {
 
         Collection<JrubyEventExtLibrary.RubyEvent> flush(RubyHash options);
 
+        IRubyObject return_ruby();
+
         /**
          * Checks if this filter has a flush method.
          * @return True iff this filter has a flush method
