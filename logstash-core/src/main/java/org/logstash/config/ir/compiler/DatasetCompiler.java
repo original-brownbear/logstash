@@ -36,7 +36,7 @@ public final class DatasetCompiler {
      * Trivial {@link Dataset} that simply returns an empty collection of elements.
      */
     private static final Dataset EMPTY_DATASET =
-        DatasetCompiler.compile("return Collections.EMPTY_LIST;", "");
+        DatasetCompiler.compile(RETURN_NULL, "");
 
     private DatasetCompiler() {
         // Utility Class
