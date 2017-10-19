@@ -3,6 +3,7 @@ package org.logstash.config.ir.compiler;
 import java.io.IOException;
 import java.io.StringReader;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -123,6 +124,41 @@ public final class DatasetCompiler {
         return result;
     }
 
+    public static Dataset filterDataset(Collection<Dataset> parents, final IRubyObject filter) {
+        final String multiReceive = "multi_filter";
+        final MixedModeIRMethod method =
+            (MixedModeIRMethod) filter.getMetaClass().searchMethod(multiReceive);
+        final RubyArray buffer = RubyUtil.RUBY.newArray();
+        final Object[] parentArr = parents.toArray();
+        final int cnt = parentArr.length;
+        final StringBuilder syntax = new StringBuilder();
+        final int bufferIndex = cnt;
+        for (int i = 0; i < cnt; ++i) {
+            syntax.append(field(bufferIndex)).append(".addAll(")
+                .append(computeDataset(i)).append(");");
+        }
+        final int callsiteIndex = cnt + 1;
+        final int argArrayIndex = cnt + 2;
+        final int pluginIndex = cnt + 3;
+        final int dataIndex = cnt + 4;
+        syntax.append(callFilter(callsiteIndex, argArrayIndex, pluginIndex, dataIndex));
+        syntax.append(clear(bufferIndex));
+        final Object[] allArgs = new Object[cnt + 5];
+        System.arraycopy(parentArr, 0, allArgs, 0, cnt);
+        allArgs[bufferIndex] = buffer;
+        allArgs[callsiteIndex] = method;
+        allArgs[argArrayIndex] = new IRubyObject[]{buffer};
+        allArgs[pluginIndex] = filter;
+        allArgs[dataIndex] = new ArrayList<>();
+        final StringBuilder clearSyntax = new StringBuilder();
+        for (int i = 0; i < cnt; ++i) {
+            clearSyntax.append(clear(i));
+        }
+        clearSyntax.append(clear(dataIndex));
+        syntax.append("return ").append(field(dataIndex)).append(';');
+        return compile(syntax.toString(), clearSyntax.toString(), allArgs);
+    }
+
     /**
      * Compiles the {@link Dataset} representing an output plugin.
      * Note: The efficiency of the generated code rests on invoking the Ruby method
@@ -224,6 +260,15 @@ public final class DatasetCompiler {
             .append(field(argArrayIndex)).append(", Block.NULL_BLOCK);").toString();
     }
 
+    private static String callFilter(final int callsiteIndex, final int argArrayIndex,
+        final int pluginIndex, final int dataIndex) {
+        return new StringBuilder().append(field(dataIndex)).append(".addAll((RubyArray)")
+            .append(field(callsiteIndex)).append(
+            ".call(RubyUtil.RUBY.getCurrentContext(), ").append(field(pluginIndex))
+            .append(", RubyUtil.LOGSTASH_MODULE, \"multi_filter\", ")
+            .append(field(argArrayIndex)).append(", Block.NULL_BLOCK));").toString();
+    }
+    
     private static String clear(final int fieldIndex) {
         return String.format("%s.clear();", field(fieldIndex));
     }
@@ -296,6 +341,10 @@ public final class DatasetCompiler {
             clazz = Dataset.class;
         } else {
             clazz = obj.getClass();
+        }
+        final String classname = clazz.getTypeName();
+        if (classname.contains("JavaFilterDelegator")) {
+            return IRubyObject.class.getTypeName();
         }
         return clazz.getTypeName();
     }

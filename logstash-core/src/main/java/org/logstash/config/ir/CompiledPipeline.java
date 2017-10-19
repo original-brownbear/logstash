@@ -294,7 +294,7 @@ public final class CompiledPipeline {
                         filter = new Dataset.FilteredShutdownFlushableDataset(datasets, ruby);
                     }
                 } else {
-                    filter = new Dataset.FilteredDataset(datasets, ruby);
+                    filter = DatasetCompiler.filterDataset(datasets, ruby.return_ruby());
                 }
                 return filter;
             });
