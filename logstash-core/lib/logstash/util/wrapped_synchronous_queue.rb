@@ -180,6 +180,11 @@ module LogStash; module Util
         events
       end
 
+      def to_array(arr)
+        @originals.each {|e| arr << e}
+        arr
+      end
+
       def each(&blk)
         # below the checks for @cancelled.include?(e) have been replaced by e.cancelled?
         # TODO: for https://github.com/elastic/logstash/issues/6055 = will have to properly refactor

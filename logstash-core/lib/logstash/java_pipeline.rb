@@ -457,13 +457,14 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   # Repeatedly takes batches off the queue, filters, then outputs them
   def worker_loop(batched_execution)
     shutdown_requested = false
+    arr_buffer = []
     while true
       signal = @signal_queue.poll || NO_SIGNAL
       shutdown_requested |= signal.shutdown? # latch on shutdown signal
 
       batch = @filter_queue_client.read_batch # metrics are started in read_batch
       @events_consumed.increment(batch.size)
-      execute_batch(batched_execution, batch, signal.flush?)
+      execute_batch(batched_execution, batch, signal.flush?, arr_buffer)
       @filter_queue_client.close_batch(batch)
       # keep break at end of loop, after the read_batch operation, some pipeline specs rely on this "final read_batch" before shutdown.
       break if (shutdown_requested && !draining_queue?)
@@ -700,8 +701,9 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
   private
 
-  def execute_batch(batched_execution, batch, flush)
-    batched_execution.compute(batch.to_a, flush, false)
+  def execute_batch(batched_execution, batch, flush, arr)
+    batched_execution.compute(batch.to_array(arr), flush, false)
+    arr.clear
     @events_filtered.increment(batch.size)
     filtered_size = batch.filtered_size
     @filter_queue_client.add_output_metrics(filtered_size)

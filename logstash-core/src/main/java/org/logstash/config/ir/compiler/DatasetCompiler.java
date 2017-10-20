@@ -14,6 +14,7 @@ import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.janino.ClassBodyEvaluator;
 import org.jruby.RubyArray;
 import org.jruby.RubyHash;
+import org.jruby.internal.runtime.methods.DynamicMethod;
 import org.jruby.internal.runtime.methods.MixedModeIRMethod;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.RubyUtil;
@@ -131,8 +132,6 @@ public final class DatasetCompiler {
 
     public static Dataset filterDataset(Collection<Dataset> parents, final IRubyObject filter) {
         final String multiReceive = "multi_filter";
-        final MixedModeIRMethod method =
-            (MixedModeIRMethod) filter.getMetaClass().searchMethod(multiReceive);
         final RubyArray buffer = RubyUtil.RUBY.newArray();
         final Object[] parentArr = parents.toArray();
         final int cnt = parentArr.length;
@@ -151,7 +150,7 @@ public final class DatasetCompiler {
         final Object[] allArgs = new Object[cnt + 5];
         System.arraycopy(parentArr, 0, allArgs, 0, cnt);
         allArgs[bufferIndex] = buffer;
-        allArgs[callsiteIndex] = method;
+        allArgs[callsiteIndex] = filter.getMetaClass().searchMethod(multiReceive);
         allArgs[argArrayIndex] = new IRubyObject[]{buffer};
         allArgs[pluginIndex] = filter;
         allArgs[dataIndex] = new ArrayList<>();
@@ -179,9 +178,9 @@ public final class DatasetCompiler {
         final int argArrayIndex = cnt + 2;
         final int pluginIndex = cnt + 3;
         final int dataIndex = cnt + 4;
-        final int flushCallsiteIndex = cnt + 5;
         syntax.append(callFilter(filterCallsiteIndex, argArrayIndex, pluginIndex, dataIndex));
         syntax.append(clear(bufferIndex));
+        final int flushCallsiteIndex = cnt + 5;
         syntax.append(callFilterFlush(flushCallsiteIndex, pluginIndex, dataIndex));
         final Object[] allArgs = new Object[cnt + 6];
         System.arraycopy(parentArr, 0, allArgs, 0, cnt);
@@ -235,8 +234,7 @@ public final class DatasetCompiler {
         syntax.append("return ").append(field(dataIndex)).append(';');
         return compile(syntax.toString(), clearSyntax.toString(), allArgs);
     }
-    
-    
+
     /**
      * Compiles the {@link Dataset} representing an output plugin.
      * Note: The efficiency of the generated code rests on invoking the Ruby method
@@ -256,8 +254,8 @@ public final class DatasetCompiler {
     public static Dataset outputDataset(Collection<Dataset> parents, final IRubyObject output,
         final boolean terminal) {
         final String multiReceive = "multi_receive";
-        final MixedModeIRMethod method =
-            (MixedModeIRMethod) output.getMetaClass().searchMethod(multiReceive);
+        final DynamicMethod method =
+            output.getMetaClass().searchMethod(multiReceive);
         // Short-circuit trivial case of only output(s) in the pipeline
         if (parents == Dataset.ROOT_DATASETS) {
             return outputDatasetFromRoot(output, method);
@@ -308,7 +306,7 @@ public final class DatasetCompiler {
      * @return Dataset representing the Output
      */
     private static Dataset outputDatasetFromRoot(final IRubyObject output,
-        final MixedModeIRMethod method) {
+        final DynamicMethod method) {
         final int argArrayIndex = 1;
         final StringBuilder syntax = new StringBuilder();
         syntax.append(field(argArrayIndex)).append("[0] = batch;");
@@ -368,7 +366,7 @@ public final class DatasetCompiler {
             .append("DatasetCompiler.FLUSH_FINAL")
             .append(", Block.NULL_BLOCK));}").toString();
     }
-    
+
     private static String clear(final int fieldIndex) {
         return String.format("%s.clear();", field(fieldIndex));
     }
