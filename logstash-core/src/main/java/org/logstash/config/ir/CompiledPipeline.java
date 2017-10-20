@@ -234,7 +234,7 @@ public final class CompiledPipeline {
 
     /**
      * Instances of this class represent a fully compiled pipeline execution. Note that this class
-     * has a separate lifecycle from {@link CompiledPipeline} because it holds per (worker-thread) 
+     * has a separate lifecycle from {@link CompiledPipeline} because it holds per (worker-thread)
      * state and thus needs to be instantiated once per thread.
      */
     private final class CompiledExecution {
@@ -287,17 +287,13 @@ public final class CompiledPipeline {
             return plugins.computeIfAbsent(vertex, v -> {
                 final Dataset filter;
                 final RubyIntegration.Filter ruby = filters.get(v);
+                final IRubyObject base = ruby.return_ruby();
                 if (ruby.hasFlush()) {
-                    if (ruby.periodicFlush()) {
-                        filter =
-                            DatasetCompiler.flushingFilterDataset(datasets, ruby.return_ruby());
-                    } else {
-                        filter = DatasetCompiler.shutdownFlushingFilterDataset(
-                            datasets, ruby.return_ruby()
-                        );
-                    }
+                    filter = DatasetCompiler.flushingFilterDataset(
+                        datasets, base, !ruby.periodicFlush()
+                    );
                 } else {
-                    filter = DatasetCompiler.filterDataset(datasets, ruby.return_ruby());
+                    filter = DatasetCompiler.filterDataset(datasets, base);
                 }
                 return filter;
             });
