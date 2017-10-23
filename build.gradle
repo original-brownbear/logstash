@@ -125,7 +125,11 @@ task downloadAndInstallJRuby(dependsOn: verifyFile, type: Copy) {
 task rubyBootstrap() doLast {
   executeJruby { ScriptingContainer jruby ->
     jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/lib/bootstrap/rake-bootstrap.rb")
+  }
+  executeJruby { ScriptingContainer jruby ->
     jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/lib/bootstrap/rake-test-install.rb")
+  }
+  executeJruby { ScriptingContainer jruby ->
     jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/bin/bundle")
   }
 }
