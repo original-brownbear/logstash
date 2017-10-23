@@ -124,14 +124,6 @@ task downloadAndInstallJRuby(dependsOn: verifyFile, type: Copy) {
 
 task rubyBootstrap() doLast {
   executeJruby { ScriptingContainer jruby ->
-    jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/buildSrc/src/main/ruby/bootstrap.rb")
-    jruby.runScriptlet("ensure_gem(\"jar-dependencies\", \"~> 0.3.11\")")
-    jruby.runScriptlet("ensure_gem(\"ruby-maven\", \"~> 3.3.12\")")
-    jruby.runScriptlet("ensure_gem(\"ruby-maven-libs\", \"~> 3.3.9\")")
-    jruby.runScriptlet("ensure_gem(\"bundler\", \"~> 1.9.4\")")
-    jruby.runScriptlet("ensure_gem(\"gems\", \">= 0\")")
-  }
-  executeJruby { ScriptingContainer jruby ->
     jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/bin/bundle")
   }
 }
@@ -158,10 +150,6 @@ project("logstash-core") {
  */
 private void executeJruby(Closure<?> block) {
   def jruby = new ScriptingContainer()
-  def env = jruby.environment
-  env.put "GEM_HOME", "${buildDir}/ruby".toString()
-  env.put "GEM_SPEC_CACHE", "${buildDir}/cache".toString()
-  env.put "GEM_PATH", "${buildDir}/ruby".toString()
   try {
     block(jruby)
   } finally {

@@ -45,17 +45,3 @@ rescue Gem::LoadError => _
   puts "Failed to load #{name}. Will try to install. "
   install_gem(name, requirement)
 end
-
-def bundler(gemfile)
-  puts('Invoking bundler install for ' + gemfile)
-
-  require 'bundler/cli'
-  Bundler::CLI.start(['install', '--gemfile=' + gemfile])
-end
-
-def pack_gem(gemspec)
-  require 'rubygems/commands/build_command'
-  builder = Gem::Commands::BuildCommand.new
-  builder.options[:args] = [gemspec]
-  builder.execute
-end
