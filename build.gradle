@@ -142,6 +142,7 @@ verifyFile.onlyIf { doChecksum }
 bootstrap.dependsOn downloadAndInstallJRuby
 
 project("logstash-core") {
+  rubyBootstrap.dependsOn assemble
   rubyUnitTests.dependsOn assemble, test
   check.dependsOn rubyUnitTests
 }

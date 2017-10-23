@@ -18,11 +18,6 @@ namespace "compile" do
     end
   end
 
-  task "logstash-core-java" do
-    puts("Building logstash-core using gradle")
-    safe_system("./gradlew", "assemble")
-  end
-
   desc "Build everything"
-  task "all" => ["grammar", "logstash-core-java"]
+  task "all" => ["grammar"]
 end
