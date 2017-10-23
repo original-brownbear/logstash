@@ -3,7 +3,6 @@ if ENV['USE_RUBY'] != '1'
     puts "Restarting myself under Vendored JRuby (currently #{RUBY_ENGINE} #{RUBY_VERSION})" if ENV['DEBUG']
 
     # Make sure we have JRuby, then rerun ourselves under jruby.
-    Rake::Task["vendor:jruby"].invoke
     jruby = File.join("vendor", "jruby", "bin", "jruby")
     rake = File.join("vendor", "jruby", "bin", "rake")
 
