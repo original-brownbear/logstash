@@ -4,6 +4,7 @@ buildscript {
     }
     dependencies {
         classpath 'org.yaml:snakeyaml:1.17'
+        classpath group: 'org.jruby', name: 'jruby-complete', version: '9.1.13.0'
     }
 }
 
@@ -13,8 +14,12 @@ plugins {
 
 apply plugin: 'de.undercouch.download'
 
+
 import de.undercouch.gradle.tasks.download.Download
 import de.undercouch.gradle.tasks.download.Verify
+import org.jruby.Ruby
+import org.jruby.embed.PathType
+import org.jruby.embed.ScriptingContainer
 import org.yaml.snakeyaml.Yaml
 
 allprojects {
@@ -117,6 +122,50 @@ task downloadAndInstallJRuby(dependsOn: verifyFile, type: Copy) {
     into "${projectDir}/vendor/jruby"
 }
 
+task rubyBootstrap() doLast {
+  executeJruby { ScriptingContainer jruby ->
+    jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/buildSrc/src/main/ruby/bootstrap.rb")
+    jruby.runScriptlet("ensure_gem(\"jar-dependencies\", \"~> 0.3.11\")")
+    jruby.runScriptlet("ensure_gem(\"ruby-maven\", \"~> 3.3.12\")")
+    jruby.runScriptlet("ensure_gem(\"ruby-maven-libs\", \"~> 3.3.9\")")
+    jruby.runScriptlet("ensure_gem(\"bundler\", \"~> 1.9.4\")")
+    jruby.runScriptlet("ensure_gem(\"gems\", \">= 0\")")
+  }
+  executeJruby { ScriptingContainer jruby ->
+    jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/bin/bundle")
+  }
+}
+
+task rubyUnitTests(dependsOn: [downloadAndInstallJRuby, rubyBootstrap]) doLast {
+  executeJruby { ScriptingContainer jruby ->
+    jruby.argv = ((jruby.argv + "spec") + "logstash-core/spec") + "-fd"
+    jruby.runScriptlet(PathType.ABSOLUTE, "${projectDir}/lib/bootstrap/rspec.rb")
+  }
+}
+
 // If you are running a JRuby snapshot we will skip the integrity check.
 verifyFile.onlyIf { doChecksum }
 bootstrap.dependsOn downloadAndInstallJRuby
+
+project("logstash-core") {
+  rubyUnitTests.dependsOn assemble, test
+  check.dependsOn rubyUnitTests
+}
+
+/**
+ * Executes Closure using a fresh JRuby environment, safely tearing it down afterwards.
+ * @param block Closure to run
+ */
+private void executeJruby(Closure<?> block) {
+  def jruby = new ScriptingContainer()
+  def env = jruby.environment
+  env.put "GEM_HOME", "${buildDir}/ruby".toString()
+  env.put "GEM_SPEC_CACHE", "${buildDir}/cache".toString()
+  env.put "GEM_PATH", "${buildDir}/ruby".toString()
+  try {
+    block(jruby)
+  } finally {
+    jruby.terminate()
+    Ruby.clearGlobalRuntime()
+  }
+}
