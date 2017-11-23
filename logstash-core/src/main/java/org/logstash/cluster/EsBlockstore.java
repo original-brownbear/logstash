@@ -34,19 +34,17 @@ final class EsBlockstore implements BlockStore {
         final byte[] raw = new byte[buffer.remaining()];
         buffer.get(raw);
         final String rawData = Base64.getEncoder().encodeToString(raw);
-
-        connect();
-        final Map<String, Object> data = new HashMap<>();
         final Map<String, Object> script = new HashMap<>();
-        final Map<String, Object> params = new HashMap<>();
         script.put(
             "source",
             "ctx._source.put(params.key, params.value)"
         );
         script.put("lang", "painless");
+        final Map<String, Object> params = new HashMap<>();
         script.put("params", params);
         params.put("value", rawData);
         params.put("key", key.identifier);
+        final Map<String, Object> data = new HashMap<>();
         data.put("script", script);
         final Map<String, String> upsert = new HashMap<>();
         upsert.put(key.identifier, rawData);

@@ -13,7 +13,7 @@ public final class Slave {
 
     public static void main(final String... args) throws IOException, ClassNotFoundException {
         final DistributedClusterContext clusterContext = new DistributedClusterContext(
-            "test", new EsBlockstore(HttpHost.create("http://127.0.0.1:9200"))
+            "test2", new EsBlockstore(HttpHost.create("http://127.0.0.1:9200"))
         );
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         try (ServerSocket serverSocket = new ServerSocket(0)) {

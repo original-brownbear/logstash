@@ -28,7 +28,7 @@ public final class Master {
         try (
             BlockStore blockStore = new EsBlockstore(HttpHost.create("http://127.0.0.1:9200"));
             DistributedClusterContext clusterContext =
-                new DistributedClusterContext("test", blockStore);
+                new DistributedClusterContext("test2", blockStore);
             Master.LeaderService coordinator = new Master.LeaderService(masterPort)
         ) {
             for (final SlaveNode slave : clusterContext.nodes()) {
