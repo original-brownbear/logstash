@@ -1,44 +1,37 @@
 package org.logstash.cluster;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import org.apache.http.HttpHost;
-import org.apache.http.HttpStatus;
-import org.apache.http.entity.ContentType;
-import org.apache.http.nio.entity.NStringEntity;
-import org.elasticsearch.client.Response;
-import org.elasticsearch.client.RestClient;
-import org.logstash.ObjectMappers;
 
 final class DistributedClusterContext implements Closeable {
 
-    private transient UUID nodeId = UUID.randomUUID();
+    private final transient UUID nodeId = UUID.randomUUID();
 
-    private transient RestClient esClient;
+    private final BlockStore blockStore;
 
     private final String clusterName;
 
-    private final HttpHost[] esHosts;
+    private final DistributedSet nodes;
 
-    DistributedClusterContext(final String clusterName, final HttpHost... esHosts) {
+    DistributedClusterContext(final String clusterName, final BlockStore blockStore) {
         this.clusterName = clusterName;
-        this.esHosts = esHosts;
-        esClient = RestClient.builder(this.esHosts).build();
+        this.blockStore = blockStore;
+        this.nodes = new DistributedSet(this, "clusterNodes");
     }
 
     String getClusterName() {
         return clusterName;
     }
 
+    BlockStore getBlockStore() {
+        return blockStore;
+    }
+
     Iterable<SlaveNode> nodes() throws IOException {
+        /*
         connect();
         final Response result = esClient.performRequest(
             "GET", String.format("/logstash-cluster-%s/nodes/1", clusterName),
@@ -62,9 +55,12 @@ final class DistributedClusterContext implements Closeable {
                 return new SlaveNode(new InetSocketAddress(parts[0], Integer.parseInt(parts[1])));
             }
         ).collect(Collectors.toList());
+        */
+        return Collections.emptyList();
     }
 
     void join(final InetSocketAddress address) throws IOException {
+        /*
         connect();
         final Map<String, Object> data = new HashMap<>();
         final Map<String, Object> script = new HashMap<>();
@@ -101,17 +97,11 @@ final class DistributedClusterContext implements Closeable {
                     "Failed to save cluster join to Elasticsearch, received HTTP %d.", result
                 )
             );
-        }
+        }*/
     }
 
     @Override
     public void close() throws IOException {
-        if (this.esClient != null) {
-            esClient.close();
-        }
-    }
-
-    private void connect() {
-        esClient = RestClient.builder(this.esHosts).build();
+        this.blockStore.close();
     }
 }

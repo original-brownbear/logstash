@@ -21,16 +21,30 @@ final class EsBlockstore implements BlockStore {
 
     @Override
     public void store(final BlockId key, final ByteBuffer buffer) throws IOException {
+        connect();
         throw new UnsupportedOperationException();
     }
 
     @Override
     public long load(final BlockId key, final ByteBuffer buffer) throws IOException {
+        connect();
         throw new UnsupportedOperationException();
     }
 
     @Override
     public void delete(final BlockId key) throws IOException {
+        connect();
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (this.esClient != null) {
+            esClient.close();
+        }
+    }
+
+    private void connect() {
+        esClient = RestClient.builder(this.esHosts).build();
     }
 }

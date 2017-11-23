@@ -1,9 +1,10 @@
 package org.logstash.cluster;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-interface BlockStore {
+interface BlockStore extends Closeable {
 
     void store(BlockId key, ByteBuffer buffer) throws IOException;
 

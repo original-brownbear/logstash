@@ -16,17 +16,14 @@ final class DfsBlockstore implements BlockStore {
 
     private final Path root;
 
-    private final DistributedClusterContext clusterContext;
-
-    DfsBlockstore(final DistributedClusterContext cluster, final String path) {
-        clusterContext = cluster;
+    DfsBlockstore(final String path) {
         root = Paths.get(path);
     }
 
     @Override
     public void store(final BlockId key, final ByteBuffer buffer) throws IOException {
         withLock(
-            root.resolve(key.clusterName).resolve(key.pipeline).resolve(key.identifier),
+            root.resolve(key.clusterName).resolve(key.identifier),
             (Function<Path, Void>) p -> {
                 try (
                     WritableByteChannel output = FileChannel.open(
@@ -45,7 +42,7 @@ final class DfsBlockstore implements BlockStore {
     @Override
     public long load(final BlockId key, final ByteBuffer buffer) throws IOException {
         return withLock(
-            root.resolve(key.clusterName).resolve(key.pipeline).resolve(key.identifier),
+            root.resolve(key.clusterName).resolve(key.identifier),
             file -> {
                 final long outstanding;
                 if (file.toFile().exists()) {
@@ -65,7 +62,7 @@ final class DfsBlockstore implements BlockStore {
     @Override
     public void delete(final BlockId key) throws IOException {
         withLock(
-            root.resolve(key.clusterName).resolve(key.pipeline).resolve(key.identifier),
+            root.resolve(key.clusterName).resolve(key.identifier),
             (Function<Path, Void>) p -> {
                 try {
                     Files.delete(p);
@@ -90,5 +87,10 @@ final class DfsBlockstore implements BlockStore {
                 lock.release();
             }
         }
+    }
+
+    @Override
+    public void close() {
+        //noop
     }
 }

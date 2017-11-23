@@ -36,7 +36,7 @@ public final class Master {
             executorService.submit(coordinator);
             TimeUnit.SECONDS.sleep(5L);
             final DistributedPipelineContext context =
-                new DistributedPipelineContext(new InetSocketAddress(masterPort));
+                new DistributedPipelineContext(new InetSocketAddress(masterPort), clusterContext);
             final Collection<LsClusterTask> tasks = Arrays.asList(
                 () -> {
                     System.out.println("Starting tasks");
