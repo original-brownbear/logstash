@@ -25,15 +25,6 @@ final class DfsBlockstore implements BlockStore {
 
     @Override
     public void store(final BlockId key, final ByteBuffer buffer) throws IOException {
-        final Path parent = root.resolve(key.clusterName).resolve(key.pipeline);
-        Files.createDirectories(parent);
-        try (
-            WritableByteChannel output = FileChannel.open(
-                parent.resolve(key.identifier), StandardOpenOption.TRUNCATE_EXISTING
-            )
-        ) {
-            output.write(buffer);
-        }
         withLock(
             root.resolve(key.clusterName).resolve(key.pipeline).resolve(key.identifier),
             (Function<Path, Void>) p -> {

@@ -19,7 +19,7 @@ public class DistributedSet {
         throw new UnsupportedOperationException();
     }
 
-    public void delete() {
+    public void delete(final String key) {
         throw new UnsupportedOperationException();
     }
 }
