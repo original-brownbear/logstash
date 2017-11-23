@@ -86,7 +86,8 @@ final class DfsBlockstore implements BlockStore {
         );
     }
 
-    private static <T> T withLock(final Path file, Function<Path, T> action) throws IOException {
+    private static <T> T withLock(final Path file, final Function<Path, T> action)
+        throws IOException {
         final Path parent = file.getParent();
         Files.createDirectories(parent);
         try (FileChannel lockChannel =
