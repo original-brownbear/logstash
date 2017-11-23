@@ -14,12 +14,12 @@ final class DistributedClusterContext implements Closeable {
 
     private final String clusterName;
 
-    private final DistributedSet nodes;
+    private final DistributedMap nodes;
 
     DistributedClusterContext(final String clusterName, final BlockStore blockStore) {
         this.clusterName = clusterName;
         this.blockStore = blockStore;
-        this.nodes = new DistributedSet(this, "clusterNodes");
+        this.nodes = new DistributedMap(this, "clusterNodes");
     }
 
     String getClusterName() {
@@ -60,44 +60,6 @@ final class DistributedClusterContext implements Closeable {
     }
 
     void join(final InetSocketAddress address) throws IOException {
-        /*
-        connect();
-        final Map<String, Object> data = new HashMap<>();
-        final Map<String, Object> script = new HashMap<>();
-        final Map<String, Object> params = new HashMap<>();
-        script.put(
-            "source",
-            String.join(
-                " ",
-                "if (ctx._source.nodes.contains(params.address)) { ctx.op = 'none' } else",
-                "{ ctx._source.nodes.add(params.address)}"
-            )
-        );
-        script.put("lang", "painless");
-        script.put("params", params);
-        params.put("address", address);
-        data.put("script", script);
-        final Map<String, Object> upsert = new HashMap<>();
-        upsert.put("nodes", Collections.singletonList(address));
-        data.put("upsert", upsert);
-        final String json;
-        try {
-            json = ObjectMappers.JSON_MAPPER.writeValueAsString(data);
-        } catch (final JsonProcessingException ex) {
-            throw new IllegalStateException(ex);
-        }
-        final int result = esClient.performRequest(
-            "POST", String.format("/logstash-cluster-%s/nodes/1/_update", clusterName),
-            Collections.emptyMap(),
-            new NStringEntity(json, ContentType.APPLICATION_JSON)
-        ).getStatusLine().getStatusCode();
-        if (result != HttpStatus.SC_CREATED && result != HttpStatus.SC_OK) {
-            throw new IllegalStateException(
-                String.format(
-                    "Failed to save cluster join to Elasticsearch, received HTTP %d.", result
-                )
-            );
-        }*/
     }
 
     @Override

@@ -6,10 +6,14 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.channels.WritableByteChannel;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.Function;
 
 final class DfsBlockstore implements BlockStore {
@@ -23,11 +27,11 @@ final class DfsBlockstore implements BlockStore {
     @Override
     public void store(final BlockId key, final ByteBuffer buffer) throws IOException {
         withLock(
-            root.resolve(key.clusterName).resolve(key.identifier),
+            root.resolve(key.clusterName).resolve(key.group).resolve(key.identifier),
             (Function<Path, Void>) p -> {
                 try (
                     WritableByteChannel output = FileChannel.open(
-                        p, StandardOpenOption.TRUNCATE_EXISTING
+                        p, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW
                     )
                 ) {
                     output.write(buffer);
@@ -40,21 +44,18 @@ final class DfsBlockstore implements BlockStore {
     }
 
     @Override
-    public long load(final BlockId key, final ByteBuffer buffer) throws IOException {
+    public Void load(final BlockId key, final ByteBuffer buffer) throws IOException {
         return withLock(
-            root.resolve(key.clusterName).resolve(key.identifier),
+            root.resolve(key.clusterName).resolve(key.group).resolve(key.identifier),
             file -> {
-                final long outstanding;
                 if (file.toFile().exists()) {
                     try (SeekableByteChannel input = Files.newByteChannel(file)) {
-                        outstanding = input.size() - (long) input.read(buffer);
+                        input.read(buffer);
                     } catch (final IOException ex) {
                         throw new IllegalStateException(ex);
                     }
-                } else {
-                    outstanding = -1L;
                 }
-                return outstanding;
+                return null;
             }
         );
     }
@@ -74,12 +75,32 @@ final class DfsBlockstore implements BlockStore {
         );
     }
 
+    @Override
+    public Iterator<BlockId> group(final BlockId key) throws IOException {
+        final Collection<BlockId> blockIds = new ArrayList<>();
+        try (DirectoryStream<Path> dir =
+                 Files.newDirectoryStream(root.resolve(key.clusterName).resolve(key.group))) {
+            for (final Path file : dir) {
+                if (!file.getFileName().toString().endsWith(".lock")) {
+                    blockIds.add(
+                        new BlockId(key.clusterName, key.group, file.getFileName().toString())
+                    );
+                }
+            }
+        }
+        return blockIds.iterator();
+    }
+
     private static <T> T withLock(final Path file, final Function<Path, T> action)
         throws IOException {
         final Path parent = file.getParent();
         Files.createDirectories(parent);
-        try (FileChannel lockChannel =
-                 FileChannel.open(file.getParent().resolve(file.getFileName() + ".lock"))) {
+        try (
+            FileChannel lockChannel = FileChannel.open(
+                parent.resolve(file.getFileName() + ".lock"), StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE
+            )
+        ) {
             final FileLock lock = lockChannel.lock();
             try {
                 return action.apply(file);
