@@ -13,4 +13,6 @@ interface ClusterState {
     void delete(byte[] key);
 
     Iterable<byte[]> select(byte[] key);
+
+    void apply(LogEntry entry);
 }
