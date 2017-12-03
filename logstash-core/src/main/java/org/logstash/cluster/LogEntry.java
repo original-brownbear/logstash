@@ -12,7 +12,7 @@ interface LogEntry extends Writable {
 
     long getIndex();
 
-    void apply(ClusterState state);
+    void apply(ClusterLogState state);
 
     final class DeleteLogEntry implements LogEntry {
 
@@ -39,7 +39,7 @@ interface LogEntry extends Writable {
         }
 
         @Override
-        public void apply(final ClusterState state) {
+        public void apply(final ClusterLogState state) {
             state.delete(prefix);
         }
 
@@ -88,7 +88,7 @@ interface LogEntry extends Writable {
         }
 
         @Override
-        public void apply(final ClusterState state) {
+        public void apply(final ClusterLogState state) {
             final int len = value.length;
             final byte[] data = new byte[len + 4];
             data[0] = (byte) (len >>> 24 & 0xFF);
