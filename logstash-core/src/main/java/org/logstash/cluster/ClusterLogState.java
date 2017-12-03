@@ -2,9 +2,11 @@ package org.logstash.cluster;
 
 import java.io.DataInput;
 
-interface ClusterState {
+interface ClusterLogState {
 
     long appliedIndex();
+
+    long commitIndex();
 
     DataInput get(byte[] key);
 
