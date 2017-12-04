@@ -19,10 +19,6 @@ import org.apache.logging.log4j.Logger;
 
 public final class ClusterClientService implements Runnable, Closeable {
 
-    public static final InetAddress BIND_ADDRESS = getBindAddress();
-
-    public static final int BIND_PORT = getBindPort();
-
     private static final Logger LOGGER = LogManager.getLogger(ClusterClientService.class);
 
     private final EventLoopGroup boss;
@@ -33,7 +29,7 @@ public final class ClusterClientService implements Runnable, Closeable {
     private final ChannelFuture server;
 
     public ClusterClientService(final ClusterStateManager state) {
-        this(state, BIND_ADDRESS, BIND_PORT);
+        this(state, getDefaultBindAddress(), getDefaultBindPort());
     }
 
     public ClusterClientService(final ClusterStateManager state, final InetAddress host,
@@ -66,7 +62,7 @@ public final class ClusterClientService implements Runnable, Closeable {
         server.channel().closeFuture().syncUninterruptibly();
     }
 
-    private static InetAddress getBindAddress() {
+    private static InetAddress getDefaultBindAddress() {
         try {
             return InetAddress.getByName(
                 System.getProperty(
@@ -78,7 +74,7 @@ public final class ClusterClientService implements Runnable, Closeable {
         }
     }
 
-    private static int getBindPort() {
+    private static int getDefaultBindPort() {
         return Integer.parseInt(System.getProperty("logstash.bind.port", "9700"));
     }
 
