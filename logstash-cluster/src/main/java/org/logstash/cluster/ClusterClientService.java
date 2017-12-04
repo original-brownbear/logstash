@@ -8,7 +8,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoop;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -80,11 +79,13 @@ public final class ClusterClientService implements Runnable, Closeable {
         return Integer.parseInt(System.getProperty("logstash.bind.port", "9700"));
     }
 
-    private static final class LsClusterChannelHandler extends ChannelInboundHandlerAdapter {
+    private final class LsClusterChannelHandler extends ChannelInboundHandlerAdapter {
 
         @Override
         public void channelRegistered(ChannelHandlerContext ctx) throws Exception {
-            LOGGER.info("Received connection from {}", ctx.channel().remoteAddress());
+            final InetSocketAddress remote = (InetSocketAddress) ctx.channel().remoteAddress();
+            LOGGER.info("Received connection from {}", remote);
+            state.registerPeer(remote);
         }
 
         @Override

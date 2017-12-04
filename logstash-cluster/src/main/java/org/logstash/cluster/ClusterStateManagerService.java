@@ -8,8 +8,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -61,6 +59,11 @@ public final class ClusterStateManagerService implements LsClusterService {
                 return new InetSocketAddress(InetAddress.getByAddress(raw), input.readInt());
             }
         }).createOrOpen();
+    }
+
+    public void registerPeer(final InetSocketAddress peer) {
+        networkingPeers.add(peer);
+        database.commit();
     }
 
     public Collection<InetSocketAddress> peers() {
