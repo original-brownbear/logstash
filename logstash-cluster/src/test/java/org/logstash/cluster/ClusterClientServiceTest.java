@@ -1,5 +1,6 @@
 package org.logstash.cluster;
 
+import java.net.InetSocketAddress;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -13,12 +14,21 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
     @Test
     public void discoveryTest() throws Exception {
         ensureGreen();
+        final InetSocketAddress listenAddrOne = new InetSocketAddress(PortUtil.reserve());
+        final InetSocketAddress listenAddrTwo = new InetSocketAddress(PortUtil.reserve());
         try (
             ClusterStateManagerService state = new ClusterStateManagerService(
                 temp.newFolder().toPath().resolve("test.db").toFile(), client()
             );
-            ClusterClientService client = new ClusterClientService(state)) {
+            ClusterClientService client = new ClusterClientService(state, listenAddrOne)) {
+            try (
+                ClusterStateManagerService stateTwo = new ClusterStateManagerService(
+                    temp.newFolder().toPath().resolve("test.db").toFile(), client()
+                );
+                ClusterClientService clientTwo = new ClusterClientService(stateTwo, listenAddrTwo)) {
 
+            }
         }
     }
+
 }
