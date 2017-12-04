@@ -13,6 +13,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.io.Closeable;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -29,11 +30,11 @@ public final class ClusterClientService implements Runnable, Closeable {
     private final ChannelFuture server;
 
     public ClusterClientService(final ClusterStateManager state) {
-        this(state, getDefaultBindAddress(), getDefaultBindPort());
+        this(state, new InetSocketAddress(getDefaultBindAddress(), getDefaultBindPort()));
     }
 
-    public ClusterClientService(final ClusterStateManager state, final InetAddress host,
-        final int port) {
+    public ClusterClientService(final ClusterStateManager state,
+        final InetSocketAddress address) {
         this.state = state;
         boss = new NioEventLoopGroup(1);
         worker = new NioEventLoopGroup(1);
@@ -47,7 +48,7 @@ public final class ClusterClientService implements Runnable, Closeable {
             })
             .option(ChannelOption.SO_BACKLOG, 128)
             .childOption(ChannelOption.SO_KEEPALIVE, true)
-            .bind(host, port);
+            .bind(address);
     }
 
     @Override
