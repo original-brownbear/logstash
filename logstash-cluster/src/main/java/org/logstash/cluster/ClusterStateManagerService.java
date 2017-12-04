@@ -12,7 +12,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.RestClient;
+import org.elasticsearch.client.Client;
 import org.jetbrains.annotations.NotNull;
 import org.mapdb.Atomic;
 import org.mapdb.DB;
@@ -28,7 +28,7 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     private static final long TIMEOUT = 100L;
 
-    private final RestClient esClient;
+    private final Client esClient;
 
     private final DB database;
 
@@ -38,11 +38,9 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     private final Atomic.String votedFor;
 
-    private final Lock timeoutGate = new ReentrantLock();
-
     private final CountDownLatch stopped = new CountDownLatch(1);
 
-    public ClusterStateManagerService(final File stateFile, final RestClient esClient) {
+    ClusterStateManagerService(final File stateFile, final Client esClient) {
         this.esClient = esClient;
         database = DBMaker.fileDB(stateFile).make();
         term = database.atomicLong("raftTerm").createOrOpen();
