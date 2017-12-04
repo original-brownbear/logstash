@@ -25,15 +25,15 @@ public final class ClusterClientService implements Runnable, Closeable {
     private final EventLoopGroup boss;
     private final EventLoopGroup worker;
 
-    private final ClusterStateManager state;
+    private final ClusterStateManagerService state;
 
     private final ChannelFuture server;
 
-    public ClusterClientService(final ClusterStateManager state) {
+    public ClusterClientService(final ClusterStateManagerService state) {
         this(state, new InetSocketAddress(getDefaultBindAddress(), getDefaultBindPort()));
     }
 
-    public ClusterClientService(final ClusterStateManager state,
+    public ClusterClientService(final ClusterStateManagerService state,
         final InetSocketAddress address) {
         this.state = state;
         boss = new NioEventLoopGroup(1);

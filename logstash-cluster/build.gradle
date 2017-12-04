@@ -18,6 +18,7 @@ dependencies {
   compile 'org.codehaus.janino:janino:3.0.7'
   compile 'io.netty:netty-all:4.1.17.Final'
   compile 'org.elasticsearch.client:elasticsearch-rest-client:6.0.0'
+  compile 'org.mapdb:mapdb:3.0.5'
   testCompile 'org.elasticsearch.test:framework:6.0.0'
   testCompile('junit:junit:4.12') {
     exclude group: 'org.hamcrest', module: 'hamcrest-core'
