@@ -126,13 +126,9 @@ dependencies {
     }
     testCompile 'org.apache.logging.log4j:log4j-core:2.6.2:tests'
     testCompile 'org.apache.logging.log4j:log4j-api:2.6.2:tests'
-    testCompile('junit:junit:4.12') {
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-    }
-    testCompile('net.javacrumbs.json-unit:json-unit:1.9.0') {
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-        exclude group: 'org.slf4j', module: 'slf4j-api'
-    }
+    testCompile 'junit:junit:4.12'
+    testCompile 'net.javacrumbs.json-unit:json-unit:1.9.0'
     testCompile 'org.elasticsearch:securemock:1.2'
     testCompile 'org.assertj:assertj-core:3.8.0'
+    testCompile "org.jruby:jruby-complete:${jrubyVersion}"
 }
