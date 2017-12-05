@@ -20,8 +20,8 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
     public void discoveryTest() throws Exception {
         final String index = "testIndex";
         ensureGreen();
-        final InetSocketAddress listenAddrOne = PortUtil.randomLoopbackAddress();
-        final InetSocketAddress listenAddrTwo = PortUtil.randomLoopbackAddress();
+        final InetSocketAddress listenAddrOne = TestUtil.randomLoopbackAddress();
+        final InetSocketAddress listenAddrTwo = TestUtil.randomLoopbackAddress();
         final ExecutorService exec = Executors.newFixedThreadPool(2);
         try (
             ClusterStateManagerService stateOne = new ClusterStateManagerService(
