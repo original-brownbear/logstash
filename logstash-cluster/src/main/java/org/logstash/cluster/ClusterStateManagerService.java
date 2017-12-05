@@ -28,6 +28,8 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     private final Client esClient;
 
+    private final String esIndex;
+
     private final DB database;
 
     private final HTreeMap.KeySet<InetSocketAddress> networkingPeers;
@@ -38,8 +40,9 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     private final CountDownLatch stopped = new CountDownLatch(1);
 
-    ClusterStateManagerService(final File stateFile, final Client esClient) {
+    ClusterStateManagerService(final File stateFile, final Client esClient, final String esIndex) {
         this.esClient = esClient;
+        this.esIndex = esIndex;
         database = DBMaker.fileDB(stateFile).make();
         term = database.atomicLong("raftTerm").createOrOpen();
         votedFor = database.atomicString("raftVotedFor").createOrOpen();
@@ -83,7 +86,9 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     @Override
     public void close() throws IOException {
+        LOGGER.info("Committing to local database.");
         database.commit();
+        LOGGER.info("Closing local database.");
         database.close();
     }
 
