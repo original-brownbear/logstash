@@ -4,20 +4,23 @@ import java.io.File;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.logstash.cluster.io.InetSocketAddressSerializer;
+import org.logstash.cluster.raft.State;
 import org.mapdb.Atomic;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
 
-public final class ClusterStateManagerService implements LsClusterService {
+public final class ClusterStateService implements LsClusterService {
 
-    private static final Logger LOGGER = LogManager.getLogger(ClusterStateManagerService.class);
+    private static final Logger LOGGER = LogManager.getLogger(ClusterStateService.class);
 
     private static final long TIMEOUT = 100L;
 
@@ -31,16 +34,22 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     private final Atomic.Long term;
 
+    private final AtomicReference<State> state = new AtomicReference<>(State.CANDIDATE);
+
     private final Atomic.String votedFor;
 
     private final CountDownLatch stopped = new CountDownLatch(1);
 
-    ClusterStateManagerService(final File stateFile, final Client esClient, final String esIndex) {
+    private final Atomic.String identifier;
+
+    ClusterStateService(final File stateFile, final Client esClient, final String esIndex) {
         this.esClient = esClient;
         this.esIndex = esIndex;
         database = DBMaker.fileDB(stateFile).make();
         term = database.atomicLong("raftTerm").createOrOpen();
         votedFor = database.atomicString("raftVotedFor").createOrOpen();
+        identifier = database.atomicString("raftIdentifier").createOrOpen();
+        identifier.compareAndSet(null, UUID.randomUUID().toString());
         networkingPeers = database.hashSet(
             "networkPeers", InetSocketAddressSerializer.INSTANCE
         ).createOrOpen();
@@ -55,6 +64,10 @@ public final class ClusterStateManagerService implements LsClusterService {
 
     public Collection<InetSocketAddress> peers() {
         return Collections.unmodifiableCollection(networkingPeers);
+    }
+
+    public String getIdentifier() {
+        return identifier.get();
     }
 
     public long getTerm() {
@@ -95,6 +108,13 @@ public final class ClusterStateManagerService implements LsClusterService {
             stopped.await();
         } catch (final InterruptedException ex) {
             throw new IllegalStateException(ex);
+        }
+    }
+
+    private void convertToCandidate() {
+        synchronized (state) {
+            state.set(State.CANDIDATE);
+            votedFor.set(this.identifier.get());
         }
     }
 
