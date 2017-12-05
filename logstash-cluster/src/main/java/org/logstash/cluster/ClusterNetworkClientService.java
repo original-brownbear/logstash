@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.io.RaftMessageNettyCodec;
-import org.logstash.cluster.raft.RaftMessage;
+import org.logstash.cluster.raft.RaftRpcMessage;
 
 public final class ClusterNetworkClientService implements LsClusterService {
 
@@ -169,7 +169,7 @@ public final class ClusterNetworkClientService implements LsClusterService {
 
         @Override
         public void channelActive(final ChannelHandlerContext ctx) {
-            ctx.writeAndFlush(new RaftMessage(address, state.getTerm()));
+            ctx.writeAndFlush(new RaftRpcMessage(address, state.getTerm()));
         }
 
         @Override
@@ -200,7 +200,7 @@ public final class ClusterNetworkClientService implements LsClusterService {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            state.registerPeer(((RaftMessage) msg).getSender());
+            state.registerPeer(((RaftRpcMessage) msg).getSender());
         }
 
         @Override

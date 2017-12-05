@@ -12,7 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.logstash.cluster.io.InetSocketAddressSerializer;
-import org.logstash.cluster.raft.State;
+import org.logstash.cluster.raft.RaftNodeType;
 import org.mapdb.Atomic;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -34,7 +34,7 @@ public final class ClusterStateService implements LsClusterService {
 
     private final Atomic.Long term;
 
-    private final AtomicReference<State> state = new AtomicReference<>(State.CANDIDATE);
+    private final AtomicReference<RaftNodeType> nodeType = new AtomicReference<>(RaftNodeType.CANDIDATE);
 
     private final Atomic.String votedFor;
 
@@ -112,9 +112,10 @@ public final class ClusterStateService implements LsClusterService {
     }
 
     private void convertToCandidate() {
-        synchronized (state) {
-            state.set(State.CANDIDATE);
+        synchronized (nodeType) {
+            nodeType.set(RaftNodeType.CANDIDATE);
             votedFor.set(this.identifier.get());
+            term.incrementAndGet();
         }
     }
 
