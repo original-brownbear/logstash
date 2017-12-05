@@ -1,8 +1,6 @@
 package org.logstash.cluster;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collection;
 import java.util.Collections;
@@ -11,14 +9,11 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
-import org.jetbrains.annotations.NotNull;
+import org.logstash.cluster.io.InetSocketAddressSerializer;
 import org.mapdb.Atomic;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.DataInput2;
-import org.mapdb.DataOutput2;
 import org.mapdb.HTreeMap;
-import org.mapdb.Serializer;
 
 public final class ClusterStateManagerService implements LsClusterService {
 
@@ -46,26 +41,15 @@ public final class ClusterStateManagerService implements LsClusterService {
         database = DBMaker.fileDB(stateFile).make();
         term = database.atomicLong("raftTerm").createOrOpen();
         votedFor = database.atomicString("raftVotedFor").createOrOpen();
-        networkingPeers = database.hashSet("networkPeers", new Serializer<InetSocketAddress>() {
-            @Override
-            public void serialize(@NotNull final DataOutput2 out,
-                @NotNull final InetSocketAddress value) throws IOException {
-                out.write(value.getAddress().getAddress());
-                out.writeInt(value.getPort());
-            }
-
-            @Override
-            public InetSocketAddress deserialize(@NotNull final DataInput2 input,
-                final int available) throws IOException {
-                final byte[] raw = new byte[available - Integer.BYTES];
-                input.readFully(raw);
-                return new InetSocketAddress(InetAddress.getByAddress(raw), input.readInt());
-            }
-        }).createOrOpen();
+        networkingPeers = database.hashSet(
+            "networkPeers", InetSocketAddressSerializer.INSTANCE
+        ).createOrOpen();
     }
 
     public void registerPeer(final InetSocketAddress peer) {
-        networkingPeers.add(peer);
+        if (networkingPeers.add(peer)) {
+            LOGGER.info("Registered new peer {}", peer);
+        }
         database.commit();
     }
 
@@ -76,16 +60,20 @@ public final class ClusterStateManagerService implements LsClusterService {
     @Override
     public void run() {
         try {
-            while (stopped.getCount() > 0L) {
-                TimeUnit.MILLISECONDS.sleep(TIMEOUT);
+            while (!stopped.await(TIMEOUT, TimeUnit.MILLISECONDS)) {
+                database.commit();
             }
         } catch (final InterruptedException ex) {
             throw new IllegalStateException(ex);
+        } finally {
+            stopped.countDown();
         }
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
+        stop();
+        awaitStop();
         LOGGER.info("Committing to local database.");
         database.commit();
         LOGGER.info("Closing local database.");
@@ -105,4 +93,5 @@ public final class ClusterStateManagerService implements LsClusterService {
             throw new IllegalStateException(ex);
         }
     }
+
 }
