@@ -57,6 +57,10 @@ public final class ClusterStateManagerService implements LsClusterService {
         return Collections.unmodifiableCollection(networkingPeers);
     }
 
+    public long getTerm() {
+        return term.get();
+    }
+
     @Override
     public void run() {
         try {

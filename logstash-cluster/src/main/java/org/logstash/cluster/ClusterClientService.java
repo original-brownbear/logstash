@@ -174,7 +174,7 @@ public final class ClusterClientService implements LsClusterService {
 
         @Override
         public void channelActive(final ChannelHandlerContext ctx) {
-            ctx.writeAndFlush(new RaftMessage(address));
+            ctx.writeAndFlush(new RaftMessage(address, state.getTerm()));
         }
 
         @Override
