@@ -38,7 +38,7 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
             exec.submit(clientOne);
             exec.submit(clientTwo);
             stateOne.registerPeer(listenAddrTwo);
-            TimeUnit.SECONDS.sleep(10L);
+            TimeUnit.SECONDS.sleep(3L);
             MatcherAssert.assertThat(
                 stateTwo.peers().contains(listenAddrOne), Matchers.is(true)
             );
