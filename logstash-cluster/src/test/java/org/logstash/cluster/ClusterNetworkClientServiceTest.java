@@ -11,7 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-public final class ClusterClientServiceTest extends ESIntegTestCase {
+public final class ClusterNetworkClientServiceTest extends ESIntegTestCase {
 
     @Rule
     public TemporaryFolder temp = new TemporaryFolder();
@@ -24,14 +24,14 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
         final InetSocketAddress listenAddrTwo = TestUtil.randomLoopbackAddress();
         final ExecutorService exec = Executors.newFixedThreadPool(2);
         try (
-            ClusterStateManagerService stateOne = new ClusterStateManagerService(
+            ClusterStateService stateOne = new ClusterStateService(
                 temp.newFolder().toPath().resolve("test.db").toFile(), client(), index
             );
-            ClusterClientService clientOne = new ClusterClientService(stateOne, listenAddrOne);
-            ClusterStateManagerService stateTwo = new ClusterStateManagerService(
+            ClusterNetworkClientService clientOne = new ClusterNetworkClientService(stateOne, listenAddrOne);
+            ClusterStateService stateTwo = new ClusterStateService(
                 temp.newFolder().toPath().resolve("test.db").toFile(), client(), index
             );
-            ClusterClientService clientTwo = new ClusterClientService(stateTwo, listenAddrTwo)) {
+            ClusterNetworkClientService clientTwo = new ClusterNetworkClientService(stateTwo, listenAddrTwo)) {
             exec.submit(clientOne);
             exec.submit(clientTwo);
             stateOne.registerPeer(listenAddrTwo);

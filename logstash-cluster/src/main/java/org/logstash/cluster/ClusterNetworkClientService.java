@@ -15,8 +15,6 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,9 +27,9 @@ import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.io.RaftMessageNettyCodec;
 import org.logstash.cluster.raft.RaftMessage;
 
-public final class ClusterClientService implements LsClusterService {
+public final class ClusterNetworkClientService implements LsClusterService {
 
-    private static final Logger LOGGER = LogManager.getLogger(ClusterClientService.class);
+    private static final Logger LOGGER = LogManager.getLogger(ClusterNetworkClientService.class);
 
     private final CountDownLatch stopped = new CountDownLatch(1);
 
@@ -39,7 +37,7 @@ public final class ClusterClientService implements LsClusterService {
 
     private final EventLoopGroup worker;
 
-    private final ClusterStateManagerService state;
+    private final ClusterStateService state;
 
     private final HashMap<InetSocketAddress, ChannelFuture> connectedPeers = new HashMap<>();
 
@@ -47,19 +45,16 @@ public final class ClusterClientService implements LsClusterService {
 
     private final Bootstrap clientBootstrap;
 
-    private final String identifier;
-
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public ClusterClientService(final ClusterStateManagerService state) {
+    public ClusterNetworkClientService(final ClusterStateService state) {
         this(state, new InetSocketAddress(getDefaultBindAddress(), getDefaultBindPort()));
     }
 
-    public ClusterClientService(final ClusterStateManagerService state,
+    public ClusterNetworkClientService(final ClusterStateService state,
         final InetSocketAddress address) {
         executor.submit(state);
         this.state = state;
-        identifier = Base64.getEncoder().encodeToString(address.toString().getBytes(StandardCharsets.UTF_8));
         boss = new NioEventLoopGroup();
         worker = new NioEventLoopGroup();
         clientBootstrap = new Bootstrap().group(worker).channel(NioSocketChannel.class)
@@ -68,7 +63,7 @@ public final class ClusterClientService implements LsClusterService {
                 public void initChannel(final SocketChannel channel) {
                     channel.pipeline().addLast(
                         new RaftMessageNettyCodec.RaftMessageEncoder(),
-                        new ClusterClientService.LsOutgoingClusterChannel(state, address)
+                        new ClusterNetworkClientService.LsOutgoingClusterChannel(state, address)
                     );
                 }
             });
@@ -80,14 +75,14 @@ public final class ClusterClientService implements LsClusterService {
                     public void initChannel(final SocketChannel channel) {
                         channel.pipeline().addLast(
                             new RaftMessageNettyCodec.RaftMessageDecoder(),
-                            new ClusterClientService.LsIncomingClusterChannel(state)
+                            new ClusterNetworkClientService.LsIncomingClusterChannel(state)
                         );
                     }
                 })
             .option(ChannelOption.SO_BACKLOG, 128)
             .childOption(ChannelOption.SO_KEEPALIVE, true)
             .bind(address);
-        LOGGER.info("{} is listening on {}", identifier, address);
+        LOGGER.info("{} is listening on {}", state.getIdentifier(), address);
     }
 
     @Override
@@ -97,11 +92,11 @@ public final class ClusterClientService implements LsClusterService {
                 final Collection<InetSocketAddress> outstanding = new HashSet<>(state.peers());
                 outstanding.removeAll(connectedPeers.keySet());
                 for (final InetSocketAddress target : outstanding) {
-                    LOGGER.info("{} connecting to {}", identifier, target);
+                    LOGGER.info("{} connecting to {}", state.getIdentifier(), target);
                     clientBootstrap.connect(target).addListener(
                         future -> {
                             connectedPeers.put(target, clientBootstrap.connect(target));
-                            LOGGER.info("{} connected to {}", identifier, target);
+                            LOGGER.info("{} connected to {}", state.getIdentifier(), target);
                         }
                     );
                 }
@@ -162,11 +157,11 @@ public final class ClusterClientService implements LsClusterService {
 
     private static final class LsOutgoingClusterChannel extends ChannelInboundHandlerAdapter {
 
-        private final ClusterStateManagerService state;
+        private final ClusterStateService state;
 
         private final InetSocketAddress address;
 
-        private LsOutgoingClusterChannel(final ClusterStateManagerService state,
+        private LsOutgoingClusterChannel(final ClusterStateService state,
             final InetSocketAddress address) {
             this.state = state;
             this.address = address;
@@ -191,9 +186,9 @@ public final class ClusterClientService implements LsClusterService {
 
     private static final class LsIncomingClusterChannel extends ChannelInboundHandlerAdapter {
 
-        private final ClusterStateManagerService state;
+        private final ClusterStateService state;
 
-        private LsIncomingClusterChannel(final ClusterStateManagerService state) {
+        private LsIncomingClusterChannel(final ClusterStateService state) {
             this.state = state;
         }
 
