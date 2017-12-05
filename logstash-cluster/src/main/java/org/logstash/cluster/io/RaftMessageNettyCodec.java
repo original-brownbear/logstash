@@ -13,7 +13,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.util.List;
-import org.logstash.cluster.raft.RaftMessage;
+import org.logstash.cluster.raft.RaftRpcMessage;
 
 public final class RaftMessageNettyCodec {
 
@@ -34,7 +34,7 @@ public final class RaftMessageNettyCodec {
     public static final class RaftMessageEncoder extends ChannelOutboundHandlerAdapter {
         @Override
         public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-            RaftMessage m = (RaftMessage) msg;
+            RaftRpcMessage m = (RaftRpcMessage) msg;
             final ByteArrayOutputStream baos = new ByteArrayOutputStream();
             try (final ObjectOutput objectOut = new ObjectOutputStream(baos)) {
                 m.writeTo(objectOut);

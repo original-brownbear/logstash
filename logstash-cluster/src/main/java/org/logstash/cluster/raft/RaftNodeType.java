@@ -1,6 +1,6 @@
 package org.logstash.cluster.raft;
 
-public enum State {
+public enum RaftNodeType {
 
     WORKER,
 
