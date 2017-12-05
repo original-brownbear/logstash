@@ -1,6 +1,5 @@
 package org.logstash.cluster;
 
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,10 +20,8 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
     public void discoveryTest() throws Exception {
         final String index = "testIndex";
         ensureGreen();
-        final InetSocketAddress listenAddrOne =
-            new InetSocketAddress(InetAddress.getLoopbackAddress(), PortUtil.reserve());
-        final InetSocketAddress listenAddrTwo =
-            new InetSocketAddress(InetAddress.getLoopbackAddress(), PortUtil.reserve());
+        final InetSocketAddress listenAddrOne = PortUtil.randomLoopbackAddress();
+        final InetSocketAddress listenAddrTwo = PortUtil.randomLoopbackAddress();
         final ExecutorService exec = Executors.newFixedThreadPool(2);
         try (
             ClusterStateManagerService stateOne = new ClusterStateManagerService(
@@ -41,6 +38,9 @@ public final class ClusterClientServiceTest extends ESIntegTestCase {
             TimeUnit.SECONDS.sleep(3L);
             MatcherAssert.assertThat(
                 stateTwo.peers().contains(listenAddrOne), Matchers.is(true)
+            );
+            MatcherAssert.assertThat(
+                stateOne.peers().contains(listenAddrTwo), Matchers.is(true)
             );
         } finally {
             exec.shutdownNow();

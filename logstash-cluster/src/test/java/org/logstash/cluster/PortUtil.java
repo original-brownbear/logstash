@@ -1,13 +1,16 @@
 package org.logstash.cluster;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 
 public final class PortUtil {
-    /**
-     * Reserve new port for each call.
-     * @return Reserved port.
-     */
+
+    public static InetSocketAddress randomLoopbackAddress() {
+        return new InetSocketAddress(InetAddress.getLoopbackAddress(), reserve());
+    }
+
     public static int reserve() {
         synchronized (PortUtil.class) {
             try (final ServerSocket socket = new ServerSocket(0)) {
