@@ -26,7 +26,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.cluster.io.InetSocketAdressNettyCodec;
+import org.logstash.cluster.io.RaftMessageNettyCodec;
+import org.logstash.cluster.raft.RaftMessage;
 
 public final class ClusterClientService implements LsClusterService {
 
@@ -66,7 +67,7 @@ public final class ClusterClientService implements LsClusterService {
                 @Override
                 public void initChannel(final SocketChannel channel) {
                     channel.pipeline().addLast(
-                        new InetSocketAdressNettyCodec.InetSocketAdressEncoder(),
+                        new RaftMessageNettyCodec.RaftMessageEncoder(),
                         new ClusterClientService.LsOutgoingClusterChannel(state, address)
                     );
                 }
@@ -78,7 +79,7 @@ public final class ClusterClientService implements LsClusterService {
                     @Override
                     public void initChannel(final SocketChannel channel) {
                         channel.pipeline().addLast(
-                            new InetSocketAdressNettyCodec.InetSocketAdressDecoder(),
+                            new RaftMessageNettyCodec.RaftMessageDecoder(),
                             new ClusterClientService.LsIncomingClusterChannel(state)
                         );
                     }
@@ -173,7 +174,7 @@ public final class ClusterClientService implements LsClusterService {
 
         @Override
         public void channelActive(final ChannelHandlerContext ctx) {
-            ctx.writeAndFlush(address);
+            ctx.writeAndFlush(new RaftMessage(address));
         }
 
         @Override
@@ -204,7 +205,7 @@ public final class ClusterClientService implements LsClusterService {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            state.registerPeer((InetSocketAddress) msg);
+            state.registerPeer(((RaftMessage) msg).getSender());
         }
 
         @Override
