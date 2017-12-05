@@ -26,6 +26,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.logstash.cluster.io.InetSocketAdressNettyCodec;
 
 public final class ClusterClientService implements LsClusterService {
 
@@ -65,7 +66,8 @@ public final class ClusterClientService implements LsClusterService {
                 @Override
                 public void initChannel(final SocketChannel channel) {
                     channel.pipeline().addLast(
-                        new ClusterClientService.LsOutgoingClusterChannel(state)
+                        new InetSocketAdressNettyCodec.InetSocketAdressEncoder(),
+                        new ClusterClientService.LsOutgoingClusterChannel(state, address)
                     );
                 }
             });
@@ -76,9 +78,9 @@ public final class ClusterClientService implements LsClusterService {
                     @Override
                     public void initChannel(final SocketChannel channel) {
                         channel.pipeline().addLast(
+                            new InetSocketAdressNettyCodec.InetSocketAdressDecoder(),
                             new ClusterClientService.LsIncomingClusterChannel(state)
                         );
-                        state.registerPeer(channel.remoteAddress());
                     }
                 })
             .option(ChannelOption.SO_BACKLOG, 128)
@@ -161,21 +163,22 @@ public final class ClusterClientService implements LsClusterService {
 
         private final ClusterStateManagerService state;
 
-        private LsOutgoingClusterChannel(final ClusterStateManagerService state) {
+        private final InetSocketAddress address;
+
+        private LsOutgoingClusterChannel(final ClusterStateManagerService state,
+            final InetSocketAddress address) {
             this.state = state;
+            this.address = address;
         }
 
         @Override
         public void channelActive(final ChannelHandlerContext ctx) {
-            final InetSocketAddress source = (InetSocketAddress) ctx.channel().remoteAddress();
-            LOGGER.info("Finished Connection to {}", source);
-            ctx.writeAndFlush("foo");
+            ctx.writeAndFlush(address);
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            ctx.write(msg);
-            ctx.flush();
+
         }
 
         @Override
@@ -197,13 +200,11 @@ public final class ClusterClientService implements LsClusterService {
         public void channelActive(final ChannelHandlerContext ctx) {
             final InetSocketAddress source = (InetSocketAddress) ctx.channel().remoteAddress();
             LOGGER.info("Incoming connection from {}", source);
-            state.registerPeer(source);
         }
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
-            ctx.write(msg);
-            ctx.flush();
+            state.registerPeer((InetSocketAddress) msg);
         }
 
         @Override
