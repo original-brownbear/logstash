@@ -1,6 +1,5 @@
 package org.logstash.cluster.raft;
 
-public class RaftStateMachine {
-
+public final class RaftStateMachine {
 
 }

@@ -1,4 +1,9 @@
 package org.logstash.cluster.raft;
 
-public final class RaftLogEntry {
+import java.io.Serializable;
+
+@FunctionalInterface
+public interface RaftLogEntry extends Serializable {
+
+    void applyTo(RaftStateMachine state);
 }
