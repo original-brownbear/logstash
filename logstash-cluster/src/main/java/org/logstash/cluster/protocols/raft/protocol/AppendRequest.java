@@ -34,21 +34,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class AppendRequest extends AbstractRaftRequest {
 
-    /**
-     * Returns a new append request builder.
-     * @return A new append request builder.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
     private final long term;
     private final String leader;
     private final long prevLogIndex;
     private final long prevLogTerm;
     private final List<RaftLogEntry> entries;
     private final long commitIndex;
-
     public AppendRequest(long term, String leader, long prevLogIndex, long prevLogTerm, List<RaftLogEntry> entries, long commitIndex) {
         this.term = term;
         this.leader = leader;
@@ -56,6 +47,14 @@ public class AppendRequest extends AbstractRaftRequest {
         this.prevLogTerm = prevLogTerm;
         this.entries = entries;
         this.commitIndex = commitIndex;
+    }
+
+    /**
+     * Returns a new append request builder.
+     * @return A new append request builder.
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -240,6 +239,16 @@ public class AppendRequest extends AbstractRaftRequest {
             return this;
         }
 
+        /**
+         * @throws IllegalStateException if the term, log term, log index, commit index, or global index are not positive, or
+         * if entries is null
+         */
+        @Override
+        public AppendRequest build() {
+            validate();
+            return new AppendRequest(term, leader, logIndex, logTerm, entries, commitIndex);
+        }
+
         @Override
         protected void validate() {
             super.validate();
@@ -249,16 +258,6 @@ public class AppendRequest extends AbstractRaftRequest {
             checkArgument(logTerm >= 0, "prevLogTerm must be positive");
             checkNotNull(entries, "entries cannot be null");
             checkArgument(commitIndex >= 0, "commitIndex must be positive");
-        }
-
-        /**
-         * @throws IllegalStateException if the term, log term, log index, commit index, or global index are not positive, or
-         * if entries is null
-         */
-        @Override
-        public AppendRequest build() {
-            validate();
-            return new AppendRequest(term, leader, logIndex, logTerm, entries, commitIndex);
         }
     }
 }

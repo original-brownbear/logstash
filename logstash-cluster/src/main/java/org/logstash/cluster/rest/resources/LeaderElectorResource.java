@@ -50,13 +50,6 @@ public class LeaderElectorResource {
         this.leaderElector = leaderElector;
     }
 
-    /**
-     * Returns an event log name for the given identifier.
-     */
-    private String getEventLogName(String id) {
-        return String.format("%s-%s", leaderElector.name(), id);
-    }
-
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     public void run(@Context EventManager events, @Suspended AsyncResponse response) {
@@ -79,6 +72,13 @@ public class LeaderElectorResource {
                 response.resume(Response.serverError().build());
             }
         });
+    }
+
+    /**
+     * Returns an event log name for the given identifier.
+     */
+    private String getEventLogName(String id) {
+        return String.format("%s-%s", leaderElector.name(), id);
     }
 
     @GET

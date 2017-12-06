@@ -107,6 +107,31 @@ public class RaftWorkQueueService extends AbstractRaftService {
         executor.register(CLEAR, this::clear);
     }
 
+    @Override
+    public void onExpire(RaftSession session) {
+        evictWorker(session.sessionId().id());
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        evictWorker(session.sessionId().id());
+    }
+
+    private void evictWorker(long sessionId) {
+        registeredWorkers.remove(sessionId);
+
+        // TODO: Maintain an index of tasks by session for efficient access.
+        Iterator<Map.Entry<String, TaskAssignment>> iter = assignments.entrySet().iterator();
+        while (iter.hasNext()) {
+            Map.Entry<String, TaskAssignment> entry = iter.next();
+            TaskAssignment assignment = entry.getValue();
+            if (assignment.sessionId() == sessionId) {
+                unassignedTasks.add(assignment.task());
+                iter.remove();
+            }
+        }
+    }
+
     protected WorkQueueStats stats(Commit<Void> commit) {
         return WorkQueueStats.builder()
             .withTotalCompleted(totalCompleted.get())
@@ -186,31 +211,6 @@ public class RaftWorkQueueService extends AbstractRaftService {
         } catch (Exception e) {
             logger().warn("State machine update failed", e);
             throw Throwables.propagate(e);
-        }
-    }
-
-    @Override
-    public void onExpire(RaftSession session) {
-        evictWorker(session.sessionId().id());
-    }
-
-    @Override
-    public void onClose(RaftSession session) {
-        evictWorker(session.sessionId().id());
-    }
-
-    private void evictWorker(long sessionId) {
-        registeredWorkers.remove(sessionId);
-
-        // TODO: Maintain an index of tasks by session for efficient access.
-        Iterator<Map.Entry<String, TaskAssignment>> iter = assignments.entrySet().iterator();
-        while (iter.hasNext()) {
-            Map.Entry<String, TaskAssignment> entry = iter.next();
-            TaskAssignment assignment = entry.getValue();
-            if (assignment.sessionId() == sessionId) {
-                unassignedTasks.add(assignment.task());
-                iter.remove();
-            }
         }
     }
 

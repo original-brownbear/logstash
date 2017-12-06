@@ -22,6 +22,14 @@ import org.logstash.cluster.event.AbstractEvent;
  */
 public class RaftSessionEvent extends AbstractEvent<RaftSessionEvent.Type, RaftSession> {
 
+    public RaftSessionEvent(RaftSessionEvent.Type type, RaftSession subject) {
+        super(type, subject);
+    }
+
+    public RaftSessionEvent(RaftSessionEvent.Type type, RaftSession subject, long time) {
+        super(type, subject, time);
+    }
+
     /**
      * Raft session type.
      */
@@ -40,13 +48,5 @@ public class RaftSessionEvent extends AbstractEvent<RaftSessionEvent.Type, RaftS
          * Indicates that a session has been closed by the client.
          */
         CLOSE,
-    }
-
-    public RaftSessionEvent(RaftSessionEvent.Type type, RaftSession subject) {
-        super(type, subject);
-    }
-
-    public RaftSessionEvent(RaftSessionEvent.Type type, RaftSession subject, long time) {
-        super(type, subject, time);
     }
 }

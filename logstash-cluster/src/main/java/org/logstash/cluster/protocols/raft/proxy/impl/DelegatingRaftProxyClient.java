@@ -38,6 +38,11 @@ public class DelegatingRaftProxyClient implements RaftProxyClient {
     }
 
     @Override
+    public SessionId sessionId() {
+        return delegate.sessionId();
+    }
+
+    @Override
     public String name() {
         return delegate.name();
     }
@@ -45,11 +50,6 @@ public class DelegatingRaftProxyClient implements RaftProxyClient {
     @Override
     public ServiceType serviceType() {
         return delegate.serviceType();
-    }
-
-    @Override
-    public SessionId sessionId() {
-        return delegate.sessionId();
     }
 
     @Override

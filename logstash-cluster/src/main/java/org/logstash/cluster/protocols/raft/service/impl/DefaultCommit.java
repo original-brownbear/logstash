@@ -75,11 +75,6 @@ public class DefaultCommit<T> implements Commit<T> {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(Commit.class, index, session.sessionId(), operation);
-    }
-
-    @Override
     public <U> Commit<U> map(Function<T, U> transcoder) {
         return new DefaultCommit<>(index, operation, transcoder.apply(value), session, timestamp);
     }
@@ -87,6 +82,11 @@ public class DefaultCommit<T> implements Commit<T> {
     @Override
     public Commit<Void> mapToNull() {
         return new DefaultCommit<>(index, operation, null, session, timestamp);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(Commit.class, index, session.sessionId(), operation);
     }
 
     @Override

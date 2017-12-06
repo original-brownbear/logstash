@@ -192,88 +192,6 @@ public class RaftServiceManager implements AutoCloseable {
     }
 
     /**
-     * Prepares sessions for the given index.
-     * @param index the index for which to prepare sessions
-     */
-    private void restoreIndex(long index) {
-        Collection<Snapshot> snapshots = raft.getSnapshotStore().getSnapshotsByIndex(index);
-
-        // If snapshots exist for the prior index, iterate through snapshots and populate services/sessions.
-        if (snapshots != null) {
-            for (Snapshot snapshot : snapshots) {
-                try (SnapshotReader reader = snapshot.openReader()) {
-                    restoreService(reader);
-                }
-            }
-        }
-    }
-
-    /**
-     * Restores the service associated with the given snapshot.
-     * @param reader the snapshot reader
-     */
-    private void restoreService(SnapshotReader reader) {
-        ServiceId serviceId = ServiceId.from(reader.readLong());
-        ServiceType serviceType = ServiceType.from(reader.readString());
-        String serviceName = reader.readString();
-
-        // Get or create the service associated with the snapshot.
-        logger.debug("Restoring service {} {}", serviceId, serviceName);
-        DefaultServiceContext service = initializeService(serviceId, serviceType, serviceName);
-        if (service == null) {
-            return;
-        }
-
-        restoreSessions(reader, service);
-    }
-
-    /**
-     * Restores the sessions associated with the given snapshot and service.
-     * @param reader the snapshot reader
-     * @param service the restored service
-     */
-    private void restoreSessions(SnapshotReader reader, DefaultServiceContext service) {
-        // Read and create sessions from the snapshot.
-        int sessionCount = reader.readInt();
-        for (int i = 0; i < sessionCount; i++) {
-            restoreSession(reader, service);
-        }
-    }
-
-    /**
-     * Restores the next session in the given snapshot for the given service.
-     * @param reader the snapshot reader
-     * @param service the restored service
-     */
-    private void restoreSession(SnapshotReader reader, DefaultServiceContext service) {
-        SessionId sessionId = SessionId.from(reader.readLong());
-        logger.trace("Restoring session {} for {}", sessionId, service.serviceName());
-        MemberId node = MemberId.from(reader.readString());
-        ReadConsistency readConsistency = ReadConsistency.valueOf(reader.readString());
-        long minTimeout = reader.readLong();
-        long maxTimeout = reader.readLong();
-        long sessionTimestamp = reader.readLong();
-        RaftSessionContext session = new RaftSessionContext(
-            sessionId,
-            node,
-            service.serviceName(),
-            service.serviceType(),
-            readConsistency,
-            minTimeout,
-            maxTimeout,
-            service,
-            raft,
-            threadContextFactory);
-        session.setLastUpdated(sessionTimestamp);
-        session.setRequestSequence(reader.readLong());
-        session.setCommandSequence(reader.readLong());
-        session.setEventIndex(reader.readLong());
-        session.setLastCompleted(reader.readLong());
-        session.setLastApplied(reader.snapshot().index());
-        raft.getSessions().registerSession(session);
-    }
-
-    /**
      * Applies an initialize entry.
      * <p>
      * Initialize entries are used only at the beginning of a new leader's term to force the commitment of entries from
@@ -366,6 +284,35 @@ public class RaftServiceManager implements AutoCloseable {
     }
 
     /**
+     * Applies an open session entry to the state machine.
+     */
+    private CompletableFuture<Long> applyOpenSession(Indexed<OpenSessionEntry> entry) {
+        // Get the state machine executor or create one if it doesn't already exist.
+        DefaultServiceContext service = getOrInitializeService(
+            ServiceId.from(entry.index()),
+            ServiceType.from(entry.entry().serviceType()),
+            entry.entry().serviceName());
+        if (service == null) {
+            return Futures.exceptionalFuture(new RaftException.UnknownService("Unknown service type " + entry.entry().serviceType()));
+        }
+
+        SessionId sessionId = SessionId.from(entry.index());
+        RaftSessionContext session = new RaftSessionContext(
+            sessionId,
+            MemberId.from(entry.entry().memberId()),
+            entry.entry().serviceName(),
+            ServiceType.from(entry.entry().serviceType()),
+            entry.entry().readConsistency(),
+            entry.entry().minTimeout(),
+            entry.entry().maxTimeout(),
+            service,
+            raft,
+            threadContextFactory);
+        raft.getSessions().registerSession(session);
+        return service.openSession(entry.index(), entry.entry().timestamp(), session);
+    }
+
+    /**
      * Gets or initializes a service context.
      */
     private DefaultServiceContext getOrInitializeService(ServiceId serviceId, ServiceType serviceType, String serviceName) {
@@ -402,35 +349,6 @@ public class RaftServiceManager implements AutoCloseable {
             raft.getSessions().removeSessions(oldService.serviceId());
         }
         return service;
-    }
-
-    /**
-     * Applies an open session entry to the state machine.
-     */
-    private CompletableFuture<Long> applyOpenSession(Indexed<OpenSessionEntry> entry) {
-        // Get the state machine executor or create one if it doesn't already exist.
-        DefaultServiceContext service = getOrInitializeService(
-            ServiceId.from(entry.index()),
-            ServiceType.from(entry.entry().serviceType()),
-            entry.entry().serviceName());
-        if (service == null) {
-            return Futures.exceptionalFuture(new RaftException.UnknownService("Unknown service type " + entry.entry().serviceType()));
-        }
-
-        SessionId sessionId = SessionId.from(entry.index());
-        RaftSessionContext session = new RaftSessionContext(
-            sessionId,
-            MemberId.from(entry.entry().memberId()),
-            entry.entry().serviceName(),
-            ServiceType.from(entry.entry().serviceType()),
-            entry.entry().readConsistency(),
-            entry.entry().minTimeout(),
-            entry.entry().maxTimeout(),
-            service,
-            raft,
-            threadContextFactory);
-        raft.getSessions().registerSession(session);
-        return service.openSession(entry.index(), entry.entry().timestamp(), session);
     }
 
     /**
@@ -556,6 +474,88 @@ public class RaftServiceManager implements AutoCloseable {
                 entry.entry().timestamp(),
                 session,
                 entry.entry().operation());
+    }
+
+    /**
+     * Prepares sessions for the given index.
+     * @param index the index for which to prepare sessions
+     */
+    private void restoreIndex(long index) {
+        Collection<Snapshot> snapshots = raft.getSnapshotStore().getSnapshotsByIndex(index);
+
+        // If snapshots exist for the prior index, iterate through snapshots and populate services/sessions.
+        if (snapshots != null) {
+            for (Snapshot snapshot : snapshots) {
+                try (SnapshotReader reader = snapshot.openReader()) {
+                    restoreService(reader);
+                }
+            }
+        }
+    }
+
+    /**
+     * Restores the service associated with the given snapshot.
+     * @param reader the snapshot reader
+     */
+    private void restoreService(SnapshotReader reader) {
+        ServiceId serviceId = ServiceId.from(reader.readLong());
+        ServiceType serviceType = ServiceType.from(reader.readString());
+        String serviceName = reader.readString();
+
+        // Get or create the service associated with the snapshot.
+        logger.debug("Restoring service {} {}", serviceId, serviceName);
+        DefaultServiceContext service = initializeService(serviceId, serviceType, serviceName);
+        if (service == null) {
+            return;
+        }
+
+        restoreSessions(reader, service);
+    }
+
+    /**
+     * Restores the sessions associated with the given snapshot and service.
+     * @param reader the snapshot reader
+     * @param service the restored service
+     */
+    private void restoreSessions(SnapshotReader reader, DefaultServiceContext service) {
+        // Read and create sessions from the snapshot.
+        int sessionCount = reader.readInt();
+        for (int i = 0; i < sessionCount; i++) {
+            restoreSession(reader, service);
+        }
+    }
+
+    /**
+     * Restores the next session in the given snapshot for the given service.
+     * @param reader the snapshot reader
+     * @param service the restored service
+     */
+    private void restoreSession(SnapshotReader reader, DefaultServiceContext service) {
+        SessionId sessionId = SessionId.from(reader.readLong());
+        logger.trace("Restoring session {} for {}", sessionId, service.serviceName());
+        MemberId node = MemberId.from(reader.readString());
+        ReadConsistency readConsistency = ReadConsistency.valueOf(reader.readString());
+        long minTimeout = reader.readLong();
+        long maxTimeout = reader.readLong();
+        long sessionTimestamp = reader.readLong();
+        RaftSessionContext session = new RaftSessionContext(
+            sessionId,
+            node,
+            service.serviceName(),
+            service.serviceType(),
+            readConsistency,
+            minTimeout,
+            maxTimeout,
+            service,
+            raft,
+            threadContextFactory);
+        session.setLastUpdated(sessionTimestamp);
+        session.setRequestSequence(reader.readLong());
+        session.setCommandSequence(reader.readLong());
+        session.setEventIndex(reader.readLong());
+        session.setLastCompleted(reader.readLong());
+        session.setLastApplied(reader.snapshot().index());
+        raft.getSessions().registerSession(session);
     }
 
     @Override

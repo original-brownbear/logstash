@@ -17,19 +17,18 @@ package org.logstash.cluster.storage.buffer;
 
 /**
  * Unpooled direct allocator.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class UnpooledUnsafeDirectAllocator extends UnpooledAllocator {
 
-  @Override
-  public Buffer allocate(int initialCapacity, int maxCapacity) {
-    return UnsafeDirectBuffer.allocate(initialCapacity, maxCapacity);
-  }
+    @Override
+    public Buffer allocate(int initialCapacity, int maxCapacity) {
+        return UnsafeDirectBuffer.allocate(initialCapacity, maxCapacity);
+    }
 
-  @Override
-  protected int maxCapacity() {
-    return Integer.MAX_VALUE;
-  }
+    @Override
+    protected int maxCapacity() {
+        return Integer.MAX_VALUE;
+    }
 
 }

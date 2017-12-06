@@ -64,6 +64,11 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
         return selectorManager.members();
     }
 
+    @Override
+    public CompletableFuture<Set<RaftSessionMetadata>> getSessions() {
+        return getMetadata().thenApply(MetadataResponse::sessions);
+    }
+
     /**
      * Requests metadata from the cluster.
      * @return A completable future to be completed with cluster metadata.
@@ -82,11 +87,6 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
             }
         });
         return future;
-    }
-
-    @Override
-    public CompletableFuture<Set<RaftSessionMetadata>> getSessions() {
-        return getMetadata().thenApply(MetadataResponse::sessions);
     }
 
     @Override

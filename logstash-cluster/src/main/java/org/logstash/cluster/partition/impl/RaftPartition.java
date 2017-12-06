@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.partition.impl;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
@@ -71,20 +72,10 @@ import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.service.RaftService;
 import org.logstash.cluster.serializer.Serializer;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-
 /**
  * Abstract partition.
  */
 public class RaftPartition implements ManagedPartition {
-    protected final AtomicBoolean isOpened = new AtomicBoolean(false);
-    protected final ClusterCommunicationService clusterCommunicator;
-    protected final PartitionMetadata partition;
-    protected final NodeId localNodeId;
-    private final File dataDir;
-    private final RaftPartitionClient client;
-    private final RaftPartitionServer server;
-
     public static final Map<String, Supplier<RaftService>> RAFT_SERVICES =
         ImmutableMap.<String, Supplier<RaftService>>builder()
             .put(DistributedPrimitive.Type.CONSISTENT_MAP.name(), RaftConsistentMapService::new)
@@ -103,6 +94,13 @@ public class RaftPartition implements ManagedPartition {
             .put(String.format("%s-%s", DistributedPrimitive.Type.DOCUMENT_TREE.name(), Ordering.INSERTION),
                 () -> new RaftDocumentTreeService(Ordering.INSERTION))
             .build();
+    protected final AtomicBoolean isOpened = new AtomicBoolean(false);
+    protected final ClusterCommunicationService clusterCommunicator;
+    protected final PartitionMetadata partition;
+    protected final NodeId localNodeId;
+    private final File dataDir;
+    private final RaftPartitionClient client;
+    private final RaftPartitionServer server;
 
     public RaftPartition(
         NodeId nodeId,
@@ -117,9 +115,27 @@ public class RaftPartition implements ManagedPartition {
         this.server = createServer();
     }
 
-    @Override
-    public PartitionId id() {
-        return partition.id();
+    /**
+     * Creates a Raft server.
+     */
+    protected RaftPartitionServer createServer() {
+        return new RaftPartitionServer(
+            this,
+            MemberId.from(localNodeId.id()),
+            clusterCommunicator);
+    }
+
+    /**
+     * Creates a Raft client.
+     */
+    private RaftPartitionClient createClient() {
+        return new RaftPartitionClient(
+            this,
+            MemberId.from(localNodeId.id()),
+            new RaftClientCommunicator(
+                name(),
+                Serializer.using(RaftNamespaces.RAFT_PROTOCOL),
+                clusterCommunicator));
     }
 
     /**
@@ -139,19 +155,19 @@ public class RaftPartition implements ManagedPartition {
     }
 
     /**
-     * Returns the identifiers of partition members.
-     * @return partition member instance ids
-     */
-    Collection<NodeId> members() {
-        return partition.members();
-    }
-
-    /**
      * Returns the {@link MemberId identifiers} of partition members.
      * @return partition member identifiers
      */
     Collection<MemberId> getMemberIds() {
         return Collections2.transform(members(), n -> MemberId.from(n.id()));
+    }
+
+    /**
+     * Returns the identifiers of partition members.
+     * @return partition member instance ids
+     */
+    Collection<NodeId> members() {
+        return partition.members();
     }
 
     /**
@@ -163,8 +179,26 @@ public class RaftPartition implements ManagedPartition {
     }
 
     @Override
+    public CompletableFuture<Partition> open() {
+        if (partition.members().contains(localNodeId)) {
+            return server.open()
+                .thenCompose(v -> client.open())
+                .thenAccept(v -> isOpened.set(true))
+                .thenApply(v -> null);
+        }
+        return client.open()
+            .thenAccept(v -> isOpened.set(true))
+            .thenApply(v -> this);
+    }
+
+    @Override
     public <K, V> ConsistentMapBuilder<K, V> consistentMapBuilder() {
         return new DefaultConsistentMapBuilder<>(getPrimitiveCreator());
+    }
+
+    @Override
+    public boolean isOpen() {
+        return isOpened.get();
     }
 
     @Override
@@ -173,13 +207,33 @@ public class RaftPartition implements ManagedPartition {
     }
 
     @Override
+    public CompletableFuture<Void> close() {
+        // We do not explicitly close the server and instead let the cluster
+        // deal with this as an unclean exit.
+        return client.close();
+    }
+
+    @Override
     public <K, V> ConsistentTreeMapBuilder<K, V> consistentTreeMapBuilder() {
         return new DefaultConsistentTreeMapBuilder<>(getPrimitiveCreator());
     }
 
     @Override
+    public boolean isClosed() {
+        return !isOpened.get();
+    }
+
+    @Override
     public <K, V> ConsistentMultimapBuilder<K, V> consistentMultimapBuilder() {
         return new DefaultConsistentMultimapBuilder<>(getPrimitiveCreator());
+    }
+
+    /**
+     * Deletes the partition.
+     * @return future to be completed once the partition has been deleted
+     */
+    public CompletableFuture<Void> delete() {
+        return server.close().thenCompose(v -> client.close()).thenRun(() -> server.delete());
     }
 
     @Override
@@ -188,8 +242,20 @@ public class RaftPartition implements ManagedPartition {
     }
 
     @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("partitionId", id())
+            .toString();
+    }
+
+    @Override
     public <E> DistributedSetBuilder<E> setBuilder() {
         return new DefaultDistributedSetBuilder<>(() -> consistentMapBuilder());
+    }
+
+    @Override
+    public PartitionId id() {
+        return partition.id();
     }
 
     @Override
@@ -227,71 +293,4 @@ public class RaftPartition implements ManagedPartition {
         return getPrimitiveCreator().getPrimitiveNames(primitiveType);
     }
 
-    @Override
-    public CompletableFuture<Partition> open() {
-        if (partition.members().contains(localNodeId)) {
-            return server.open()
-                .thenCompose(v -> client.open())
-                .thenAccept(v -> isOpened.set(true))
-                .thenApply(v -> null);
-        }
-        return client.open()
-            .thenAccept(v -> isOpened.set(true))
-            .thenApply(v -> this);
-    }
-
-    @Override
-    public boolean isOpen() {
-        return isOpened.get();
-    }
-
-    @Override
-    public CompletableFuture<Void> close() {
-        // We do not explicitly close the server and instead let the cluster
-        // deal with this as an unclean exit.
-        return client.close();
-    }
-
-    @Override
-    public boolean isClosed() {
-        return !isOpened.get();
-    }
-
-    /**
-     * Creates a Raft server.
-     */
-    protected RaftPartitionServer createServer() {
-        return new RaftPartitionServer(
-            this,
-            MemberId.from(localNodeId.id()),
-            clusterCommunicator);
-    }
-
-    /**
-     * Creates a Raft client.
-     */
-    private RaftPartitionClient createClient() {
-        return new RaftPartitionClient(
-            this,
-            MemberId.from(localNodeId.id()),
-            new RaftClientCommunicator(
-                name(),
-                Serializer.using(RaftNamespaces.RAFT_PROTOCOL),
-                clusterCommunicator));
-    }
-
-    /**
-     * Deletes the partition.
-     * @return future to be completed once the partition has been deleted
-     */
-    public CompletableFuture<Void> delete() {
-        return server.close().thenCompose(v -> client.close()).thenRun(() -> server.delete());
-    }
-
-    @Override
-    public String toString() {
-        return toStringHelper(this)
-            .add("partitionId", id())
-            .toString();
-    }
 }

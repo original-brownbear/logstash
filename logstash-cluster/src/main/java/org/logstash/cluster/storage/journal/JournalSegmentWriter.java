@@ -98,39 +98,15 @@ public class JournalSegmentWriter<E> implements JournalWriter<E> {
         buffer.reset();
     }
 
-    @Override
-    public long getLastIndex() {
-        return lastEntry != null ? lastEntry.index() : descriptor.index() - 1;
-    }
-
-    @Override
-    public Indexed<E> getLastEntry() {
-        return lastEntry;
-    }
-
-    @Override
-    public long getNextIndex() {
-        if (lastEntry != null) {
-            return lastEntry.index() + 1;
-        } else {
-            return firstIndex;
-        }
-    }
-
-    /**
-     * Returns the size of the underlying buffer.
-     * @return The size of the underlying buffer.
-     */
-    public long size() {
-        return buffer.offset() + buffer.position();
-    }
-
     /**
      * Returns a boolean indicating whether the segment is empty.
      * @return Indicates whether the segment is empty.
      */
     public boolean isEmpty() {
         return lastEntry == null;
+    }    @Override
+    public long getLastIndex() {
+        return lastEntry != null ? lastEntry.index() : descriptor.index() - 1;
     }
 
     /**
@@ -140,6 +116,24 @@ public class JournalSegmentWriter<E> implements JournalWriter<E> {
     public boolean isFull() {
         return size() >= descriptor.maxSegmentSize()
             || getNextIndex() - firstIndex >= descriptor.maxEntries();
+    }    @Override
+    public Indexed<E> getLastEntry() {
+        return lastEntry;
+    }
+
+    /**
+     * Returns the size of the underlying buffer.
+     * @return The size of the underlying buffer.
+     */
+    public long size() {
+        return buffer.offset() + buffer.position();
+    }    @Override
+    public long getNextIndex() {
+        if (lastEntry != null) {
+            return lastEntry.index() + 1;
+        } else {
+            return firstIndex;
+        }
     }
 
     /**
@@ -148,6 +142,22 @@ public class JournalSegmentWriter<E> implements JournalWriter<E> {
     public long firstIndex() {
         return firstIndex;
     }
+
+    /**
+     * Deletes the segment.
+     */
+    void delete() {
+        Buffer buffer = this.buffer instanceof SlicedBuffer ? ((SlicedBuffer) this.buffer).root() : this.buffer;
+        if (buffer instanceof FileBuffer) {
+            ((FileBuffer) buffer).delete();
+        } else if (buffer instanceof MappedBuffer) {
+            ((MappedBuffer) buffer).delete();
+        }
+    }
+
+
+
+
 
     @Override
     @SuppressWarnings("unchecked")
@@ -226,15 +236,5 @@ public class JournalSegmentWriter<E> implements JournalWriter<E> {
         buffer.close();
     }
 
-    /**
-     * Deletes the segment.
-     */
-    void delete() {
-        Buffer buffer = this.buffer instanceof SlicedBuffer ? ((SlicedBuffer) this.buffer).root() : this.buffer;
-        if (buffer instanceof FileBuffer) {
-            ((FileBuffer) buffer).delete();
-        } else if (buffer instanceof MappedBuffer) {
-            ((MappedBuffer) buffer).delete();
-        }
-    }
+
 }

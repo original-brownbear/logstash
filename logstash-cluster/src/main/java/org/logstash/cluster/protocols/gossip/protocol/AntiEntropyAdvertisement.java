@@ -17,7 +17,6 @@ package org.logstash.cluster.protocols.gossip.protocol;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
-
 import java.util.Map;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -26,30 +25,28 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Anti-entropy advertisement.
  */
 public class AntiEntropyAdvertisement<K> {
-  private final Map<K, GossipUpdate.Digest> digest;
+    private final Map<K, GossipUpdate.Digest> digest;
 
-  /**
-   * Creates a new anti entropy advertisement message.
-   *
-   * @param digest for map entries
-   */
-  public AntiEntropyAdvertisement(Map<K, GossipUpdate.Digest> digest) {
-    this.digest = ImmutableMap.copyOf(checkNotNull(digest));
-  }
+    /**
+     * Creates a new anti entropy advertisement message.
+     * @param digest for map entries
+     */
+    public AntiEntropyAdvertisement(Map<K, GossipUpdate.Digest> digest) {
+        this.digest = ImmutableMap.copyOf(checkNotNull(digest));
+    }
 
-  /**
-   * Returns the digest for map entries.
-   *
-   * @return mapping from key to associated digest
-   */
-  public Map<K, GossipUpdate.Digest> digest() {
-    return digest;
-  }
+    /**
+     * Returns the digest for map entries.
+     * @return mapping from key to associated digest
+     */
+    public Map<K, GossipUpdate.Digest> digest() {
+        return digest;
+    }
 
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(getClass())
-        .add("totalEntries", digest.size())
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("totalEntries", digest.size())
+            .toString();
+    }
 }

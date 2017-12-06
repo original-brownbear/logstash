@@ -54,19 +54,6 @@ public class DocumentTreeResource {
         this.documentTree = documentTree;
     }
 
-    /**
-     * Returns a document path for the given path params.
-     */
-    private DocumentPath getDocumentPath(List<PathSegment> params) {
-        if (params.isEmpty()) {
-            return documentTree.root();
-        } else {
-            List<String> path = new ArrayList<>(documentTree.root().pathElements());
-            path.addAll(params.stream().map(PathSegment::getPath).collect(Collectors.toList()));
-            return DocumentPath.from(path);
-        }
-    }
-
     @GET
     @Path("/{path: .*}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -79,6 +66,19 @@ public class DocumentTreeResource {
                 response.resume(Response.serverError().build());
             }
         });
+    }
+
+    /**
+     * Returns a document path for the given path params.
+     */
+    private DocumentPath getDocumentPath(List<PathSegment> params) {
+        if (params.isEmpty()) {
+            return documentTree.root();
+        } else {
+            List<String> path = new ArrayList<>(documentTree.root().pathElements());
+            path.addAll(params.stream().map(PathSegment::getPath).collect(Collectors.toList()));
+            return DocumentPath.from(path);
+        }
     }
 
     @POST

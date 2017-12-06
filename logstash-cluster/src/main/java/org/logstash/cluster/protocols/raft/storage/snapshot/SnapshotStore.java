@@ -73,8 +73,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * a snapshot may actually only represent a subset of the state machine's state.
  */
 public class SnapshotStore implements AutoCloseable {
-    private final Logger log = LoggerFactory.getLogger(getClass());
     final RaftStorage storage;
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map<Long, Set<Snapshot>> indexSnapshots = new ConcurrentHashMap<>();
     private final Map<ServiceId, Snapshot> serviceSnapshots = new ConcurrentHashMap<>();
 
@@ -103,27 +103,6 @@ public class SnapshotStore implements AutoCloseable {
         for (Snapshot snapshot : serviceSnapshots.values()) {
             indexSnapshots.computeIfAbsent(snapshot.index(), i -> Sets.newConcurrentHashSet()).add(snapshot);
         }
-    }
-
-    /**
-     * Returns the last snapshot for the given state machine identifier.
-     * @param id The state machine identifier for which to return the snapshot.
-     * @return The latest snapshot for the given state machine.
-     */
-    public Snapshot getSnapshotById(ServiceId id) {
-        return serviceSnapshots.get(id);
-    }
-
-    /**
-     * Returns the snapshot at the given index.
-     * @param index The index for which to return the snapshot.
-     * @return The snapshot at the given index.
-     */
-    public Collection<Snapshot> getSnapshotsByIndex(long index) {
-        Collection<Snapshot> snapshots = indexSnapshots.get(index);
-        return snapshots != null ? snapshots.stream()
-            .sorted(Comparator.comparingLong(s -> s.serviceId().id()))
-            .collect(Collectors.toList()) : null;
     }
 
     /**
@@ -164,6 +143,27 @@ public class SnapshotStore implements AutoCloseable {
     }
 
     /**
+     * Returns the last snapshot for the given state machine identifier.
+     * @param id The state machine identifier for which to return the snapshot.
+     * @return The latest snapshot for the given state machine.
+     */
+    public Snapshot getSnapshotById(ServiceId id) {
+        return serviceSnapshots.get(id);
+    }
+
+    /**
+     * Returns the snapshot at the given index.
+     * @param index The index for which to return the snapshot.
+     * @return The snapshot at the given index.
+     */
+    public Collection<Snapshot> getSnapshotsByIndex(long index) {
+        Collection<Snapshot> snapshots = indexSnapshots.get(index);
+        return snapshots != null ? snapshots.stream()
+            .sorted(Comparator.comparingLong(s -> s.serviceId().id()))
+            .collect(Collectors.toList()) : null;
+    }
+
+    /**
      * Creates a temporary in-memory snapshot.
      * @param serviceId The snapshot identifier.
      * @param serviceName The snapshot service name.
@@ -178,23 +178,6 @@ public class SnapshotStore implements AutoCloseable {
             .withTimestamp(timestamp.unixTimestamp())
             .build();
         return newSnapshot(serviceName, descriptor, StorageLevel.MEMORY);
-    }
-
-    /**
-     * Creates a new snapshot.
-     * @param serviceId The snapshot identifier.
-     * @param serviceName The snapshot service name.
-     * @param index The snapshot index.
-     * @param timestamp The snapshot timestamp.
-     * @return The snapshot.
-     */
-    public Snapshot newSnapshot(ServiceId serviceId, String serviceName, long index, WallClockTimestamp timestamp) {
-        SnapshotDescriptor descriptor = SnapshotDescriptor.builder()
-            .withServiceId(serviceId.id())
-            .withIndex(index)
-            .withTimestamp(timestamp.unixTimestamp())
-            .build();
-        return newSnapshot(serviceName, descriptor, storage.storageLevel());
     }
 
     /**
@@ -231,6 +214,23 @@ public class SnapshotStore implements AutoCloseable {
         Snapshot snapshot = new FileSnapshot(file, descriptor, this);
         log.debug("Created disk snapshot: {}", snapshot);
         return snapshot;
+    }
+
+    /**
+     * Creates a new snapshot.
+     * @param serviceId The snapshot identifier.
+     * @param serviceName The snapshot service name.
+     * @param index The snapshot index.
+     * @param timestamp The snapshot timestamp.
+     * @return The snapshot.
+     */
+    public Snapshot newSnapshot(ServiceId serviceId, String serviceName, long index, WallClockTimestamp timestamp) {
+        SnapshotDescriptor descriptor = SnapshotDescriptor.builder()
+            .withServiceId(serviceId.id())
+            .withIndex(index)
+            .withTimestamp(timestamp.unixTimestamp())
+            .build();
+        return newSnapshot(serviceName, descriptor, storage.storageLevel());
     }
 
     /**

@@ -93,15 +93,15 @@ public class BlockingConsistentMap<K, V> extends Synchronous<AsyncConsistentMap<
     }
 
     @Override
-    public Versioned<V> computeIfPresent(K key,
-        BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-        return computeIf(key, Objects::nonNull, remappingFunction);
-    }
-
-    @Override
     public Versioned<V> compute(K key,
         BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         return computeIf(key, v -> true, remappingFunction);
+    }
+
+    @Override
+    public Versioned<V> computeIfPresent(K key,
+        BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        return computeIf(key, Objects::nonNull, remappingFunction);
     }
 
     @Override
@@ -190,6 +190,30 @@ public class BlockingConsistentMap<K, V> extends Synchronous<AsyncConsistentMap<
     }
 
     @Override
+    public Map<K, V> asJavaMap() {
+        synchronized (this) {
+            if (javaMap == null) {
+                javaMap = new ConsistentMapBackedJavaMap<>(this);
+            }
+        }
+        return javaMap;
+    }
+
+    private <T> T complete(CompletableFuture<T> future) {
+        try {
+            return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ConsistentMapException.Interrupted();
+        } catch (TimeoutException e) {
+            throw new ConsistentMapException.Timeout(name());
+        } catch (ExecutionException e) {
+            Throwables.propagateIfPossible(e.getCause());
+            throw new ConsistentMapException(e.getCause());
+        }
+    }
+
+    @Override
     public void addStatusChangeListener(Consumer<Status> listener) {
         asyncMap.addStatusChangeListener(listener);
     }
@@ -205,31 +229,7 @@ public class BlockingConsistentMap<K, V> extends Synchronous<AsyncConsistentMap<
     }
 
     @Override
-    public Map<K, V> asJavaMap() {
-        synchronized (this) {
-            if (javaMap == null) {
-                javaMap = new ConsistentMapBackedJavaMap<>(this);
-            }
-        }
-        return javaMap;
-    }
-
-    @Override
     public String toString() {
         return asJavaMap().toString();
-    }
-
-    private <T> T complete(CompletableFuture<T> future) {
-        try {
-            return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new ConsistentMapException.Interrupted();
-        } catch (TimeoutException e) {
-            throw new ConsistentMapException.Timeout(name());
-        } catch (ExecutionException e) {
-            Throwables.propagateIfPossible(e.getCause());
-            throw new ConsistentMapException(e.getCause());
-        }
     }
 }

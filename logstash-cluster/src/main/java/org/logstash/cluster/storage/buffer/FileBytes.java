@@ -38,49 +38,10 @@ import org.logstash.cluster.utils.memory.Memory;
  */
 public class FileBytes extends AbstractBytes {
     static final String DEFAULT_MODE = "rw";
-
-    /**
-     * Allocates a randomAccessFile buffer of unlimited count.
-     * <p>
-     * The buffer will be allocated with {@link Long#MAX_VALUE} bytes. As bytes are written to the buffer, the underlying
-     * {@link RandomAccessFile} will expand.
-     * @param file The randomAccessFile to allocate.
-     * @return The allocated buffer.
-     */
-    public static FileBytes allocate(File file) {
-        return allocate(file, DEFAULT_MODE, Integer.MAX_VALUE);
-    }
-
-    /**
-     * Allocates a randomAccessFile buffer.
-     * <p>
-     * If the underlying randomAccessFile is empty, the randomAccessFile count will expand dynamically as bytes are written to the randomAccessFile.
-     * @param file The randomAccessFile to allocate.
-     * @param size The count of the bytes to allocate.
-     * @return The allocated buffer.
-     */
-    public static FileBytes allocate(File file, int size) {
-        return allocate(file, DEFAULT_MODE, size);
-    }
-
-    /**
-     * Allocates a randomAccessFile buffer.
-     * <p>
-     * If the underlying randomAccessFile is empty, the randomAccessFile count will expand dynamically as bytes are written to the randomAccessFile.
-     * @param file The randomAccessFile to allocate.
-     * @param mode The mode in which to open the underlying {@link RandomAccessFile}.
-     * @param size The count of the bytes to allocate.
-     * @return The allocated buffer.
-     */
-    public static FileBytes allocate(File file, String mode, int size) {
-        return new FileBytes(file, mode, (int) Math.min(Memory.Util.toPow2(size), Integer.MAX_VALUE));
-    }
-
     private final File file;
     private final String mode;
     private final RandomAccessFile randomAccessFile;
     private int size;
-
     FileBytes(File file, String mode, int size) {
         if (file == null)
             throw new NullPointerException("file cannot be null");
@@ -99,6 +60,43 @@ public class FileBytes extends AbstractBytes {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Allocates a randomAccessFile buffer of unlimited count.
+     * <p>
+     * The buffer will be allocated with {@link Long#MAX_VALUE} bytes. As bytes are written to the buffer, the underlying
+     * {@link RandomAccessFile} will expand.
+     * @param file The randomAccessFile to allocate.
+     * @return The allocated buffer.
+     */
+    public static FileBytes allocate(File file) {
+        return allocate(file, DEFAULT_MODE, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Allocates a randomAccessFile buffer.
+     * <p>
+     * If the underlying randomAccessFile is empty, the randomAccessFile count will expand dynamically as bytes are written to the randomAccessFile.
+     * @param file The randomAccessFile to allocate.
+     * @param mode The mode in which to open the underlying {@link RandomAccessFile}.
+     * @param size The count of the bytes to allocate.
+     * @return The allocated buffer.
+     */
+    public static FileBytes allocate(File file, String mode, int size) {
+        return new FileBytes(file, mode, (int) Math.min(Memory.Util.toPow2(size), Integer.MAX_VALUE));
+    }
+
+    /**
+     * Allocates a randomAccessFile buffer.
+     * <p>
+     * If the underlying randomAccessFile is empty, the randomAccessFile count will expand dynamically as bytes are written to the randomAccessFile.
+     * @param file The randomAccessFile to allocate.
+     * @param size The count of the bytes to allocate.
+     * @return The allocated buffer.
+     */
+    public static FileBytes allocate(File file, int size) {
+        return allocate(file, DEFAULT_MODE, size);
     }
 
     /**
@@ -140,6 +138,31 @@ public class FileBytes extends AbstractBytes {
     @Override
     public boolean isFile() {
         return true;
+    }
+
+    @Override
+    public ByteOrder order() {
+        return ByteOrder.BIG_ENDIAN;
+    }
+
+    @Override
+    public Bytes flush() {
+        try {
+            randomAccessFile.getFD().sync();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public void close() {
+        try {
+            randomAccessFile.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        super.close();
     }
 
     /**
@@ -188,20 +211,6 @@ public class FileBytes extends AbstractBytes {
     }
 
     @Override
-    public ByteOrder order() {
-        return ByteOrder.BIG_ENDIAN;
-    }
-
-    /**
-     * Seeks to the given offset.
-     */
-    private void seekToOffset(int offset) throws IOException {
-        if (randomAccessFile.getFilePointer() != offset) {
-            randomAccessFile.seek(offset);
-        }
-    }
-
-    @Override
     public Bytes zero() {
         try {
             randomAccessFile.setLength(0);
@@ -227,6 +236,137 @@ public class FileBytes extends AbstractBytes {
     public Bytes zero(int offset, int length) {
         for (int i = offset; i < offset + length; i++) {
             writeByte(i, (byte) 0);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes write(int position, Bytes bytes, int offset, int length) {
+        checkWrite(position, length);
+        if (bytes instanceof WrappedBytes) {
+            bytes = ((WrappedBytes) bytes).root();
+        }
+        if (bytes.hasArray()) {
+            try {
+                seekToOffset(position);
+                randomAccessFile.write(bytes.array(), (int) offset, (int) length);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            try {
+                seekToOffset(position);
+                byte[] writeBytes = new byte[(int) length];
+                bytes.read(offset, writeBytes, 0, length);
+                randomAccessFile.write(writeBytes);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes write(int position, byte[] bytes, int offset, int length) {
+        checkWrite(position, length);
+        try {
+            seekToOffset(position);
+            randomAccessFile.write(bytes, (int) offset, (int) length);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeByte(int offset, int b) {
+        checkWrite(offset, BYTE);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeByte(b);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    /**
+     * Seeks to the given offset.
+     */
+    private void seekToOffset(int offset) throws IOException {
+        if (randomAccessFile.getFilePointer() != offset) {
+            randomAccessFile.seek(offset);
+        }
+    }
+
+    @Override
+    public Bytes writeChar(int offset, char c) {
+        checkWrite(offset, CHARACTER);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeChar(c);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeShort(int offset, short s) {
+        checkWrite(offset, SHORT);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeShort(s);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeInt(int offset, int i) {
+        checkWrite(offset, INTEGER);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeInt(i);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeLong(int offset, long l) {
+        checkWrite(offset, LONG);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeLong(l);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeFloat(int offset, float f) {
+        checkWrite(offset, FLOAT);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeFloat(f);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes writeDouble(int offset, double d) {
+        checkWrite(offset, DOUBLE);
+        try {
+            seekToOffset(offset);
+            randomAccessFile.writeDouble(d);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
         return this;
     }
@@ -344,148 +484,6 @@ public class FileBytes extends AbstractBytes {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Override
-    public Bytes write(int position, Bytes bytes, int offset, int length) {
-        checkWrite(position, length);
-        if (bytes instanceof WrappedBytes) {
-            bytes = ((WrappedBytes) bytes).root();
-        }
-        if (bytes.hasArray()) {
-            try {
-                seekToOffset(position);
-                randomAccessFile.write(bytes.array(), (int) offset, (int) length);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            try {
-                seekToOffset(position);
-                byte[] writeBytes = new byte[(int) length];
-                bytes.read(offset, writeBytes, 0, length);
-                randomAccessFile.write(writeBytes);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes write(int position, byte[] bytes, int offset, int length) {
-        checkWrite(position, length);
-        try {
-            seekToOffset(position);
-            randomAccessFile.write(bytes, (int) offset, (int) length);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeByte(int offset, int b) {
-        checkWrite(offset, BYTE);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeByte(b);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeChar(int offset, char c) {
-        checkWrite(offset, CHARACTER);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeChar(c);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeShort(int offset, short s) {
-        checkWrite(offset, SHORT);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeShort(s);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeInt(int offset, int i) {
-        checkWrite(offset, INTEGER);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeInt(i);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeLong(int offset, long l) {
-        checkWrite(offset, LONG);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeLong(l);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeFloat(int offset, float f) {
-        checkWrite(offset, FLOAT);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeFloat(f);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes writeDouble(int offset, double d) {
-        checkWrite(offset, DOUBLE);
-        try {
-            seekToOffset(offset);
-            randomAccessFile.writeDouble(d);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes flush() {
-        try {
-            randomAccessFile.getFD().sync();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return this;
-    }
-
-    @Override
-    public void close() {
-        try {
-            randomAccessFile.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        super.close();
     }
 
     /**

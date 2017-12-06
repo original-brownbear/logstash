@@ -46,21 +46,21 @@ public abstract class LeaderElectorBuilder<T>
     /**
      * Sets the election timeout.
      * @param electionTimeout the election timeout
-     * @param timeUnit the timeout time unit
-     * @return leader elector builder
-     */
-    public LeaderElectorBuilder<T> withElectionTimeout(long electionTimeout, TimeUnit timeUnit) {
-        return withElectionTimeout(Duration.ofMillis(timeUnit.toMillis(electionTimeout)));
-    }
-
-    /**
-     * Sets the election timeout.
-     * @param electionTimeout the election timeout
      * @return leader elector builder
      */
     public LeaderElectorBuilder<T> withElectionTimeout(Duration electionTimeout) {
         this.electionTimeout = checkNotNull(electionTimeout);
         return this;
+    }
+
+    /**
+     * Sets the election timeout.
+     * @param electionTimeout the election timeout
+     * @param timeUnit the timeout time unit
+     * @return leader elector builder
+     */
+    public LeaderElectorBuilder<T> withElectionTimeout(long electionTimeout, TimeUnit timeUnit) {
+        return withElectionTimeout(Duration.ofMillis(timeUnit.toMillis(electionTimeout)));
     }
 
     /**

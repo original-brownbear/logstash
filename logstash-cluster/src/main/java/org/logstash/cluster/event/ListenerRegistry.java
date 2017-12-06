@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.event;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -30,70 +29,66 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class ListenerRegistry<E extends Event, L extends EventListener<E>>
     implements ListenerService<E, L>, EventSink<E> {
 
-  private static final long LIMIT = 1_800; // ms
+    private static final long LIMIT = 1_800; // ms
+    /**
+     * Set of listeners that have registered.
+     */
+    protected final Set<L> listeners = new CopyOnWriteArraySet<>();
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private long lastStart;
+    private L lastListener;
 
-  private final Logger log = LoggerFactory.getLogger(getClass());
-
-  private long lastStart;
-  private L lastListener;
-
-  /**
-   * Set of listeners that have registered.
-   */
-  protected final Set<L> listeners = new CopyOnWriteArraySet<>();
-
-  @Override
-  public void addListener(L listener) {
-    checkNotNull(listener, "Listener cannot be null");
-    listeners.add(listener);
-  }
-
-  @Override
-  public void removeListener(L listener) {
-    checkNotNull(listener, "Listener cannot be null");
-    if (!listeners.remove(listener)) {
-      log.warn("Listener {} not registered", listener);
+    @Override
+    public void addListener(L listener) {
+        checkNotNull(listener, "Listener cannot be null");
+        listeners.add(listener);
     }
-  }
 
-  @Override
-  public void process(E event) {
-    for (L listener : listeners) {
-      try {
-        lastListener = listener;
-        lastStart = System.currentTimeMillis();
-        if (listener.isRelevant(event)) {
-          listener.onEvent(event);
+    @Override
+    public void removeListener(L listener) {
+        checkNotNull(listener, "Listener cannot be null");
+        if (!listeners.remove(listener)) {
+            log.warn("Listener {} not registered", listener);
         }
-        lastStart = 0;
-      } catch (Exception error) {
-        reportProblem(event, error);
-      }
     }
-  }
 
-  @Override
-  public void onProcessLimit() {
-    if (lastStart > 0) {
-      long duration = System.currentTimeMillis() - lastStart;
-      if (duration > LIMIT) {
-        log.error("Listener {} exceeded execution time limit: {} ms; ejected",
-            lastListener.getClass().getName(),
-            duration);
-        removeListener(lastListener);
-      }
-      lastStart = 0;
+    @Override
+    public void process(E event) {
+        for (L listener : listeners) {
+            try {
+                lastListener = listener;
+                lastStart = System.currentTimeMillis();
+                if (listener.isRelevant(event)) {
+                    listener.onEvent(event);
+                }
+                lastStart = 0;
+            } catch (Exception error) {
+                reportProblem(event, error);
+            }
+        }
     }
-  }
 
-  /**
-   * Reports a problem encountered while processing an event.
-   *
-   * @param event event being processed
-   * @param error error encountered while processing
-   */
-  protected void reportProblem(E event, Throwable error) {
-    log.warn("Exception encountered while processing event " + event, error);
-  }
+    @Override
+    public void onProcessLimit() {
+        if (lastStart > 0) {
+            long duration = System.currentTimeMillis() - lastStart;
+            if (duration > LIMIT) {
+                log.error("Listener {} exceeded execution time limit: {} ms; ejected",
+                    lastListener.getClass().getName(),
+                    duration);
+                removeListener(lastListener);
+            }
+            lastStart = 0;
+        }
+    }
+
+    /**
+     * Reports a problem encountered while processing an event.
+     * @param event event being processed
+     * @param error error encountered while processing
+     */
+    protected void reportProblem(E event, Throwable error) {
+        log.warn("Exception encountered while processing event " + event, error);
+    }
 
 }

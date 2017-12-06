@@ -29,6 +29,16 @@ import org.logstash.cluster.utils.AtomixIOException;
  */
 public class MappedBytes extends ByteBufferBytes {
 
+    private final File file;
+    private final RandomAccessFile randomAccessFile;
+    private final FileChannel.MapMode mode;
+    protected MappedBytes(File file, RandomAccessFile randomAccessFile, MappedByteBuffer buffer, FileChannel.MapMode mode) {
+        super(buffer);
+        this.file = file;
+        this.randomAccessFile = randomAccessFile;
+        this.mode = mode;
+    }
+
     /**
      * Allocates a mapped buffer in {@link FileChannel.MapMode#READ_WRITE} mode.
      * <p>
@@ -68,15 +78,13 @@ public class MappedBytes extends ByteBufferBytes {
         }
     }
 
-    private final File file;
-    private final RandomAccessFile randomAccessFile;
-    private final FileChannel.MapMode mode;
-
-    protected MappedBytes(File file, RandomAccessFile randomAccessFile, MappedByteBuffer buffer, FileChannel.MapMode mode) {
-        super(buffer);
-        this.file = file;
-        this.randomAccessFile = randomAccessFile;
-        this.mode = mode;
+    private static String parseMode(FileChannel.MapMode mode) {
+        if (mode == FileChannel.MapMode.READ_ONLY) {
+            return "r";
+        } else if (mode == FileChannel.MapMode.READ_WRITE) {
+            return "rw";
+        }
+        throw new IllegalArgumentException("unsupported map mode");
     }
 
     @Override
@@ -119,15 +127,6 @@ public class MappedBytes extends ByteBufferBytes {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static String parseMode(FileChannel.MapMode mode) {
-        if (mode == FileChannel.MapMode.READ_ONLY) {
-            return "r";
-        } else if (mode == FileChannel.MapMode.READ_WRITE) {
-            return "rw";
-        }
-        throw new IllegalArgumentException("unsupported map mode");
     }
 
 }

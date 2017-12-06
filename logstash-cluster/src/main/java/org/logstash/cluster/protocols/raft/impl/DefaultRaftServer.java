@@ -38,8 +38,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @see RaftStorage
  */
 public class DefaultRaftServer implements RaftServer {
-    private final Logger log;
     protected final RaftContext context;
+    private final Logger log;
     private volatile CompletableFuture<RaftServer> openFuture;
     private volatile CompletableFuture<Void> closeFuture;
     private volatile boolean started;
@@ -49,6 +49,13 @@ public class DefaultRaftServer implements RaftServer {
         this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
             .addValue(context.getName())
             .build());
+    }
+
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("name", name())
+            .toString();
     }
 
     @Override
@@ -82,48 +89,13 @@ public class DefaultRaftServer implements RaftServer {
     }
 
     @Override
-    public CompletableFuture<RaftServer> listen(Collection<MemberId> cluster) {
-        return start(() -> cluster().listen(cluster));
-    }
-
-    @Override
     public CompletableFuture<RaftServer> join(Collection<MemberId> cluster) {
         return start(() -> cluster().join(cluster));
     }
 
-    /**
-     * Starts the server.
-     */
-    private CompletableFuture<RaftServer> start(Supplier<CompletableFuture<Void>> joiner) {
-        if (started)
-            return CompletableFuture.completedFuture(this);
-
-        if (openFuture == null) {
-            synchronized (this) {
-                if (openFuture == null) {
-                    CompletableFuture<RaftServer> future = new CompletableFuture<>();
-                    openFuture = future;
-                    joiner.get().whenComplete((result, error) -> {
-                        if (error == null) {
-                            context.awaitState(RaftContext.State.READY, state -> {
-                                started = true;
-                                future.complete(null);
-                            });
-                        } else {
-                            future.completeExceptionally(error);
-                        }
-                    });
-                }
-            }
-        }
-
-        return openFuture.whenComplete((result, error) -> {
-            if (error == null) {
-                log.info("Server started successfully!");
-            } else {
-                log.warn("Failed to start server!");
-            }
-        });
+    @Override
+    public CompletableFuture<RaftServer> listen(Collection<MemberId> cluster) {
+        return start(() -> cluster().listen(cluster));
     }
 
     @Override
@@ -202,11 +174,39 @@ public class DefaultRaftServer implements RaftServer {
         return closeFuture;
     }
 
-    @Override
-    public String toString() {
-        return toStringHelper(this)
-            .add("name", name())
-            .toString();
+    /**
+     * Starts the server.
+     */
+    private CompletableFuture<RaftServer> start(Supplier<CompletableFuture<Void>> joiner) {
+        if (started)
+            return CompletableFuture.completedFuture(this);
+
+        if (openFuture == null) {
+            synchronized (this) {
+                if (openFuture == null) {
+                    CompletableFuture<RaftServer> future = new CompletableFuture<>();
+                    openFuture = future;
+                    joiner.get().whenComplete((result, error) -> {
+                        if (error == null) {
+                            context.awaitState(RaftContext.State.READY, state -> {
+                                started = true;
+                                future.complete(null);
+                            });
+                        } else {
+                            future.completeExceptionally(error);
+                        }
+                    });
+                }
+            }
+        }
+
+        return openFuture.whenComplete((result, error) -> {
+            if (error == null) {
+                log.info("Server started successfully!");
+            } else {
+                log.warn("Failed to start server!");
+            }
+        });
     }
 
     /**

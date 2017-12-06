@@ -22,17 +22,16 @@ import org.logstash.cluster.utils.AbstractIdentifier;
  */
 public final class TransactionId extends AbstractIdentifier<String> {
 
-  /**
-   * Creates a new transaction identifier.
-   *
-   * @param id backing identifier value
-   * @return transaction identifier
-   */
-  public static TransactionId from(String id) {
-    return new TransactionId(id);
-  }
+    private TransactionId(String id) {
+        super(id);
+    }
 
-  private TransactionId(String id) {
-    super(id);
-  }
+    /**
+     * Creates a new transaction identifier.
+     * @param id backing identifier value
+     * @return transaction identifier
+     */
+    public static TransactionId from(String id) {
+        return new TransactionId(id);
+    }
 }

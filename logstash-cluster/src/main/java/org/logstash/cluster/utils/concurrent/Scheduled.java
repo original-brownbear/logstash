@@ -18,14 +18,13 @@ package org.logstash.cluster.utils.concurrent;
 
 /**
  * Scheduled task.
- *
  * @author <a href="http://github.com/kuujo>Jordan Halterman</a>
  */
 public interface Scheduled {
 
-  /**
-   * Cancels the scheduled task.
-   */
-  void cancel();
+    /**
+     * Cancels the scheduled task.
+     */
+    void cancel();
 
 }

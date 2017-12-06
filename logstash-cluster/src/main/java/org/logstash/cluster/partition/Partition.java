@@ -7,11 +7,10 @@ import org.logstash.cluster.primitives.PrimitiveService;
  */
 public interface Partition extends PrimitiveService {
 
-  /**
-   * Returns the partition identifier.
-   *
-   * @return the partition identifier
-   */
-  PartitionId id();
+    /**
+     * Returns the partition identifier.
+     * @return the partition identifier
+     */
+    PartitionId id();
 
 }

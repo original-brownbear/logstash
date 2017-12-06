@@ -29,14 +29,6 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.ADD_AND_GET;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.COMPARE_AND_SET;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.GET;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.GET_AND_ADD;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.GET_AND_INCREMENT;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.INCREMENT_AND_GET;
-import static org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.SET;
-
 /**
  * Atomix long state.
  */
@@ -50,13 +42,13 @@ public class RaftAtomicCounterService extends AbstractRaftService {
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
-        executor.register(SET, SERIALIZER::decode, this::set);
-        executor.register(GET, this::get, SERIALIZER::encode);
-        executor.register(COMPARE_AND_SET, SERIALIZER::decode, this::compareAndSet, SERIALIZER::encode);
-        executor.register(INCREMENT_AND_GET, this::incrementAndGet, SERIALIZER::encode);
-        executor.register(GET_AND_INCREMENT, this::getAndIncrement, SERIALIZER::encode);
-        executor.register(ADD_AND_GET, SERIALIZER::decode, this::addAndGet, SERIALIZER::encode);
-        executor.register(GET_AND_ADD, SERIALIZER::decode, this::getAndAdd, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.SET, SERIALIZER::decode, this::set);
+        executor.register(RaftAtomicCounterOperations.GET, this::get, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.COMPARE_AND_SET, SERIALIZER::decode, this::compareAndSet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.INCREMENT_AND_GET, this::incrementAndGet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.GET_AND_INCREMENT, this::getAndIncrement, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.ADD_AND_GET, SERIALIZER::decode, this::addAndGet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterOperations.GET_AND_ADD, SERIALIZER::decode, this::getAndAdd, SERIALIZER::encode);
     }
 
     @Override

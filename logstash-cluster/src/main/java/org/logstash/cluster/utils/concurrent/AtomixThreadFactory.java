@@ -19,12 +19,11 @@ import java.util.concurrent.ThreadFactory;
 
 /**
  * Named thread factory.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class AtomixThreadFactory implements ThreadFactory {
-  @Override
-  public Thread newThread(Runnable r) {
-    return new AtomixThread(r);
-  }
+    @Override
+    public Thread newThread(Runnable r) {
+        return new AtomixThread(r);
+    }
 }

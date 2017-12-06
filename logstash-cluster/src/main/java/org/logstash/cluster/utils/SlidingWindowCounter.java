@@ -36,15 +36,14 @@ import static com.google.common.base.Preconditions.checkArgument;
  * total count for the last N window slots.
  */
 public final class SlidingWindowCounter {
+    private static final int SLIDE_WINDOW_PERIOD_SECONDS = 1;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private volatile int headSlot;
     private final int windowSlots;
 
     private final List<AtomicLong> counters;
 
     private final Scheduled schedule;
-
-    private static final int SLIDE_WINDOW_PERIOD_SECONDS = 1;
+    private volatile int headSlot;
 
     /**
      * Creates a new sliding window counter with the given total number of
@@ -79,16 +78,16 @@ public final class SlidingWindowCounter {
         incrementCount(headSlot, 1);
     }
 
+    private void incrementCount(int slot, long value) {
+        counters.get(slot).addAndGet(value);
+    }
+
     /**
      * Increments the count of the current window slot by the given value.
      * @param value value to increment by
      */
     public void incrementCount(long value) {
         incrementCount(headSlot, value);
-    }
-
-    private void incrementCount(int slot, long value) {
-        counters.get(slot).addAndGet(value);
     }
 
     /**

@@ -78,30 +78,6 @@ public class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncWorkQue
     }
 
     @Override
-    public CompletableFuture<Void> addMultiple(Collection<byte[]> items) {
-        if (items.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return proxy.invoke(RaftWorkQueueOperations.ADD, SERIALIZER::encode, new RaftWorkQueueOperations.Add(items));
-    }
-
-    @Override
-    public CompletableFuture<Collection<Task<byte[]>>> take(int maxTasks) {
-        if (maxTasks <= 0) {
-            return CompletableFuture.completedFuture(ImmutableList.of());
-        }
-        return proxy.invoke(RaftWorkQueueOperations.TAKE, SERIALIZER::encode, new RaftWorkQueueOperations.Take(maxTasks), SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Void> complete(Collection<String> taskIds) {
-        if (taskIds.isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return proxy.invoke(RaftWorkQueueOperations.COMPLETE, SERIALIZER::encode, new RaftWorkQueueOperations.Complete(taskIds));
-    }
-
-    @Override
     public CompletableFuture<Void> registerTaskProcessor(Consumer<byte[]> callback,
         int parallelism,
         Executor executor) {
@@ -125,6 +101,38 @@ public class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncWorkQue
         return proxy.invoke(RaftWorkQueueOperations.STATS, SERIALIZER::decode);
     }
 
+    @Override
+    public CompletableFuture<Void> complete(Collection<String> taskIds) {
+        if (taskIds.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return proxy.invoke(RaftWorkQueueOperations.COMPLETE, SERIALIZER::encode, new RaftWorkQueueOperations.Complete(taskIds));
+    }
+
+    @Override
+    public CompletableFuture<Void> addMultiple(Collection<byte[]> items) {
+        if (items.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return proxy.invoke(RaftWorkQueueOperations.ADD, SERIALIZER::encode, new RaftWorkQueueOperations.Add(items));
+    }
+
+    @Override
+    public CompletableFuture<Collection<Task<byte[]>>> take(int maxTasks) {
+        if (maxTasks <= 0) {
+            return CompletableFuture.completedFuture(ImmutableList.of());
+        }
+        return proxy.invoke(RaftWorkQueueOperations.TAKE, SERIALIZER::encode, new RaftWorkQueueOperations.Take(maxTasks), SERIALIZER::decode);
+    }
+
+    private CompletableFuture<Void> unregister() {
+        return proxy.invoke(RaftWorkQueueOperations.UNREGISTER).thenRun(() -> isRegistered.set(false));
+    }
+
+    private CompletableFuture<Void> register() {
+        return proxy.invoke(RaftWorkQueueOperations.REGISTER).thenRun(() -> isRegistered.set(true));
+    }
+
     private void resumeWork() {
         TaskProcessor activeProcessor = taskProcessor.get();
         if (activeProcessor == null) {
@@ -132,14 +140,6 @@ public class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncWorkQue
         }
         this.take(activeProcessor.headRoom())
             .whenCompleteAsync((tasks, e) -> activeProcessor.accept(tasks), executor);
-    }
-
-    private CompletableFuture<Void> register() {
-        return proxy.invoke(RaftWorkQueueOperations.REGISTER).thenRun(() -> isRegistered.set(true));
-    }
-
-    private CompletableFuture<Void> unregister() {
-        return proxy.invoke(RaftWorkQueueOperations.UNREGISTER).thenRun(() -> isRegistered.set(false));
     }
 
     // TaskId accumulator for paced triggering of task completion calls.

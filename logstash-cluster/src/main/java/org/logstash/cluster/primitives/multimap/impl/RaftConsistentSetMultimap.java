@@ -62,9 +62,18 @@ public class RaftConsistentSetMultimap
         });
     }
 
+    private boolean isListening() {
+        return !mapEventListeners.isEmpty();
+    }
+
     private void handleEvent(List<MultimapEvent<String, byte[]>> events) {
         events.forEach(event ->
             mapEventListeners.forEach((listener, executor) -> executor.execute(() -> listener.event(event))));
+    }
+
+    @Override
+    public CompletableFuture<Void> clear() {
+        return proxy.invoke(RaftConsistentSetMultimapOperations.CLEAR);
     }
 
     @Override
@@ -139,11 +148,6 @@ public class RaftConsistentSetMultimap
     }
 
     @Override
-    public CompletableFuture<Void> clear() {
-        return proxy.invoke(RaftConsistentSetMultimapOperations.CLEAR);
-    }
-
-    @Override
     public CompletableFuture<Versioned<Collection<? extends byte[]>>> get(String key) {
         return proxy.invoke(RaftConsistentSetMultimapOperations.GET, SERIALIZER::encode, new RaftConsistentSetMultimapOperations.Get(key), SERIALIZER::decode);
     }
@@ -189,9 +193,5 @@ public class RaftConsistentSetMultimap
     @Override
     public CompletableFuture<Map<String, Collection<byte[]>>> asMap() {
         throw new UnsupportedOperationException("Expensive operation.");
-    }
-
-    private boolean isListening() {
-        return !mapEventListeners.isEmpty();
     }
 }

@@ -302,6 +302,19 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
     }
 
     /**
+     * Utility for turning a {@code MapEntryValue} to {@code Versioned}.
+     * @param value map entry value
+     * @return versioned instance or an empty list versioned -1 if argument is
+     * null
+     */
+    private Versioned<Collection<? extends byte[]>> toVersioned(
+        MapEntryValue value) {
+        return value == null ? new Versioned<>(Lists.newArrayList(), -1) :
+            new Versioned<>(value.values(),
+                value.version());
+    }
+
+    /**
      * Handles a removeAll commit, and returns the previous mapping.
      * @param commit removeAll commit
      * @return collection of removed values
@@ -320,6 +333,14 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
                 "", key, null, value))
             .collect(Collectors.toList()));
         return removedValues;
+    }
+
+    /**
+     * Publishes events to listeners.
+     * @param events list of map event to publish
+     */
+    private void publish(List<MultimapEvent<String, byte[]>> events) {
+        listeners.values().forEach(session -> session.publish(CHANGE, serializer::encode, events));
     }
 
     /**
@@ -409,14 +430,6 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         listeners.remove(commit.session().sessionId().id());
     }
 
-    /**
-     * Publishes events to listeners.
-     * @param events list of map event to publish
-     */
-    private void publish(List<MultimapEvent<String, byte[]>> events) {
-        listeners.values().forEach(session -> session.publish(CHANGE, serializer::encode, events));
-    }
-
     private interface MapEntryValue {
 
         /**
@@ -443,9 +456,28 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
             Commit<? extends MultimapOperation> commit);
     }
 
+    private static class ByteArrayComparator implements Comparator<byte[]> {
+
+        @Override
+        public int compare(byte[] o1, byte[] o2) {
+            if (Arrays.equals(o1, o2)) {
+                return 0;
+            } else {
+                for (int i = 0; i < o1.length && i < o2.length; i++) {
+                    if (o1[i] < o2[i]) {
+                        return -1;
+                    } else if (o1[i] > o2[i]) {
+                        return 1;
+                    }
+                }
+                return o1.length > o2.length ? 1 : -1;
+            }
+        }
+    }
+
     private class NonTransactionalCommit implements MapEntryValue {
-        private long version;
         private final TreeSet<byte[]> valueSet = Sets.newTreeSet(new ByteArrayComparator());
+        private long version;
 
         public NonTransactionalCommit() {
             //Set the version to current it will only be updated once this is
@@ -651,38 +683,6 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         @Override
         public Set<Characteristics> characteristics() {
             return EnumSet.of(Characteristics.UNORDERED);
-        }
-    }
-
-    /**
-     * Utility for turning a {@code MapEntryValue} to {@code Versioned}.
-     * @param value map entry value
-     * @return versioned instance or an empty list versioned -1 if argument is
-     * null
-     */
-    private Versioned<Collection<? extends byte[]>> toVersioned(
-        MapEntryValue value) {
-        return value == null ? new Versioned<>(Lists.newArrayList(), -1) :
-            new Versioned<>(value.values(),
-                value.version());
-    }
-
-    private static class ByteArrayComparator implements Comparator<byte[]> {
-
-        @Override
-        public int compare(byte[] o1, byte[] o2) {
-            if (Arrays.equals(o1, o2)) {
-                return 0;
-            } else {
-                for (int i = 0; i < o1.length && i < o2.length; i++) {
-                    if (o1[i] < o2[i]) {
-                        return -1;
-                    } else if (o1[i] > o2[i]) {
-                        return 1;
-                    }
-                }
-                return o1.length > o2.length ? 1 : -1;
-            }
         }
     }
 }

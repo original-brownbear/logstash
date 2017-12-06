@@ -27,55 +27,51 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * State machine registry.
  */
 public class RaftServiceFactoryRegistry {
-  private final Map<String, Supplier<RaftService>> stateMachines = new ConcurrentHashMap<>();
+    private final Map<String, Supplier<RaftService>> stateMachines = new ConcurrentHashMap<>();
 
-  /**
-   * Returns the number of registered state machines.
-   *
-   * @return The number of registered state machines.
-   */
-  public int size() {
-    return stateMachines.size();
-  }
+    /**
+     * Returns the number of registered state machines.
+     * @return The number of registered state machines.
+     */
+    public int size() {
+        return stateMachines.size();
+    }
 
-  /**
-   * Registers a new state machine type.
-   *
-   * @param type    The state machine type to register.
-   * @param factory The state machine factory.
-   * @return The state machine registry.
-   */
-  public RaftServiceFactoryRegistry register(String type, Supplier<RaftService> factory) {
-    stateMachines.put(checkNotNull(type, "type cannot be null"), checkNotNull(factory, "factory cannot be null"));
-    return this;
-  }
+    /**
+     * Registers a new state machine type.
+     * @param type The state machine type to register.
+     * @param factory The state machine factory.
+     * @return The state machine registry.
+     */
+    public RaftServiceFactoryRegistry register(String type, Supplier<RaftService> factory) {
+        stateMachines.put(checkNotNull(type, "type cannot be null"), checkNotNull(factory, "factory cannot be null"));
+        return this;
+    }
 
-  /**
-   * Unregisters the given state machine type.
-   *
-   * @param type The state machine type to unregister.
-   * @return The state machine registry.
-   */
-  public RaftServiceFactoryRegistry unregister(String type) {
-    stateMachines.remove(type);
-    return this;
-  }
+    /**
+     * Unregisters the given state machine type.
+     * @param type The state machine type to unregister.
+     * @return The state machine registry.
+     */
+    public RaftServiceFactoryRegistry unregister(String type) {
+        stateMachines.remove(type);
+        return this;
+    }
 
-  /**
-   * Returns the factory for the given state machine type.
-   *
-   * @param type The state machine type for which to return the factory.
-   * @return The factory for the given state machine type or {@code null} if the type is not registered.
-   */
-  public Supplier<RaftService> getFactory(String type) {
-    return stateMachines.get(type);
-  }
+    /**
+     * Returns the factory for the given state machine type.
+     * @param type The state machine type for which to return the factory.
+     * @return The factory for the given state machine type or {@code null} if the type is not registered.
+     */
+    public Supplier<RaftService> getFactory(String type) {
+        return stateMachines.get(type);
+    }
 
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("stateMachines", stateMachines)
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("stateMachines", stateMachines)
+            .toString();
+    }
 
 }

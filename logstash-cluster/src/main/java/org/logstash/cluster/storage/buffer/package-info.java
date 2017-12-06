@@ -17,7 +17,6 @@
 /**
  * Provides a low-level {@link io.atomix.storage.buffer.Buffer} abstraction backed by on- or off-heap memory, memory mapped
  * files, or {@link java.io.RandomAccessFile}.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 package org.logstash.cluster.storage.buffer;

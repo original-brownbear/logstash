@@ -26,23 +26,22 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class AppendResponse extends AbstractRaftResponse {
 
+    private final long term;
+    private final boolean succeeded;
+    private final long lastLogIndex;
+    public AppendResponse(Status status, RaftError error, long term, boolean succeeded, long lastLogIndex) {
+        super(status, error);
+        this.term = term;
+        this.succeeded = succeeded;
+        this.lastLogIndex = lastLogIndex;
+    }
+
     /**
      * Returns a new append response builder.
      * @return A new append response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long term;
-    private final boolean succeeded;
-    private final long lastLogIndex;
-
-    public AppendResponse(Status status, RaftError error, long term, boolean succeeded, long lastLogIndex) {
-        super(status, error);
-        this.term = term;
-        this.succeeded = succeeded;
-        this.lastLogIndex = lastLogIndex;
     }
 
     /**
@@ -145,15 +144,6 @@ public class AppendResponse extends AbstractRaftResponse {
             return this;
         }
 
-        @Override
-        protected void validate() {
-            super.validate();
-            if (status == Status.OK) {
-                checkArgument(term > 0, "term must be positive");
-                checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
-            }
-        }
-
         /**
          * @throws IllegalStateException if status is ok and term is not positive or log index is negative
          */
@@ -161,6 +151,15 @@ public class AppendResponse extends AbstractRaftResponse {
         public AppendResponse build() {
             validate();
             return new AppendResponse(status, error, term, succeeded, lastLogIndex);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            if (status == Status.OK) {
+                checkArgument(term > 0, "term must be positive");
+                checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
+            }
         }
     }
 }

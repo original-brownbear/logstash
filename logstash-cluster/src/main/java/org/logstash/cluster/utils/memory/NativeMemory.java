@@ -27,17 +27,8 @@ import sun.misc.Unsafe;
  */
 public class NativeMemory implements Memory {
     static final Unsafe UNSAFE;
-    private static final boolean UNALIGNED;
     static final boolean BIG_ENDIAN = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN;
-
-    /**
-     * Allocates native memory via {@link DirectMemoryAllocator}.
-     * @param size The count of the memory to allocate.
-     * @return The allocated memory.
-     */
-    public static NativeMemory allocate(int size) {
-        return new DirectMemoryAllocator().allocate(size);
-    }
+    private static final boolean UNALIGNED;
 
     static {
         try {
@@ -60,10 +51,9 @@ public class NativeMemory implements Memory {
         UNALIGNED = unaligned;
     }
 
-    private long address;
-    private final int size;
     protected final MemoryAllocator allocator;
-
+    private final int size;
+    private long address;
     @SuppressWarnings("unchecked")
     protected NativeMemory(long address, int size, MemoryAllocator<? extends NativeMemory> allocator) {
         if (allocator == null)
@@ -71,6 +61,15 @@ public class NativeMemory implements Memory {
         this.address = address;
         this.size = size;
         this.allocator = allocator;
+    }
+
+    /**
+     * Allocates native memory via {@link DirectMemoryAllocator}.
+     * @param size The count of the memory to allocate.
+     * @return The allocated memory.
+     */
+    public static NativeMemory allocate(int size) {
+        return new DirectMemoryAllocator().allocate(size);
     }
 
     @Override
@@ -89,40 +88,14 @@ public class NativeMemory implements Memory {
         return address + offset;
     }
 
-    /**
-     * Returns the address for a byte within an offset.
-     */
-    private long address(int offset, int b) {
-        return address + offset + b;
-    }
-
     @Override
     public int size() {
         return size;
     }
 
-    /**
-     * Returns the underlying {@link Unsafe} instance.
-     * @return The underlying unsafe memory instance.
-     */
-    public final Unsafe unsafe() {
-        return UNSAFE;
-    }
-
-    @Override
-    public NativeMemory copy() {
-        NativeMemory memory = (NativeMemory) allocator.allocate(size);
-        UNSAFE.copyMemory(address, memory.address, size);
-        return memory;
-    }
-
     @Override
     public byte getByte(int offset) {
         return UNSAFE.getByte(address(offset));
-    }
-
-    private byte getByte(int offset, int pos) {
-        return UNSAFE.getByte(address(offset, pos));
     }
 
     @Override
@@ -136,6 +109,17 @@ public class NativeMemory implements Memory {
             return (char) ((getByte(offset, 1) << 8)
                 | getByte(offset) & 0xff);
         }
+    }
+
+    private byte getByte(int offset, int pos) {
+        return UNSAFE.getByte(address(offset, pos));
+    }
+
+    /**
+     * Returns the address for a byte within an offset.
+     */
+    private long address(int offset, int b) {
+        return address + offset + b;
     }
 
     @Override
@@ -208,10 +192,6 @@ public class NativeMemory implements Memory {
         UNSAFE.putByte(address(offset), b);
     }
 
-    private void putByte(int offset, int pos, byte b) {
-        UNSAFE.putByte(address(offset, pos), b);
-    }
-
     @Override
     public void putChar(int offset, char c) {
         if (UNALIGNED) {
@@ -236,6 +216,10 @@ public class NativeMemory implements Memory {
             putByte(offset, 1, (byte) (s >>> 8));
             putByte(offset, (byte) s);
         }
+    }
+
+    private void putByte(int offset, int pos, byte b) {
+        UNSAFE.putByte(address(offset, pos), b);
     }
 
     @Override
@@ -291,6 +275,13 @@ public class NativeMemory implements Memory {
     }
 
     @Override
+    public NativeMemory copy() {
+        NativeMemory memory = (NativeMemory) allocator.allocate(size);
+        UNSAFE.copyMemory(address, memory.address, size);
+        return memory;
+    }
+
+    @Override
     public void clear() {
         UNSAFE.setMemory(address, size, (byte) 0);
     }
@@ -302,6 +293,14 @@ public class NativeMemory implements Memory {
             NativeMemory.UNSAFE.freeMemory(address);
             address = 0;
         }
+    }
+
+    /**
+     * Returns the underlying {@link Unsafe} instance.
+     * @return The underlying unsafe memory instance.
+     */
+    public final Unsafe unsafe() {
+        return UNSAFE;
     }
 
 }

@@ -25,6 +25,45 @@ import java.util.function.Consumer;
 public interface DistributedPrimitive {
 
     /**
+     * Default timeout for primitive operations.
+     */
+    long DEFAULT_OPERATION_TIMEOUT_MILLIS = 5000L;
+
+    /**
+     * Returns the name of this primitive.
+     * @return name
+     */
+    String name();
+
+    /**
+     * Returns the type of primitive.
+     * @return primitive type
+     */
+    Type primitiveType();
+
+    /**
+     * Registers a listener to be called when the primitive's status changes.
+     * @param listener The listener to be called when the status changes.
+     */
+    default void addStatusChangeListener(Consumer<Status> listener) {
+    }
+
+    /**
+     * Unregisters a previously registered listener to be called when the primitive's status changes.
+     * @param listener The listener to unregister
+     */
+    default void removeStatusChangeListener(Consumer<Status> listener) {
+    }
+
+    /**
+     * Returns the collection of status change listeners previously registered.
+     * @return collection of status change listeners
+     */
+    default Collection<Consumer<Status>> statusChangeListeners() {
+        return Collections.emptyList();
+    }
+
+    /**
      * Type of distributed primitive.
      */
     enum Type {
@@ -120,45 +159,6 @@ public interface DistributedPrimitive {
          * Signifies a state wherein the primitive has been shutdown and therefore cannot perform its functions.
          */
         INACTIVE
-    }
-
-    /**
-     * Default timeout for primitive operations.
-     */
-    long DEFAULT_OPERATION_TIMEOUT_MILLIS = 5000L;
-
-    /**
-     * Returns the name of this primitive.
-     * @return name
-     */
-    String name();
-
-    /**
-     * Returns the type of primitive.
-     * @return primitive type
-     */
-    Type primitiveType();
-
-    /**
-     * Registers a listener to be called when the primitive's status changes.
-     * @param listener The listener to be called when the status changes.
-     */
-    default void addStatusChangeListener(Consumer<Status> listener) {
-    }
-
-    /**
-     * Unregisters a previously registered listener to be called when the primitive's status changes.
-     * @param listener The listener to unregister
-     */
-    default void removeStatusChangeListener(Consumer<Status> listener) {
-    }
-
-    /**
-     * Returns the collection of status change listeners previously registered.
-     * @return collection of status change listeners
-     */
-    default Collection<Consumer<Status>> statusChangeListeners() {
-        return Collections.emptyList();
     }
 
 }

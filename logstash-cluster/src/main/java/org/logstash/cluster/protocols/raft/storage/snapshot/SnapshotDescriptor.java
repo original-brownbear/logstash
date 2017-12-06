@@ -30,6 +30,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class SnapshotDescriptor implements AutoCloseable {
     public static final int BYTES = 64;
+    private final long serviceId;
+    private final long index;
+    private final long timestamp;
+    private Buffer buffer;
+    private boolean locked;
+    /**
+     * @throws NullPointerException if {@code buffer} is null
+     */
+    public SnapshotDescriptor(Buffer buffer) {
+        this.buffer = checkNotNull(buffer, "buffer cannot be null");
+        this.serviceId = buffer.readLong();
+        this.index = buffer.readLong();
+        this.timestamp = buffer.readLong();
+        this.locked = buffer.readBoolean();
+        buffer.skip(BYTES - buffer.position());
+    }
 
     /**
      * Returns a descriptor builder.
@@ -49,24 +65,6 @@ public final class SnapshotDescriptor implements AutoCloseable {
      */
     public static Builder builder(Buffer buffer) {
         return new Builder(buffer);
-    }
-
-    private Buffer buffer;
-    private final long serviceId;
-    private final long index;
-    private final long timestamp;
-    private boolean locked;
-
-    /**
-     * @throws NullPointerException if {@code buffer} is null
-     */
-    public SnapshotDescriptor(Buffer buffer) {
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
-        this.serviceId = buffer.readLong();
-        this.index = buffer.readLong();
-        this.timestamp = buffer.readLong();
-        this.locked = buffer.readBoolean();
-        buffer.skip(BYTES - buffer.position());
     }
 
     /**

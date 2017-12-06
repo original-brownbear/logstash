@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.tree.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.Map;
@@ -31,8 +32,6 @@ import org.logstash.cluster.primitives.tree.NoSuchDocumentPathException;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.concurrent.Futures;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Partitioned asynchronous document tree.
  */
@@ -47,35 +46,13 @@ public class PartitionedAsyncDocumentTree<V> implements AsyncDocumentTree<V> {
         Map<Integer, AsyncDocumentTree<V>> partitions,
         Hasher<DocumentPath> pathHasher) {
         this.name = name;
-        this.partitions.putAll(checkNotNull(partitions));
-        this.pathHasher = checkNotNull(pathHasher);
+        this.partitions.putAll(Preconditions.checkNotNull(partitions));
+        this.pathHasher = Preconditions.checkNotNull(pathHasher);
     }
 
     @Override
     public String name() {
         return name;
-    }
-
-    @Override
-    public DocumentPath root() {
-        return DocumentPath.ROOT;
-    }
-
-    /**
-     * Returns the document tree (partition) to which the specified path maps.
-     * @param path path
-     * @return AsyncConsistentMap to which path maps
-     */
-    private AsyncDocumentTree<V> partition(DocumentPath path) {
-        return partitions.get(pathHasher.hash(path));
-    }
-
-    /**
-     * Returns all the constituent trees.
-     * @return collection of partitions.
-     */
-    private Collection<AsyncDocumentTree<V>> partitions() {
-        return partitions.values();
     }
 
     @Override
@@ -89,9 +66,26 @@ public class PartitionedAsyncDocumentTree<V> implements AsyncDocumentTree<V> {
         });
     }
 
+    /**
+     * Returns all the constituent trees.
+     * @return collection of partitions.
+     */
+    private Collection<AsyncDocumentTree<V>> partitions() {
+        return partitions.values();
+    }
+
     @Override
     public CompletableFuture<Versioned<V>> get(DocumentPath path) {
         return partition(path).get(path);
+    }
+
+    /**
+     * Returns the document tree (partition) to which the specified path maps.
+     * @param path path
+     * @return AsyncConsistentMap to which path maps
+     */
+    private AsyncDocumentTree<V> partition(DocumentPath path) {
+        return partitions.get(pathHasher.hash(path));
     }
 
     @Override
@@ -137,17 +131,22 @@ public class PartitionedAsyncDocumentTree<V> implements AsyncDocumentTree<V> {
     }
 
     @Override
-    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener) {
-        return CompletableFuture.allOf(partitions().stream()
-            .map(map -> map.addListener(path, listener))
-            .toArray(CompletableFuture[]::new));
-    }
-
-    @Override
     public CompletableFuture<Void> removeListener(DocumentTreeListener<V> listener) {
         return CompletableFuture.allOf(partitions().stream()
             .map(map -> map.removeListener(listener))
-            .toArray(CompletableFuture[]::new));
+            .toArray(CompletableFuture<?>[]::new));
+    }
+
+    @Override
+    public DocumentPath root() {
+        return DocumentPath.ROOT;
+    }
+
+    @Override
+    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener) {
+        return CompletableFuture.allOf(partitions().stream()
+            .map(map -> map.addListener(path, listener))
+            .toArray(CompletableFuture<?>[]::new));
     }
 
     @Override

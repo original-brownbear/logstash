@@ -32,6 +32,15 @@ public enum RaftAtomicCounterOperations implements OperationId {
     GET_AND_ADD("getAndAdd", OperationType.COMMAND),
     GET("get", OperationType.QUERY);
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
+        .register(Get.class)
+        .register(Set.class)
+        .register(CompareAndSet.class)
+        .register(AddAndGet.class)
+        .register(GetAndAdd.class)
+        .build(RaftAtomicCounterOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
 
@@ -49,16 +58,6 @@ public enum RaftAtomicCounterOperations implements OperationId {
     public OperationType type() {
         return type;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .register(KryoNamespaces.BASIC)
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Get.class)
-        .register(Set.class)
-        .register(CompareAndSet.class)
-        .register(AddAndGet.class)
-        .register(GetAndAdd.class)
-        .build(RaftAtomicCounterOperations.class.getSimpleName());
 
     /**
      * Abstract value command.

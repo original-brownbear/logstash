@@ -22,16 +22,16 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class TransferResponse extends AbstractRaftResponse {
 
+    public TransferResponse(Status status, RaftError error) {
+        super(status, error);
+    }
+
     /**
      * Returns a new transfer response builder.
      * @return A new transfer response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public TransferResponse(Status status, RaftError error) {
-        super(status, error);
     }
 
     /**

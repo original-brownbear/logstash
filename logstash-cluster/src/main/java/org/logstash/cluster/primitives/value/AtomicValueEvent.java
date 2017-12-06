@@ -16,89 +16,82 @@
 package org.logstash.cluster.primitives.value;
 
 import com.google.common.base.MoreObjects;
-
 import java.util.Objects;
 
 /**
  * Representation of a AtomicValue update notification.
- *
  * @param <V> atomic value type
  */
 public final class AtomicValueEvent<V> {
 
-  /**
-   * AtomicValueEvent type.
-   */
-  public enum Type {
-
+    private final V newValue;
+    private final V oldValue;
     /**
-     * Value was updated.
+     * Creates a new event object.
+     * @param newValue the new value
+     * @param oldValue the old value
      */
-    UPDATE,
-  }
-
-  private final V newValue;
-  private final V oldValue;
-
-  /**
-   * Creates a new event object.
-   *
-   * @param newValue the new value
-   * @param oldValue the old value
-   */
-  public AtomicValueEvent(V newValue, V oldValue) {
-    this.newValue = newValue;
-    this.oldValue = oldValue;
-  }
-
-  /**
-   * Returns the type of the event.
-   *
-   * @return the type of the event
-   */
-  public Type type() {
-    return AtomicValueEvent.Type.UPDATE;
-  }
-
-  /**
-   * Returns the newly set value.
-   *
-   * @return the new value
-   */
-  public V newValue() {
-    return newValue;
-  }
-
-  /**
-   * Returns the old replaced value.
-   *
-   * @return the old value
-   */
-  public V oldValue() {
-    return oldValue;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (!(o instanceof AtomicValueEvent)) {
-      return false;
+    public AtomicValueEvent(V newValue, V oldValue) {
+        this.newValue = newValue;
+        this.oldValue = oldValue;
     }
 
-    AtomicValueEvent that = (AtomicValueEvent) o;
-    return Objects.equals(this.newValue, that.newValue) &&
-        Objects.equals(this.oldValue, that.oldValue);
-  }
+    /**
+     * Returns the type of the event.
+     * @return the type of the event
+     */
+    public Type type() {
+        return AtomicValueEvent.Type.UPDATE;
+    }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(newValue, oldValue);
-  }
+    /**
+     * Returns the newly set value.
+     * @return the new value
+     */
+    public V newValue() {
+        return newValue;
+    }
 
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(getClass())
-        .add("newValue", newValue)
-        .add("oldValue", oldValue)
-        .toString();
-  }
+    /**
+     * Returns the old replaced value.
+     * @return the old value
+     */
+    public V oldValue() {
+        return oldValue;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(newValue, oldValue);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof AtomicValueEvent)) {
+            return false;
+        }
+
+        AtomicValueEvent that = (AtomicValueEvent) o;
+        return Objects.equals(this.newValue, that.newValue) &&
+            Objects.equals(this.oldValue, that.oldValue);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("newValue", newValue)
+            .add("oldValue", oldValue)
+            .toString();
+    }
+
+    /**
+     * AtomicValueEvent type.
+     */
+    public enum Type {
+
+        /**
+         * Value was updated.
+         */
+        UPDATE,
+    }
 }

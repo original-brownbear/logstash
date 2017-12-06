@@ -87,6 +87,17 @@ public class DelegatingRaftProxy implements RaftProxy {
     }
 
     @Override
+    public <T> void addEventListener(EventType eventType, Function<byte[], T> decoder, Consumer<T> listener) {
+        Consumer<RaftEvent> wrappedListener = e -> {
+            if (e.type().equals(eventType)) {
+                listener.accept(decoder.apply(e.value()));
+            }
+        };
+        eventTypeListeners.computeIfAbsent(eventType, e -> Maps.newConcurrentMap()).put(listener, wrappedListener);
+        addEventListener(wrappedListener);
+    }
+
+    @Override
     public void addEventListener(EventType eventType, Runnable listener) {
         Consumer<RaftEvent> wrappedListener = e -> {
             if (e.type().equals(eventType)) {
@@ -102,17 +113,6 @@ public class DelegatingRaftProxy implements RaftProxy {
         Consumer<RaftEvent> wrappedListener = e -> {
             if (e.type().equals(eventType)) {
                 listener.accept(e.value());
-            }
-        };
-        eventTypeListeners.computeIfAbsent(eventType, e -> Maps.newConcurrentMap()).put(listener, wrappedListener);
-        addEventListener(wrappedListener);
-    }
-
-    @Override
-    public <T> void addEventListener(EventType eventType, Function<byte[], T> decoder, Consumer<T> listener) {
-        Consumer<RaftEvent> wrappedListener = e -> {
-            if (e.type().equals(eventType)) {
-                listener.accept(decoder.apply(e.value()));
             }
         };
         eventTypeListeners.computeIfAbsent(eventType, e -> Maps.newConcurrentMap()).put(listener, wrappedListener);

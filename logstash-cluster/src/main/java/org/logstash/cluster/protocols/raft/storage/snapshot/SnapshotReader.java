@@ -72,25 +72,8 @@ public class SnapshotReader implements BufferInput<SnapshotReader> {
         return this;
     }
 
-    /**
-     * Reads an object from the buffer.
-     * @param decoder the object decoder
-     * @param <T> the type of the object to read
-     * @return the read object.
-     */
-    public <T> T readObject(Function<byte[], T> decoder) {
-        byte[] bytes = buffer.readBytes(buffer.readInt());
-        return decoder.apply(bytes);
-    }
-
     @Override
     public SnapshotReader read(Bytes bytes) {
-        buffer.read(bytes);
-        return this;
-    }
-
-    @Override
-    public SnapshotReader read(byte[] bytes) {
         buffer.read(bytes);
         return this;
     }
@@ -110,6 +93,12 @@ public class SnapshotReader implements BufferInput<SnapshotReader> {
     @Override
     public SnapshotReader read(Buffer buffer) {
         this.buffer.read(buffer);
+        return this;
+    }
+
+    @Override
+    public SnapshotReader read(byte[] bytes) {
+        buffer.read(bytes);
         return this;
     }
 
@@ -197,6 +186,17 @@ public class SnapshotReader implements BufferInput<SnapshotReader> {
     public void close() {
         buffer.close();
         snapshot.closeReader(this);
+    }
+
+    /**
+     * Reads an object from the buffer.
+     * @param decoder the object decoder
+     * @param <T> the type of the object to read
+     * @return the read object.
+     */
+    public <T> T readObject(Function<byte[], T> decoder) {
+        byte[] bytes = buffer.readBytes(buffer.readInt());
+        return decoder.apply(bytes);
     }
 
 }

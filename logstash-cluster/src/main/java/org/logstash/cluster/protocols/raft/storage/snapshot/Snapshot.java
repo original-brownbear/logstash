@@ -70,24 +70,6 @@ public abstract class Snapshot implements AutoCloseable {
     public abstract String serviceName();
 
     /**
-     * Returns the identifier of the state machine to which the snapshot belongs.
-     * @return The snapshot identifier.
-     */
-    public ServiceId serviceId() {
-        return ServiceId.from(descriptor.serviceId());
-    }
-
-    /**
-     * Returns the snapshot index.
-     * <p>
-     * The snapshot index is the index of the state machine at the point at which the snapshot was written.
-     * @return The snapshot index.
-     */
-    public long index() {
-        return descriptor.index();
-    }
-
-    /**
      * Returns the snapshot timestamp.
      * <p>
      * The timestamp is the wall clock time at the {@link #index()} at which the snapshot was taken.
@@ -109,13 +91,6 @@ public abstract class Snapshot implements AutoCloseable {
     public abstract SnapshotWriter openWriter();
 
     /**
-     * Checks that the snapshot can be written.
-     */
-    protected void checkWriter() {
-        checkState(writer == null, "cannot create multiple writers for the same snapshot");
-    }
-
-    /**
      * Opens the given snapshot writer.
      */
     protected SnapshotWriter openWriter(SnapshotWriter writer, SnapshotDescriptor descriptor) {
@@ -123,6 +98,13 @@ public abstract class Snapshot implements AutoCloseable {
         checkState(!descriptor.isLocked(), "cannot write to locked snapshot descriptor");
         this.writer = checkNotNull(writer, "writer cannot be null");
         return writer;
+    }
+
+    /**
+     * Checks that the snapshot can be written.
+     */
+    protected void checkWriter() {
+        checkState(writer == null, "cannot create multiple writers for the same snapshot");
     }
 
     /**
@@ -204,6 +186,24 @@ public abstract class Snapshot implements AutoCloseable {
     @Override
     public int hashCode() {
         return Objects.hash(serviceId(), index());
+    }
+
+    /**
+     * Returns the identifier of the state machine to which the snapshot belongs.
+     * @return The snapshot identifier.
+     */
+    public ServiceId serviceId() {
+        return ServiceId.from(descriptor.serviceId());
+    }
+
+    /**
+     * Returns the snapshot index.
+     * <p>
+     * The snapshot index is the index of the state machine at the point at which the snapshot was written.
+     * @return The snapshot index.
+     */
+    public long index() {
+        return descriptor.index();
     }
 
     @Override

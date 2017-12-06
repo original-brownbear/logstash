@@ -48,65 +48,6 @@ public class DelegatingAsyncDistributedSet<E> extends DelegatingDistributedPrimi
     }
 
     @Override
-    public CompletableFuture<Integer> size() {
-        return backingMap.size();
-    }
-
-    @Override
-    public CompletableFuture<Boolean> isEmpty() {
-        return backingMap.isEmpty();
-    }
-
-    @Override
-    public CompletableFuture<Boolean> contains(E element) {
-        return backingMap.containsKey(element);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> add(E entry) {
-        return backingMap.putIfAbsent(entry, true).thenApply(Objects::isNull);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> remove(E entry) {
-        return backingMap.remove(entry, true);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> containsAll(Collection<? extends E> c) {
-        return Futures.allOf(c.stream().map(this::contains).collect(Collectors.toList())).thenApply(v ->
-            v.stream().reduce(Boolean::logicalAnd).orElse(true));
-    }
-
-    @Override
-    public CompletableFuture<Boolean> addAll(Collection<? extends E> c) {
-        return Futures.allOf(c.stream().map(this::add).collect(Collectors.toList())).thenApply(v ->
-            v.stream().reduce(Boolean::logicalOr).orElse(false));
-    }
-
-    @Override
-    public CompletableFuture<Boolean> retainAll(Collection<? extends E> c) {
-        return backingMap.keySet().thenApply(set -> Sets.difference(set, Sets.newHashSet(c)))
-            .thenCompose(this::removeAll);
-    }
-
-    @Override
-    public CompletableFuture<Boolean> removeAll(Collection<? extends E> c) {
-        return Futures.allOf(c.stream().map(this::remove).collect(Collectors.toList())).thenApply(v ->
-            v.stream().reduce(Boolean::logicalOr).orElse(false));
-    }
-
-    @Override
-    public CompletableFuture<Void> clear() {
-        return backingMap.clear();
-    }
-
-    @Override
-    public CompletableFuture<? extends Set<E>> getAsImmutableSet() {
-        return backingMap.keySet().thenApply(s -> ImmutableSet.copyOf(s));
-    }
-
-    @Override
     public CompletableFuture<Void> addListener(SetEventListener<E> listener) {
         MapEventListener<E, Boolean> mapEventListener = mapEvent -> {
             if (mapEvent.type() == MapEvent.Type.INSERT) {
@@ -128,5 +69,64 @@ public class DelegatingAsyncDistributedSet<E> extends DelegatingDistributedPrimi
             return backingMap.removeListener(mapEventListener);
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> add(E entry) {
+        return backingMap.putIfAbsent(entry, true).thenApply(Objects::isNull);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> remove(E entry) {
+        return backingMap.remove(entry, true);
+    }
+
+    @Override
+    public CompletableFuture<Integer> size() {
+        return backingMap.size();
+    }
+
+    @Override
+    public CompletableFuture<Boolean> isEmpty() {
+        return backingMap.isEmpty();
+    }
+
+    @Override
+    public CompletableFuture<Void> clear() {
+        return backingMap.clear();
+    }
+
+    @Override
+    public CompletableFuture<Boolean> contains(E element) {
+        return backingMap.containsKey(element);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> addAll(Collection<? extends E> c) {
+        return Futures.allOf(c.stream().map(this::add).collect(Collectors.toList())).thenApply(v ->
+            v.stream().reduce(Boolean::logicalOr).orElse(false));
+    }
+
+    @Override
+    public CompletableFuture<Boolean> containsAll(Collection<? extends E> c) {
+        return Futures.allOf(c.stream().map(this::contains).collect(Collectors.toList())).thenApply(v ->
+            v.stream().reduce(Boolean::logicalAnd).orElse(true));
+    }
+
+    @Override
+    public CompletableFuture<Boolean> retainAll(Collection<? extends E> c) {
+        return backingMap.keySet().thenApply(set -> Sets.difference(set, Sets.newHashSet(c)))
+            .thenCompose(this::removeAll);
+    }
+
+    @Override
+    public CompletableFuture<Boolean> removeAll(Collection<? extends E> c) {
+        return Futures.allOf(c.stream().map(this::remove).collect(Collectors.toList())).thenApply(v ->
+            v.stream().reduce(Boolean::logicalOr).orElse(false));
+    }
+
+    @Override
+    public CompletableFuture<? extends Set<E>> getAsImmutableSet() {
+        return backingMap.keySet().thenApply(s -> ImmutableSet.copyOf(s));
     }
 }

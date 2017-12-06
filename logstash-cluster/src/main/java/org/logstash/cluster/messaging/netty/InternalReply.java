@@ -23,6 +23,40 @@ import org.logstash.cluster.utils.ArraySizeHashPrinter;
  */
 public final class InternalReply extends InternalMessage {
 
+    private final Status status;
+
+    public InternalReply(int preamble,
+        long id,
+        Status status) {
+        this(preamble, id, new byte[0], status);
+    }
+
+    public InternalReply(int preamble,
+        long id,
+        byte[] payload,
+        Status status) {
+        super(preamble, id, payload);
+        this.status = status;
+    }
+
+    @Override
+    public Type type() {
+        return Type.REPLY;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+            .add("id", id())
+            .add("status", status())
+            .add("payload", ArraySizeHashPrinter.of(payload()))
+            .toString();
+    }
+
+    public Status status() {
+        return status;
+    }
+
     /**
      * Message status.
      */
@@ -57,14 +91,6 @@ public final class InternalReply extends InternalMessage {
         }
 
         /**
-         * Returns the unique status ID.
-         * @return the unique status ID.
-         */
-        public int id() {
-            return id;
-        }
-
-        /**
          * Returns the status enum associated with the given ID.
          * @param id the status ID.
          * @return the status enum for the given ID.
@@ -83,39 +109,13 @@ public final class InternalReply extends InternalMessage {
                     throw new IllegalArgumentException("Unknown status ID " + id);
             }
         }
-    }
 
-    private final Status status;
-
-    public InternalReply(int preamble,
-        long id,
-        Status status) {
-        this(preamble, id, new byte[0], status);
-    }
-
-    public InternalReply(int preamble,
-        long id,
-        byte[] payload,
-        Status status) {
-        super(preamble, id, payload);
-        this.status = status;
-    }
-
-    @Override
-    public Type type() {
-        return Type.REPLY;
-    }
-
-    public Status status() {
-        return status;
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("id", id())
-            .add("status", status())
-            .add("payload", ArraySizeHashPrinter.of(payload()))
-            .toString();
+        /**
+         * Returns the unique status ID.
+         * @return the unique status ID.
+         */
+        public int id() {
+            return id;
+        }
     }
 }

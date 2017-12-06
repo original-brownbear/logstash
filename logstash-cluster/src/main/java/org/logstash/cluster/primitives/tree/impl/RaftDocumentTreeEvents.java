@@ -24,22 +24,21 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
  * Atomix document tree events.
  */
 public enum RaftDocumentTreeEvents implements EventType {
-  CHANGE("change");
+    CHANGE("change");
 
-  private final String id;
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
+        .register(DocumentTreeEvent.class)
+        .register(DocumentTreeEvent.Type.class)
+        .build(RaftDocumentTreeEvents.class.getSimpleName());
+    private final String id;
 
-  RaftDocumentTreeEvents(String id) {
-    this.id = id;
-  }
+    RaftDocumentTreeEvents(String id) {
+        this.id = id;
+    }
 
-  @Override
-  public String id() {
-    return id;
-  }
-
-  public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-      .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
-      .register(DocumentTreeEvent.class)
-      .register(DocumentTreeEvent.Type.class)
-      .build(RaftDocumentTreeEvents.class.getSimpleName());
+    @Override
+    public String id() {
+        return id;
+    }
 }

@@ -26,21 +26,20 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class OpenSessionResponse extends AbstractRaftResponse {
 
+    protected final long session;
+    protected final long timeout;
+    public OpenSessionResponse(Status status, RaftError error, long session, long timeout) {
+        super(status, error);
+        this.session = session;
+        this.timeout = timeout;
+    }
+
     /**
      * Returns a new register client response builder.
      * @return A new register client response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    protected final long session;
-    protected final long timeout;
-
-    public OpenSessionResponse(Status status, RaftError error, long session, long timeout) {
-        super(status, error);
-        this.session = session;
-        this.timeout = timeout;
     }
 
     /**
@@ -123,18 +122,18 @@ public class OpenSessionResponse extends AbstractRaftResponse {
         }
 
         @Override
+        public OpenSessionResponse build() {
+            validate();
+            return new OpenSessionResponse(status, error, session, timeout);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
                 checkArgument(session > 0, "session must be positive");
                 checkArgument(timeout > 0, "timeout must be positive");
             }
-        }
-
-        @Override
-        public OpenSessionResponse build() {
-            validate();
-            return new OpenSessionResponse(status, error, session, timeout);
         }
     }
 }

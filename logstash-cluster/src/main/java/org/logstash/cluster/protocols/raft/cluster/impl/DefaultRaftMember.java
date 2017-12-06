@@ -39,11 +39,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public final class DefaultRaftMember implements RaftMember, AutoCloseable {
     private final MemberId id;
     private final int hash;
+    private final transient Set<Consumer<Type>> typeChangeListeners = new CopyOnWriteArraySet<>();
     private Type type;
     private Instant updated;
     private transient Scheduled configureTimeout;
     private transient RaftClusterContext cluster;
-    private final transient Set<Consumer<Type>> typeChangeListeners = new CopyOnWriteArraySet<>();
 
     public DefaultRaftMember(MemberId id, Type type, Instant updated) {
         this.id = checkNotNull(id, "id cannot be null");
@@ -62,14 +62,6 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
         return this;
     }
 
-    /**
-     * Sets the member type.
-     * @param type the member type
-     */
-    void setType(Type type) {
-        this.type = type;
-    }
-
     @Override
     public MemberId memberId() {
         return id;
@@ -85,9 +77,12 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
         return type;
     }
 
-    @Override
-    public Instant getLastUpdated() {
-        return updated;
+    /**
+     * Sets the member type.
+     * @param type the member type
+     */
+    void setType(Type type) {
+        this.type = type;
     }
 
     @Override
@@ -98,6 +93,11 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
     @Override
     public void removeTypeChangeListener(Consumer<Type> listener) {
         typeChangeListeners.remove(listener);
+    }
+
+    @Override
+    public Instant getLastUpdated() {
+        return updated;
     }
 
     @Override
@@ -198,6 +198,11 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
         });
     }
 
+    @Override
+    public void close() {
+        cancelConfigureTimer();
+    }
+
     /**
      * Cancels the configure timeout.
      */
@@ -206,11 +211,6 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
             configureTimeout.cancel();
             configureTimeout = null;
         }
-    }
-
-    @Override
-    public void close() {
-        cancelConfigureTimer();
     }
 
     @Override

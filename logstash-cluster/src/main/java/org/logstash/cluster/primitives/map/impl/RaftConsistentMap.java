@@ -65,8 +65,8 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
         });
     }
 
-    protected Serializer serializer() {
-        return SERIALIZER;
+    private boolean isListening() {
+        return !mapEventListeners.isEmpty();
     }
 
     private void handleEvent(List<MapEvent<String, byte[]>> events) {
@@ -75,8 +75,19 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return proxy.<MapEntryUpdateResult.Status>invoke(RaftConsistentMapOperations.CLEAR, serializer()::decode)
+            .whenComplete((r, e) -> throwIfLocked(r))
+            .thenApply(v -> null);
+    }
+
+    @Override
     public CompletableFuture<Boolean> isEmpty() {
         return proxy.invoke(RaftConsistentMapOperations.IS_EMPTY, serializer()::decode);
+    }
+
+    protected Serializer serializer() {
+        return SERIALIZER;
     }
 
     @Override
@@ -122,18 +133,58 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
     }
 
     @Override
-    public CompletableFuture<Set<String>> keySet() {
-        return proxy.invoke(RaftConsistentMapOperations.KEY_SET, serializer()::decode);
-    }
+    @SuppressWarnings("unchecked")
+    public CompletableFuture<Versioned<byte[]>> computeIf(String key,
+        Predicate<? super byte[]> condition,
+        BiFunction<? super String, ? super byte[], ? extends byte[]> remappingFunction) {
+        return get(key).thenCompose(r1 -> {
+            byte[] existingValue = r1 == null ? null : r1.value();
+            // if the condition evaluates to false, return existing value.
+            if (!condition.test(existingValue)) {
+                return CompletableFuture.completedFuture(r1);
+            }
 
-    @Override
-    public CompletableFuture<Collection<Versioned<byte[]>>> values() {
-        return proxy.invoke(RaftConsistentMapOperations.VALUES, serializer()::decode);
-    }
+            byte[] computedValue;
+            try {
+                computedValue = remappingFunction.apply(key, existingValue);
+            } catch (Exception e) {
+                return Futures.exceptionalFuture(e);
+            }
 
-    @Override
-    public CompletableFuture<Set<Entry<String, Versioned<byte[]>>>> entrySet() {
-        return proxy.invoke(RaftConsistentMapOperations.ENTRY_SET, serializer()::decode);
+            if (computedValue == null && r1 == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            if (r1 == null) {
+                return proxy.<RaftConsistentMapOperations.Put, MapEntryUpdateResult<String, byte[]>>invoke(
+                    RaftConsistentMapOperations.PUT_IF_ABSENT,
+                    serializer()::encode,
+                    new RaftConsistentMapOperations.Put(key, computedValue),
+                    serializer()::decode)
+                    .whenComplete((r, e) -> throwIfLocked(r))
+                    .thenCompose(r -> checkLocked(r))
+                    .thenApply(result -> new Versioned<>(computedValue, result.version()));
+            } else if (computedValue == null) {
+                return proxy.<RaftConsistentMapOperations.RemoveVersion, MapEntryUpdateResult<String, byte[]>>invoke(
+                    RaftConsistentMapOperations.REMOVE_VERSION,
+                    serializer()::encode,
+                    new RaftConsistentMapOperations.RemoveVersion(key, r1.version()),
+                    serializer()::decode)
+                    .whenComplete((r, e) -> throwIfLocked(r))
+                    .thenCompose(r -> checkLocked(r))
+                    .thenApply(v -> null);
+            } else {
+                return proxy.<RaftConsistentMapOperations.ReplaceVersion, MapEntryUpdateResult<String, byte[]>>invoke(
+                    RaftConsistentMapOperations.REPLACE_VERSION,
+                    serializer()::encode,
+                    new RaftConsistentMapOperations.ReplaceVersion(key, r1.version(), computedValue),
+                    serializer()::decode)
+                    .whenComplete((r, e) -> throwIfLocked(r))
+                    .thenCompose(r -> checkLocked(r))
+                    .thenApply(result -> result.status() == MapEntryUpdateResult.Status.OK
+                        ? new Versioned(computedValue, result.version()) : result.result());
+            }
+        });
     }
 
     @Override
@@ -162,23 +213,38 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
 
     @Override
     @SuppressWarnings("unchecked")
-    public CompletableFuture<Versioned<byte[]>> putIfAbsent(String key, byte[] value) {
-        return proxy.<RaftConsistentMapOperations.Put, MapEntryUpdateResult<String, byte[]>>invoke(
-            RaftConsistentMapOperations.PUT_IF_ABSENT,
+    public CompletableFuture<Versioned<byte[]>> remove(String key) {
+        return proxy.<RaftConsistentMapOperations.Remove, MapEntryUpdateResult<String, byte[]>>invoke(
+            RaftConsistentMapOperations.REMOVE,
             serializer()::encode,
-            new RaftConsistentMapOperations.Put(key, value),
+            new RaftConsistentMapOperations.Remove(key),
             serializer()::decode)
             .whenComplete((r, e) -> throwIfLocked(r))
             .thenApply(v -> v.result());
     }
 
     @Override
+    public CompletableFuture<Set<String>> keySet() {
+        return proxy.invoke(RaftConsistentMapOperations.KEY_SET, serializer()::decode);
+    }
+
+    @Override
+    public CompletableFuture<Collection<Versioned<byte[]>>> values() {
+        return proxy.invoke(RaftConsistentMapOperations.VALUES, serializer()::decode);
+    }
+
+    @Override
+    public CompletableFuture<Set<Entry<String, Versioned<byte[]>>>> entrySet() {
+        return proxy.invoke(RaftConsistentMapOperations.ENTRY_SET, serializer()::decode);
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
-    public CompletableFuture<Versioned<byte[]>> remove(String key) {
-        return proxy.<RaftConsistentMapOperations.Remove, MapEntryUpdateResult<String, byte[]>>invoke(
-            RaftConsistentMapOperations.REMOVE,
+    public CompletableFuture<Versioned<byte[]>> putIfAbsent(String key, byte[] value) {
+        return proxy.<RaftConsistentMapOperations.Put, MapEntryUpdateResult<String, byte[]>>invoke(
+            RaftConsistentMapOperations.PUT_IF_ABSENT,
             serializer()::encode,
-            new RaftConsistentMapOperations.Remove(key),
+            new RaftConsistentMapOperations.Put(key, value),
             serializer()::decode)
             .whenComplete((r, e) -> throwIfLocked(r))
             .thenApply(v -> v.result());
@@ -245,77 +311,6 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
     }
 
     @Override
-    public CompletableFuture<Void> clear() {
-        return proxy.<MapEntryUpdateResult.Status>invoke(RaftConsistentMapOperations.CLEAR, serializer()::decode)
-            .whenComplete((r, e) -> throwIfLocked(r))
-            .thenApply(v -> null);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public CompletableFuture<Versioned<byte[]>> computeIf(String key,
-        Predicate<? super byte[]> condition,
-        BiFunction<? super String, ? super byte[], ? extends byte[]> remappingFunction) {
-        return get(key).thenCompose(r1 -> {
-            byte[] existingValue = r1 == null ? null : r1.value();
-            // if the condition evaluates to false, return existing value.
-            if (!condition.test(existingValue)) {
-                return CompletableFuture.completedFuture(r1);
-            }
-
-            byte[] computedValue;
-            try {
-                computedValue = remappingFunction.apply(key, existingValue);
-            } catch (Exception e) {
-                return Futures.exceptionalFuture(e);
-            }
-
-            if (computedValue == null && r1 == null) {
-                return CompletableFuture.completedFuture(null);
-            }
-
-            if (r1 == null) {
-                return proxy.<RaftConsistentMapOperations.Put, MapEntryUpdateResult<String, byte[]>>invoke(
-                    RaftConsistentMapOperations.PUT_IF_ABSENT,
-                    serializer()::encode,
-                    new RaftConsistentMapOperations.Put(key, computedValue),
-                    serializer()::decode)
-                    .whenComplete((r, e) -> throwIfLocked(r))
-                    .thenCompose(r -> checkLocked(r))
-                    .thenApply(result -> new Versioned<>(computedValue, result.version()));
-            } else if (computedValue == null) {
-                return proxy.<RaftConsistentMapOperations.RemoveVersion, MapEntryUpdateResult<String, byte[]>>invoke(
-                    RaftConsistentMapOperations.REMOVE_VERSION,
-                    serializer()::encode,
-                    new RaftConsistentMapOperations.RemoveVersion(key, r1.version()),
-                    serializer()::decode)
-                    .whenComplete((r, e) -> throwIfLocked(r))
-                    .thenCompose(r -> checkLocked(r))
-                    .thenApply(v -> null);
-            } else {
-                return proxy.<RaftConsistentMapOperations.ReplaceVersion, MapEntryUpdateResult<String, byte[]>>invoke(
-                    RaftConsistentMapOperations.REPLACE_VERSION,
-                    serializer()::encode,
-                    new RaftConsistentMapOperations.ReplaceVersion(key, r1.version(), computedValue),
-                    serializer()::decode)
-                    .whenComplete((r, e) -> throwIfLocked(r))
-                    .thenCompose(r -> checkLocked(r))
-                    .thenApply(result -> result.status() == MapEntryUpdateResult.Status.OK
-                        ? new Versioned(computedValue, result.version()) : result.result());
-            }
-        });
-    }
-
-    private CompletableFuture<MapEntryUpdateResult<String, byte[]>> checkLocked(
-        MapEntryUpdateResult<String, byte[]> result) {
-        if (result.status() == MapEntryUpdateResult.Status.PRECONDITION_FAILED ||
-            result.status() == MapEntryUpdateResult.Status.WRITE_LOCK) {
-            return Futures.exceptionalFuture(new ConsistentMapException.ConcurrentModification());
-        }
-        return CompletableFuture.completedFuture(result);
-    }
-
-    @Override
     public synchronized CompletableFuture<Void> addListener(MapEventListener<String, byte[]> listener,
         Executor executor) {
         if (mapEventListeners.isEmpty()) {
@@ -344,6 +339,15 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
         if (status == MapEntryUpdateResult.Status.WRITE_LOCK) {
             throw new ConcurrentModificationException("Cannot update map: Another transaction in progress");
         }
+    }
+
+    private CompletableFuture<MapEntryUpdateResult<String, byte[]>> checkLocked(
+        MapEntryUpdateResult<String, byte[]> result) {
+        if (result.status() == MapEntryUpdateResult.Status.PRECONDITION_FAILED ||
+            result.status() == MapEntryUpdateResult.Status.WRITE_LOCK) {
+            return Futures.exceptionalFuture(new ConsistentMapException.ConcurrentModification());
+        }
+        return CompletableFuture.completedFuture(result);
     }
 
     @Override
@@ -394,9 +398,5 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
             new RaftConsistentMapOperations.TransactionRollback(transactionId),
             serializer()::decode)
             .thenApply(v -> null);
-    }
-
-    private boolean isListening() {
-        return !mapEventListeners.isEmpty();
     }
 }

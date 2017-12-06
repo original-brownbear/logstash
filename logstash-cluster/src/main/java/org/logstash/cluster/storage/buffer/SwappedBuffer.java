@@ -45,6 +45,22 @@ public class SwappedBuffer extends AbstractBuffer {
     }
 
     @Override
+    public Buffer duplicate() {
+        return new SwappedBuffer(root, offset(), capacity(), maxCapacity(), referenceManager);
+    }
+
+    @Override
+    public Buffer acquire() {
+        root.acquire();
+        return this;
+    }
+
+    @Override
+    public boolean release() {
+        return root.release();
+    }
+
+    @Override
     public boolean isDirect() {
         return root.isDirect();
     }
@@ -64,22 +80,6 @@ public class SwappedBuffer extends AbstractBuffer {
         if (root instanceof AbstractBuffer) {
             ((AbstractBuffer) root).compact(from, to, length);
         }
-    }
-
-    @Override
-    public Buffer duplicate() {
-        return new SwappedBuffer(root, offset(), capacity(), maxCapacity(), referenceManager);
-    }
-
-    @Override
-    public Buffer acquire() {
-        root.acquire();
-        return this;
-    }
-
-    @Override
-    public boolean release() {
-        return root.release();
     }
 
     @Override

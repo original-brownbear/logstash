@@ -57,29 +57,24 @@ public class DefaultClusterService implements ManagedClusterService {
     private static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
     private static final int DEFAULT_PHI_FAILURE_THRESHOLD = 10;
     private static final String HEARTBEAT_MESSAGE = "onos-cluster-heartbeat";
-
-    private int heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
-
-    private int phiFailureThreshold = DEFAULT_PHI_FAILURE_THRESHOLD;
-
     private static final Serializer SERIALIZER = Serializer.using(
         KryoNamespace.builder()
             .register(KryoNamespaces.BASIC)
             .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
             .register(NodeId.class)
             .build("ClusterStore"));
-
     private final MessagingService messagingService;
     private final AtomicBoolean open = new AtomicBoolean();
     private final DefaultNode localNode;
     private final Map<NodeId, DefaultNode> nodes = Maps.newConcurrentMap();
     private final Map<NodeId, PhiAccrualFailureDetector> failureDetectors = Maps.newConcurrentMap();
     private final Set<ClusterEventListener> eventListeners = Sets.newCopyOnWriteArraySet();
-
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(
         Threads.namedThreads("atomix-cluster-heartbeat-sender", LOGGER));
     private final ExecutorService heartbeatExecutor = Executors.newSingleThreadExecutor(
         Threads.namedThreads("atomix-cluster-heartbeat-receiver", LOGGER));
+    private int heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
+    private int phiFailureThreshold = DEFAULT_PHI_FAILURE_THRESHOLD;
     private ScheduledFuture<?> heartbeatFuture;
 
     public DefaultClusterService(ClusterMetadata clusterMetadata, MessagingService messagingService) {
@@ -93,21 +88,6 @@ public class DefaultClusterService implements ManagedClusterService {
         nodes.put(localNode.id(), localNode);
         clusterMetadata.bootstrapNodes().forEach(n -> nodes.putIfAbsent(n.id(), ((DefaultNode) n).setType(Node.Type.CORE)));
         messagingService.registerHandler(HEARTBEAT_MESSAGE, this::handleHeartbeat, heartbeatExecutor);
-    }
-
-    @Override
-    public Node getLocalNode() {
-        return localNode;
-    }
-
-    @Override
-    public Set<Node> getNodes() {
-        return ImmutableSet.copyOf(nodes.values());
-    }
-
-    @Override
-    public Node getNode(NodeId nodeId) {
-        return nodes.get(nodeId);
     }
 
     /**
@@ -138,6 +118,21 @@ public class DefaultClusterService implements ManagedClusterService {
         }
     }
 
+    @Override
+    public Node getLocalNode() {
+        return localNode;
+    }
+
+    @Override
+    public Set<Node> getNodes() {
+        return ImmutableSet.copyOf(nodes.values());
+    }
+
+    @Override
+    public Node getNode(NodeId nodeId) {
+        return nodes.get(nodeId);
+    }
+
     /**
      * Sends a heartbeat to the given peer.
      */
@@ -147,15 +142,6 @@ public class DefaultClusterService implements ManagedClusterService {
                 LOGGER.trace("Sending heartbeat to {} failed", endpoint, error);
             }
         });
-    }
-
-    /**
-     * Handles a heartbeat message.
-     */
-    private void handleHeartbeat(Endpoint endpoint, byte[] message) {
-        NodeId nodeId = SERIALIZER.decode(message);
-        failureDetectors.computeIfAbsent(nodeId, n -> new PhiAccrualFailureDetector()).report();
-        activateNode(new DefaultNode(nodeId, endpoint));
     }
 
     /**
@@ -193,6 +179,15 @@ public class DefaultClusterService implements ManagedClusterService {
                     throw new AssertionError();
             }
         }
+    }
+
+    /**
+     * Handles a heartbeat message.
+     */
+    private void handleHeartbeat(Endpoint endpoint, byte[] message) {
+        NodeId nodeId = SERIALIZER.decode(message);
+        failureDetectors.computeIfAbsent(nodeId, n -> new PhiAccrualFailureDetector()).report();
+        activateNode(new DefaultNode(nodeId, endpoint));
     }
 
     @Override

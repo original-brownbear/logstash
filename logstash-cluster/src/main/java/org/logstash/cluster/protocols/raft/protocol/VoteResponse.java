@@ -30,21 +30,20 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class VoteResponse extends AbstractRaftResponse {
 
+    private final long term;
+    private final boolean voted;
+    public VoteResponse(Status status, RaftError error, long term, boolean voted) {
+        super(status, error);
+        this.term = term;
+        this.voted = voted;
+    }
+
     /**
      * Returns a new vote response builder.
      * @return A new vote response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long term;
-    private final boolean voted;
-
-    public VoteResponse(Status status, RaftError error, long term, boolean voted) {
-        super(status, error);
-        this.term = term;
-        this.voted = voted;
     }
 
     /**
@@ -125,17 +124,17 @@ public class VoteResponse extends AbstractRaftResponse {
         }
 
         @Override
+        public VoteResponse build() {
+            validate();
+            return new VoteResponse(status, error, term, voted);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
                 checkArgument(term >= 0, "term must be positive");
             }
-        }
-
-        @Override
-        public VoteResponse build() {
-            validate();
-            return new VoteResponse(status, error, term, voted);
         }
     }
 }

@@ -22,19 +22,19 @@ import org.logstash.cluster.event.AbstractEvent;
  */
 public class RaftClusterEvent extends AbstractEvent<RaftClusterEvent.Type, RaftMember> {
 
-    /**
-     * Raft cluster event type.
-     */
-    public enum Type {
-        JOIN,
-        LEAVE,
-    }
-
     public RaftClusterEvent(Type type, RaftMember subject) {
         super(type, subject);
     }
 
     public RaftClusterEvent(Type type, RaftMember subject, long time) {
         super(type, subject, time);
+    }
+
+    /**
+     * Raft cluster event type.
+     */
+    public enum Type {
+        JOIN,
+        LEAVE,
     }
 }

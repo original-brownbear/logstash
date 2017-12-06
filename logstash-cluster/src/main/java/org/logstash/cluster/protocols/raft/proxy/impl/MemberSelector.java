@@ -31,37 +31,13 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
 
-    /**
-     * 1
-     * Address selector state.
-     */
-    public enum State {
-
-        /**
-         * Indicates that the selector has been reset.
-         */
-        RESET,
-
-        /**
-         * Indicates that the selector is being iterated.
-         */
-        ITERATE,
-
-        /**
-         * Indicates that selector iteration is complete.
-         */
-        COMPLETE
-
-    }
-
     private final MemberSelectorManager selectors;
+    private final CommunicationStrategy strategy;
     private MemberId leader;
     private Collection<MemberId> members = new LinkedList<>();
     private volatile MemberId selection;
-    private final CommunicationStrategy strategy;
     private Collection<MemberId> selections = new LinkedList<>();
     private Iterator<MemberId> selectionsIterator;
-
     public MemberSelector(MemberId leader, Collection<MemberId> members, CommunicationStrategy strategy, MemberSelectorManager selectors) {
         this.leader = leader;
         this.members = checkNotNull(members, "servers cannot be null");
@@ -82,6 +58,21 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
         } else {
             return State.COMPLETE;
         }
+    }
+
+    @Override
+    public boolean hasNext() {
+        return selectionsIterator == null ? !selections.isEmpty() : selectionsIterator.hasNext();
+    }
+
+    @Override
+    public MemberId next() {
+        if (selectionsIterator == null) {
+            selectionsIterator = selections.iterator();
+        }
+        MemberId selection = selectionsIterator.next();
+        this.selection = selection;
+        return selection;
     }
 
     /**
@@ -171,21 +162,6 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
     }
 
     @Override
-    public boolean hasNext() {
-        return selectionsIterator == null ? !selections.isEmpty() : selectionsIterator.hasNext();
-    }
-
-    @Override
-    public MemberId next() {
-        if (selectionsIterator == null) {
-            selectionsIterator = selections.iterator();
-        }
-        MemberId selection = selectionsIterator.next();
-        this.selection = selection;
-        return selection;
-    }
-
-    @Override
     public void close() {
         selectors.remove(this);
     }
@@ -195,6 +171,29 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
         return toStringHelper(this)
             .add("strategy", strategy)
             .toString();
+    }
+
+    /**
+     * 1
+     * Address selector state.
+     */
+    public enum State {
+
+        /**
+         * Indicates that the selector has been reset.
+         */
+        RESET,
+
+        /**
+         * Indicates that the selector is being iterated.
+         */
+        ITERATE,
+
+        /**
+         * Indicates that selector iteration is complete.
+         */
+        COMPLETE
+
     }
 
 }

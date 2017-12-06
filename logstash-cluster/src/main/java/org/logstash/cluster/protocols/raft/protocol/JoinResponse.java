@@ -27,6 +27,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class JoinResponse extends ConfigurationResponse {
 
+    public JoinResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+        super(status, error, index, term, timestamp, members);
+    }
+
     /**
      * Returns a new join response builder.
      * @return A new join response builder.
@@ -35,14 +39,16 @@ public class JoinResponse extends ConfigurationResponse {
         return new Builder();
     }
 
-    public JoinResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
-        super(status, error, index, term, timestamp, members);
-    }
-
     /**
      * Join response builder.
      */
     public static class Builder extends ConfigurationResponse.Builder<Builder, JoinResponse> {
+        @Override
+        public JoinResponse build() {
+            validate();
+            return new JoinResponse(status, error, index, term, timestamp, members);
+        }
+
         @Override
         protected void validate() {
             // JoinResponse allows null errors indicating the client should retry.
@@ -53,12 +59,6 @@ public class JoinResponse extends ConfigurationResponse {
                 checkArgument(timestamp > 0, "time must be positive");
                 checkNotNull(members, "members cannot be null");
             }
-        }
-
-        @Override
-        public JoinResponse build() {
-            validate();
-            return new JoinResponse(status, error, index, term, timestamp, members);
         }
     }
 }

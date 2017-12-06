@@ -48,23 +48,6 @@ public class TranscodingAsyncWorkQueue<V1, V2> implements AsyncWorkQueue<V1> {
     }
 
     @Override
-    public CompletableFuture<Void> addMultiple(Collection<V1> items) {
-        return backingQueue.addMultiple(items.stream().map(valueEncoder).collect(Collectors.toList()));
-    }
-
-    @Override
-    public CompletableFuture<Collection<Task<V1>>> take(int maxItems) {
-        return backingQueue.take(maxItems)
-            .thenApply(tasks -> tasks.stream().map(t -> t.map(valueDecoder))
-                .collect(Collectors.toList()));
-    }
-
-    @Override
-    public CompletableFuture<Void> complete(Collection<String> taskIds) {
-        return backingQueue.complete(taskIds);
-    }
-
-    @Override
     public CompletableFuture<Void> registerTaskProcessor(Consumer<V1> taskProcessor, int parallelism, Executor executor) {
         return backingQueue.registerTaskProcessor(v -> taskProcessor.accept(valueDecoder.apply(v)), parallelism, executor);
     }
@@ -77,6 +60,23 @@ public class TranscodingAsyncWorkQueue<V1, V2> implements AsyncWorkQueue<V1> {
     @Override
     public CompletableFuture<WorkQueueStats> stats() {
         return backingQueue.stats();
+    }
+
+    @Override
+    public CompletableFuture<Void> complete(Collection<String> taskIds) {
+        return backingQueue.complete(taskIds);
+    }
+
+    @Override
+    public CompletableFuture<Void> addMultiple(Collection<V1> items) {
+        return backingQueue.addMultiple(items.stream().map(valueEncoder).collect(Collectors.toList()));
+    }
+
+    @Override
+    public CompletableFuture<Collection<Task<V1>>> take(int maxItems) {
+        return backingQueue.take(maxItems)
+            .thenApply(tasks -> tasks.stream().map(t -> t.map(valueDecoder))
+                .collect(Collectors.toList()));
     }
 
     @Override

@@ -171,6 +171,10 @@ public class ClusterResource extends AbstractRestResource {
         return Response.ok(id).build();
     }
 
+    private static String getNodeListener(String nodeId, String id) {
+        return String.format("%s-%s", nodeId, id);
+    }
+
     @GET
     @Path("/nodes/{node}/events/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -198,10 +202,6 @@ public class ClusterResource extends AbstractRestResource {
         if (eventLog != null && eventLog.close()) {
             clusterService.removeListener(eventLog.listener());
         }
-    }
-
-    private static String getNodeListener(String nodeId, String id) {
-        return String.format("%s-%s", nodeId, id);
     }
 
     /**

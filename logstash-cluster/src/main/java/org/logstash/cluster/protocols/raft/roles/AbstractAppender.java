@@ -58,12 +58,6 @@ abstract class AbstractAppender implements AutoCloseable {
     }
 
     /**
-     * Sends an AppendRequest to the given member.
-     * @param member The member to which to send the append request.
-     */
-    protected abstract void appendEntries(RaftMemberContext member);
-
-    /**
      * Builds an append request.
      * @param member The member to which to send the request.
      * @return The append request.
@@ -204,6 +198,19 @@ abstract class AbstractAppender implements AutoCloseable {
     }
 
     /**
+     * Fails an attempt to contact a member.
+     */
+    protected void failAttempt(RaftMemberContext member, RaftRequest request, Throwable error) {
+        // If any append error occurred, increment the failure count for the member. Log the first three failures,
+        // and thereafter log 1% of the failures. This keeps the log from filling up with annoying error messages
+        // when attempting to send entries to down followers.
+        int failures = member.incrementFailureCount();
+        if (failures <= 3 || failures % 100 == 0) {
+            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), error.getMessage());
+        }
+    }
+
+    /**
      * Handles an append response.
      */
     protected void handleAppendResponse(RaftMemberContext member, AppendRequest request, AppendResponse response, long timestamp) {
@@ -250,17 +257,10 @@ abstract class AbstractAppender implements AutoCloseable {
     }
 
     /**
-     * Handles a {@link RaftResponse.Status#ERROR} response.
+     * Sends an AppendRequest to the given member.
+     * @param member The member to which to send the append request.
      */
-    protected void handleAppendResponseError(RaftMemberContext member, AppendRequest request, AppendResponse response) {
-        // If any other error occurred, increment the failure count for the member. Log the first three failures,
-        // and thereafter log 1% of the failures. This keeps the log from filling up with annoying error messages
-        // when attempting to send entries to down followers.
-        int failures = member.incrementFailureCount();
-        if (failures <= 3 || failures % 100 == 0) {
-            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), response.error() != null ? response.error() : "");
-        }
-    }
+    protected abstract void appendEntries(RaftMemberContext member);
 
     /**
      * Succeeds an attempt to contact a member.
@@ -268,19 +268,6 @@ abstract class AbstractAppender implements AutoCloseable {
     protected void succeedAttempt(RaftMemberContext member) {
         // Reset the member failure count and time.
         member.resetFailureCount();
-    }
-
-    /**
-     * Fails an attempt to contact a member.
-     */
-    protected void failAttempt(RaftMemberContext member, RaftRequest request, Throwable error) {
-        // If any append error occurred, increment the failure count for the member. Log the first three failures,
-        // and thereafter log 1% of the failures. This keeps the log from filling up with annoying error messages
-        // when attempting to send entries to down followers.
-        int failures = member.incrementFailureCount();
-        if (failures <= 3 || failures % 100 == 0) {
-            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), error.getMessage());
-        }
     }
 
     /**
@@ -315,6 +302,19 @@ abstract class AbstractAppender implements AutoCloseable {
             reader.reset();
         }
         log.trace("Reset next index for {} to {} + 1", member, member.getMatchIndex());
+    }
+
+    /**
+     * Handles a {@link RaftResponse.Status#ERROR} response.
+     */
+    protected void handleAppendResponseError(RaftMemberContext member, AppendRequest request, AppendResponse response) {
+        // If any other error occurred, increment the failure count for the member. Log the first three failures,
+        // and thereafter log 1% of the failures. This keeps the log from filling up with annoying error messages
+        // when attempting to send entries to down followers.
+        int failures = member.incrementFailureCount();
+        if (failures <= 3 || failures % 100 == 0) {
+            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), response.error() != null ? response.error() : "");
+        }
     }
 
     /**

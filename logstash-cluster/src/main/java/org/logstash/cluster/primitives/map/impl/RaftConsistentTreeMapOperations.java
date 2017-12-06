@@ -49,6 +49,21 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
     HIGHER_ENTRY("higherEntry", OperationType.QUERY),
     HIGHER_KEY("higherKey", OperationType.QUERY);
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 100)
+        .register(LowerKey.class)
+        .register(LowerEntry.class)
+        .register(HigherKey.class)
+        .register(HigherEntry.class)
+        .register(FloorKey.class)
+        .register(FloorEntry.class)
+        .register(CeilingKey.class)
+        .register(CeilingEntry.class)
+        .register(Versioned.class)
+        .register(AbstractMap.SimpleImmutableEntry.class)
+        .register(Maps.immutableEntry("", "").getClass())
+        .build(RaftConsistentTreeMapOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
 
@@ -66,22 +81,6 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
     public OperationType type() {
         return type;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .register(KryoNamespaces.BASIC)
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 100)
-        .register(LowerKey.class)
-        .register(LowerEntry.class)
-        .register(HigherKey.class)
-        .register(HigherEntry.class)
-        .register(FloorKey.class)
-        .register(FloorEntry.class)
-        .register(CeilingKey.class)
-        .register(CeilingEntry.class)
-        .register(Versioned.class)
-        .register(AbstractMap.SimpleImmutableEntry.class)
-        .register(Maps.immutableEntry("", "").getClass())
-        .build(RaftConsistentTreeMapOperations.class.getSimpleName());
 
     /**
      * Abstract treeMap command.
@@ -389,7 +388,9 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
             this.inclusiveTo = inclusiveTo;
         }
 
-        @Override
+        public K fromKey() {
+            return fromKey;
+        }        @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass())
                 .add("getFromKey", fromKey)
@@ -397,10 +398,6 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
                 .add("inclusiveFrotBound", inclusiveFrom)
                 .add("inclusiveToBound", inclusiveTo)
                 .toString();
-        }
-
-        public K fromKey() {
-            return fromKey;
         }
 
         public K toKey() {
@@ -414,5 +411,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
         public boolean isInclusiveTo() {
             return inclusiveTo;
         }
+
+
     }
 }

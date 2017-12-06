@@ -24,19 +24,8 @@ import org.logstash.cluster.event.AbstractEvent;
  */
 public class LeadershipEvent<T> extends AbstractEvent<LeadershipEvent.Type, Leadership> {
 
-    /**
-     * Type of leadership events.
-     */
-    public enum Type {
-        /**
-         * Leader changed event.
-         */
-        CHANGE,
-    }
-
     private final Leadership<T> oldLeadership;
     private final Leadership<T> newLeadership;
-
     /**
      * Creates an event of a given type and for the specified instance and the
      * current time.
@@ -59,22 +48,6 @@ public class LeadershipEvent<T> extends AbstractEvent<LeadershipEvent.Type, Lead
         super(type, newLeadership, time);
         this.oldLeadership = oldLeadership;
         this.newLeadership = newLeadership;
-    }
-
-    /**
-     * Returns the prior leadership for the topic.
-     * @return the prior leadership for the topic
-     */
-    public Leadership<T> oldLeadership() {
-        return oldLeadership;
-    }
-
-    /**
-     * Returns the new leadership for the topic.
-     * @return the new leadership for the topic
-     */
-    public Leadership<T> newLeadership() {
-        return newLeadership;
     }
 
     @Override
@@ -104,5 +77,31 @@ public class LeadershipEvent<T> extends AbstractEvent<LeadershipEvent.Type, Lead
             .add("newLeadership", newLeadership())
             .add("time", time())
             .toString();
+    }
+
+    /**
+     * Returns the prior leadership for the topic.
+     * @return the prior leadership for the topic
+     */
+    public Leadership<T> oldLeadership() {
+        return oldLeadership;
+    }
+
+    /**
+     * Returns the new leadership for the topic.
+     * @return the new leadership for the topic
+     */
+    public Leadership<T> newLeadership() {
+        return newLeadership;
+    }
+
+    /**
+     * Type of leadership events.
+     */
+    public enum Type {
+        /**
+         * Leader changed event.
+         */
+        CHANGE,
     }
 }

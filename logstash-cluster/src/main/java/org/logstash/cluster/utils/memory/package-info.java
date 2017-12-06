@@ -16,7 +16,6 @@
 
 /**
  * Provides interfaces for performing low-level on- and off-heap memory management.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 package org.logstash.cluster.utils.memory;

@@ -20,123 +20,115 @@ import com.google.common.base.MoreObjects;
 
 /**
  * Result of a document tree operation.
- *
  * @param <V> value type
  */
 public class DocumentTreeResult<V> {
 
-  public enum Status {
-    /**
-     * Indicates a successful update.
-     */
-    OK,
+    @SuppressWarnings("unchecked")
+    public static final DocumentTreeResult WRITE_LOCK =
+        new DocumentTreeResult(Status.WRITE_LOCK, null);
+    @SuppressWarnings("unchecked")
+    public static final DocumentTreeResult INVALID_PATH =
+        new DocumentTreeResult(Status.INVALID_PATH, null);
+    @SuppressWarnings("unchecked")
+    public static final DocumentTreeResult ILLEGAL_MODIFICATION =
+        new DocumentTreeResult(Status.ILLEGAL_MODIFICATION, null);
+    private final Status status;
+    private final V result;
+
+    public DocumentTreeResult(Status status, V result) {
+        this.status = status;
+        this.result = result;
+    }
 
     /**
-     * Indicates a noop i.e. existing and new value are both same.
+     * Returns a successful result.
+     * @param result the operation result
+     * @param <V> the result value type
+     * @return successful result
      */
-    NOOP,
+    public static <V> DocumentTreeResult<V> ok(V result) {
+        return new DocumentTreeResult<V>(Status.OK, result);
+    }
 
     /**
-     * Indicates a failed update due to a write lock.
+     * Returns a {@code WRITE_LOCK} error result.
+     * @param <V> the result value type
+     * @return write lock result
      */
-    WRITE_LOCK,
+    @SuppressWarnings("unchecked")
+    public static <V> DocumentTreeResult<V> writeLock() {
+        return WRITE_LOCK;
+    }
 
     /**
-     * Indicates a failed update due to a invalid path.
+     * Returns an {@code INVALID_PATH} result.
+     * @param <V> the result value type
+     * @return invalid path result
      */
-    INVALID_PATH,
+    @SuppressWarnings("unchecked")
+    public static <V> DocumentTreeResult<V> invalidPath() {
+        return INVALID_PATH;
+    }
 
     /**
-     * Indicates a failed update due to a illegal modification attempt.
+     * Returns an {@code ILLEGAL_MODIFICATION} result.
+     * @param <V> the result value type
+     * @return illegal modification result
      */
-    ILLEGAL_MODIFICATION,
-  }
+    @SuppressWarnings("unchecked")
+    public static <V> DocumentTreeResult<V> illegalModification() {
+        return ILLEGAL_MODIFICATION;
+    }
 
-  @SuppressWarnings("unchecked")
-  public static final DocumentTreeResult WRITE_LOCK =
-      new DocumentTreeResult(Status.WRITE_LOCK, null);
+    public Status status() {
+        return status;
+    }
 
-  @SuppressWarnings("unchecked")
-  public static final DocumentTreeResult INVALID_PATH =
-      new DocumentTreeResult(Status.INVALID_PATH, null);
+    public V result() {
+        return result;
+    }
 
-  @SuppressWarnings("unchecked")
-  public static final DocumentTreeResult ILLEGAL_MODIFICATION =
-      new DocumentTreeResult(Status.ILLEGAL_MODIFICATION, null);
+    public boolean created() {
+        return updated() && result == null;
+    }
 
-  /**
-   * Returns a successful result.
-   *
-   * @param result the operation result
-   * @param <V>    the result value type
-   * @return successful result
-   */
-  public static <V> DocumentTreeResult<V> ok(V result) {
-    return new DocumentTreeResult<V>(Status.OK, result);
-  }
+    public boolean updated() {
+        return status == Status.OK;
+    }
 
-  /**
-   * Returns a {@code WRITE_LOCK} error result.
-   *
-   * @param <V> the result value type
-   * @return write lock result
-   */
-  @SuppressWarnings("unchecked")
-  public static <V> DocumentTreeResult<V> writeLock() {
-    return WRITE_LOCK;
-  }
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("status", status)
+            .add("value", result)
+            .toString();
+    }
 
-  /**
-   * Returns an {@code INVALID_PATH} result.
-   *
-   * @param <V> the result value type
-   * @return invalid path result
-   */
-  @SuppressWarnings("unchecked")
-  public static <V> DocumentTreeResult<V> invalidPath() {
-    return INVALID_PATH;
-  }
+    public enum Status {
+        /**
+         * Indicates a successful update.
+         */
+        OK,
 
-  /**
-   * Returns an {@code ILLEGAL_MODIFICATION} result.
-   *
-   * @param <V> the result value type
-   * @return illegal modification result
-   */
-  @SuppressWarnings("unchecked")
-  public static <V> DocumentTreeResult<V> illegalModification() {
-    return ILLEGAL_MODIFICATION;
-  }
+        /**
+         * Indicates a noop i.e. existing and new value are both same.
+         */
+        NOOP,
 
-  private final Status status;
-  private final V result;
+        /**
+         * Indicates a failed update due to a write lock.
+         */
+        WRITE_LOCK,
 
-  public DocumentTreeResult(Status status, V result) {
-    this.status = status;
-    this.result = result;
-  }
+        /**
+         * Indicates a failed update due to a invalid path.
+         */
+        INVALID_PATH,
 
-  public Status status() {
-    return status;
-  }
-
-  public V result() {
-    return result;
-  }
-
-  public boolean updated() {
-    return status == Status.OK;
-  }
-
-  public boolean created() {
-    return updated() && result == null;
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(getClass())
-        .add("status", status)
-        .add("value", result)
-        .toString();
-  }
+        /**
+         * Indicates a failed update due to a illegal modification attempt.
+         */
+        ILLEGAL_MODIFICATION,
+    }
 }

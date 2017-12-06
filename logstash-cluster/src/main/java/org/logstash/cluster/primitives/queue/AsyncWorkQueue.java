@@ -48,33 +48,6 @@ public interface AsyncWorkQueue<E> extends AsyncPrimitive {
     }
 
     /**
-     * Adds a collection of tasks to the work queue.
-     * @param items collection of task items
-     * @return future that is completed when the operation completes
-     */
-    CompletableFuture<Void> addMultiple(Collection<E> items);
-
-    /**
-     * Picks up multiple tasks from the work queue to work on.
-     * <p>
-     * Tasks that are taken remain invisible to other consumers as long as the consumer stays alive.
-     * If a consumer unexpectedly terminates before {@link #complete(String...) completing} the task,
-     * the task becomes visible again to other consumers to process.
-     * @param maxItems maximum number of items to take from the queue. The actual number of tasks returned
-     * can be at the max this number
-     * @return future for the tasks. The future can be completed with an empty collection if there are no
-     * unassigned tasks in the work queue
-     */
-    CompletableFuture<Collection<Task<E>>> take(int maxItems);
-
-    /**
-     * Completes a collection of tasks.
-     * @param taskIds ids of tasks to complete
-     * @return future that is completed when the operation completes
-     */
-    CompletableFuture<Void> complete(Collection<String> taskIds);
-
-    /**
      * Registers a task processing callback to be automatically invoked when new tasks are
      * added to the work queue.
      * @param taskProcessor task processing callback
@@ -109,6 +82,13 @@ public interface AsyncWorkQueue<E> extends AsyncPrimitive {
     }
 
     /**
+     * Completes a collection of tasks.
+     * @param taskIds ids of tasks to complete
+     * @return future that is completed when the operation completes
+     */
+    CompletableFuture<Void> complete(Collection<String> taskIds);
+
+    /**
      * Adds a single task to the work queue.
      * @param item task item
      * @return future that is completed when the operation completes
@@ -116,6 +96,13 @@ public interface AsyncWorkQueue<E> extends AsyncPrimitive {
     default CompletableFuture<Void> addOne(E item) {
         return addMultiple(ImmutableList.of(item));
     }
+
+    /**
+     * Adds a collection of tasks to the work queue.
+     * @param items collection of task items
+     * @return future that is completed when the operation completes
+     */
+    CompletableFuture<Void> addMultiple(Collection<E> items);
 
     /**
      * Picks up a single task from the work queue to work on.
@@ -129,6 +116,19 @@ public interface AsyncWorkQueue<E> extends AsyncPrimitive {
     default CompletableFuture<Task<E>> take() {
         return this.take(1).thenApply(tasks -> tasks.isEmpty() ? null : tasks.iterator().next());
     }
+
+    /**
+     * Picks up multiple tasks from the work queue to work on.
+     * <p>
+     * Tasks that are taken remain invisible to other consumers as long as the consumer stays alive.
+     * If a consumer unexpectedly terminates before {@link #complete(String...) completing} the task,
+     * the task becomes visible again to other consumers to process.
+     * @param maxItems maximum number of items to take from the queue. The actual number of tasks returned
+     * can be at the max this number
+     * @return future for the tasks. The future can be completed with an empty collection if there are no
+     * unassigned tasks in the work queue
+     */
+    CompletableFuture<Collection<Task<E>>> take(int maxItems);
 
     /**
      * Returns a synchronous {@link WorkQueue} instance that wraps this instance.

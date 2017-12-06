@@ -30,41 +30,39 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  * approximation of time with which to react to the application of operations to the state machine.
  */
 public abstract class OperationEntry extends SessionEntry {
-  protected final long sequence;
-  protected final RaftOperation operation;
+    protected final long sequence;
+    protected final RaftOperation operation;
 
-  public OperationEntry(long term, long timestamp, long session, long sequence, RaftOperation operation) {
-    super(term, timestamp, session);
-    this.sequence = sequence;
-    this.operation = operation;
-  }
+    public OperationEntry(long term, long timestamp, long session, long sequence, RaftOperation operation) {
+        super(term, timestamp, session);
+        this.sequence = sequence;
+        this.operation = operation;
+    }
 
-  /**
-   * Returns the entry operation.
-   *
-   * @return The entry operation.
-   */
-  public RaftOperation operation() {
-    return operation;
-  }
+    /**
+     * Returns the entry operation.
+     * @return The entry operation.
+     */
+    public RaftOperation operation() {
+        return operation;
+    }
 
-  /**
-   * Returns the operation sequence number.
-   *
-   * @return The operation sequence number.
-   */
-  public long sequenceNumber() {
-    return sequence;
-  }
+    /**
+     * Returns the operation sequence number.
+     * @return The operation sequence number.
+     */
+    public long sequenceNumber() {
+        return sequence;
+    }
 
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("term", term)
-        .add("timestamp", new TimestampPrinter(timestamp))
-        .add("session", session)
-        .add("sequence", sequence)
-        .add("operation", operation)
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("term", term)
+            .add("timestamp", new TimestampPrinter(timestamp))
+            .add("session", session)
+            .add("sequence", sequence)
+            .add("operation", operation)
+            .toString();
+    }
 }

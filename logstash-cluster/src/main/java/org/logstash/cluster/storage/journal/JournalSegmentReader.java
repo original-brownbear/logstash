@@ -42,65 +42,6 @@ public class JournalSegmentReader<E> implements JournalReader<E> {
         readNext();
     }
 
-    @Override
-    public long getCurrentIndex() {
-        return currentEntry != null ? currentEntry.index() : 0;
-    }
-
-    @Override
-    public Indexed<E> getCurrentEntry() {
-        return currentEntry;
-    }
-
-    @Override
-    public long getNextIndex() {
-        return currentEntry != null ? currentEntry.index() + 1 : firstIndex;
-    }
-
-    @Override
-    public void reset(long index) {
-        reset();
-        while (getNextIndex() < index && hasNext()) {
-            next();
-        }
-    }
-
-    @Override
-    public void reset() {
-        buffer.clear();
-        currentEntry = null;
-        nextEntry = null;
-        readNext();
-    }
-
-    @Override
-    public boolean hasNext() {
-        // If the next entry is null, check whether a next entry exists.
-        if (nextEntry == null) {
-            readNext();
-        }
-        return nextEntry != null;
-    }
-
-    @Override
-    public Indexed<E> next() {
-        if (!hasNext()) {
-            throw new NoSuchElementException();
-        }
-
-        // Set the current entry to the next entry.
-        currentEntry = nextEntry;
-
-        // Reset the next entry to null.
-        nextEntry = null;
-
-        // Read the next entry in the segment.
-        readNext();
-
-        // Return the current entry.
-        return currentEntry;
-    }
-
     /**
      * Reads the next entry in the segment.
      */
@@ -145,6 +86,65 @@ public class JournalSegmentReader<E> implements JournalReader<E> {
         } catch (BufferUnderflowException e) {
             buffer.reset();
             nextEntry = null;
+        }
+    }
+
+    @Override
+    public long getCurrentIndex() {
+        return currentEntry != null ? currentEntry.index() : 0;
+    }
+
+    @Override
+    public Indexed<E> getCurrentEntry() {
+        return currentEntry;
+    }
+
+    @Override
+    public long getNextIndex() {
+        return currentEntry != null ? currentEntry.index() + 1 : firstIndex;
+    }
+
+    @Override
+    public boolean hasNext() {
+        // If the next entry is null, check whether a next entry exists.
+        if (nextEntry == null) {
+            readNext();
+        }
+        return nextEntry != null;
+    }
+
+    @Override
+    public Indexed<E> next() {
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
+
+        // Set the current entry to the next entry.
+        currentEntry = nextEntry;
+
+        // Reset the next entry to null.
+        nextEntry = null;
+
+        // Read the next entry in the segment.
+        readNext();
+
+        // Return the current entry.
+        return currentEntry;
+    }
+
+    @Override
+    public void reset() {
+        buffer.clear();
+        currentEntry = null;
+        nextEntry = null;
+        readNext();
+    }
+
+    @Override
+    public void reset(long index) {
+        reset();
+        while (getNextIndex() < index && hasNext()) {
+            next();
         }
     }
 

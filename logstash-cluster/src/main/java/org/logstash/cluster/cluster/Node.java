@@ -27,53 +27,20 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public abstract class Node {
 
-    /**
-     * Returns a new node builder.
-     * @return a new node builder
-     */
-    public static Builder builder() {
-        return new DefaultNode.Builder();
-    }
-
-    /**
-     * Node type.
-     */
-    public enum Type {
-
-        /**
-         * Represents a core node.
-         */
-        CORE,
-
-        /**
-         * Represents a client node.
-         */
-        CLIENT,
-    }
-
-    /**
-     * Represents the operational state of the instance.
-     */
-    public enum State {
-
-        /**
-         * Signifies that the instance is active and operating normally.
-         */
-        ACTIVE,
-
-        /**
-         * Signifies that the instance is inactive, which means either down or
-         * up, but not operational.
-         */
-        INACTIVE,
-    }
-
     private final NodeId id;
     private final Endpoint endpoint;
 
     protected Node(NodeId id, Endpoint endpoint) {
         this.id = checkNotNull(id, "id cannot be null");
         this.endpoint = checkNotNull(endpoint, "endpoint cannot be null");
+    }
+
+    /**
+     * Returns a new node builder.
+     * @return a new node builder
+     */
+    public static Builder builder() {
+        return new DefaultNode.Builder();
     }
 
     /**
@@ -120,6 +87,39 @@ public abstract class Node {
             .add("id", id)
             .add("endpoint", endpoint)
             .toString();
+    }
+
+    /**
+     * Node type.
+     */
+    public enum Type {
+
+        /**
+         * Represents a core node.
+         */
+        CORE,
+
+        /**
+         * Represents a client node.
+         */
+        CLIENT,
+    }
+
+    /**
+     * Represents the operational state of the instance.
+     */
+    public enum State {
+
+        /**
+         * Signifies that the instance is active and operating normally.
+         */
+        ACTIVE,
+
+        /**
+         * Signifies that the instance is inactive, which means either down or
+         * up, but not operational.
+         */
+        INACTIVE,
     }
 
     /**

@@ -24,25 +24,23 @@ import org.logstash.cluster.utils.Identifier;
  */
 public interface AntiEntropyProtocol<T extends Identifier> extends GossipProtocol<T> {
 
-  /**
-   * Sends an anti-entropy advertisement.
-   *
-   * @param identifier the location to which to send the advertisement
-   * @param advertisement the anti-entropy advertisement to send
-   * @return a future to be completed with the advertisement response
-   */
-  <K> CompletableFuture<AntiEntropyResponse<K>> advertise(T identifier, AntiEntropyAdvertisement<K> advertisement);
+    /**
+     * Sends an anti-entropy advertisement.
+     * @param identifier the location to which to send the advertisement
+     * @param advertisement the anti-entropy advertisement to send
+     * @return a future to be completed with the advertisement response
+     */
+    <K> CompletableFuture<AntiEntropyResponse<K>> advertise(T identifier, AntiEntropyAdvertisement<K> advertisement);
 
-  /**
-   * Registers an anti-entropy advertisement handler.
-   *
-   * @param handler the anti-entropy advertisement handler to register
-   */
-  <K> void registerAdvertisementHandler(Function<AntiEntropyAdvertisement<K>, AntiEntropyResponse<K>> handler);
+    /**
+     * Registers an anti-entropy advertisement handler.
+     * @param handler the anti-entropy advertisement handler to register
+     */
+    <K> void registerAdvertisementHandler(Function<AntiEntropyAdvertisement<K>, AntiEntropyResponse<K>> handler);
 
-  /**
-   * Unregisters the anti-entropy advertisement handler.
-   */
-  void unregisterAdvertisementHandler();
+    /**
+     * Unregisters the anti-entropy advertisement handler.
+     */
+    void unregisterAdvertisementHandler();
 
 }

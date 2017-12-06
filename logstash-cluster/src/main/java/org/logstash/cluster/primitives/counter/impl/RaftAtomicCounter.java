@@ -41,6 +41,26 @@ public class RaftAtomicCounter extends AbstractRaftPrimitive implements AsyncAto
     }
 
     @Override
+    public CompletableFuture<Long> incrementAndGet() {
+        return proxy.invoke(RaftAtomicCounterOperations.INCREMENT_AND_GET, SERIALIZER::decode);
+    }
+
+    @Override
+    public CompletableFuture<Long> getAndIncrement() {
+        return proxy.invoke(RaftAtomicCounterOperations.GET_AND_INCREMENT, SERIALIZER::decode);
+    }
+
+    @Override
+    public CompletableFuture<Long> getAndAdd(long delta) {
+        return proxy.invoke(RaftAtomicCounterOperations.GET_AND_ADD, SERIALIZER::encode, new RaftAtomicCounterOperations.GetAndAdd(delta), SERIALIZER::decode);
+    }
+
+    @Override
+    public CompletableFuture<Long> addAndGet(long delta) {
+        return proxy.invoke(RaftAtomicCounterOperations.ADD_AND_GET, SERIALIZER::encode, new RaftAtomicCounterOperations.AddAndGet(delta), SERIALIZER::decode);
+    }
+
+    @Override
     public CompletableFuture<Long> get() {
         return proxy.<Long>invoke(RaftAtomicCounterOperations.GET, SERIALIZER::decode).thenApply(this::nullOrZero);
     }
@@ -54,25 +74,5 @@ public class RaftAtomicCounter extends AbstractRaftPrimitive implements AsyncAto
     public CompletableFuture<Boolean> compareAndSet(long expectedValue, long updateValue) {
         return proxy.invoke(RaftAtomicCounterOperations.COMPARE_AND_SET, SERIALIZER::encode,
             new RaftAtomicCounterOperations.CompareAndSet(expectedValue, updateValue), SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Long> addAndGet(long delta) {
-        return proxy.invoke(RaftAtomicCounterOperations.ADD_AND_GET, SERIALIZER::encode, new RaftAtomicCounterOperations.AddAndGet(delta), SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Long> getAndAdd(long delta) {
-        return proxy.invoke(RaftAtomicCounterOperations.GET_AND_ADD, SERIALIZER::encode, new RaftAtomicCounterOperations.GetAndAdd(delta), SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Long> incrementAndGet() {
-        return proxy.invoke(RaftAtomicCounterOperations.INCREMENT_AND_GET, SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Long> getAndIncrement() {
-        return proxy.invoke(RaftAtomicCounterOperations.GET_AND_INCREMENT, SERIALIZER::decode);
     }
 }

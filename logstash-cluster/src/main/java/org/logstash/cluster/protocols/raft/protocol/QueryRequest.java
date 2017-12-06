@@ -33,19 +33,19 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class QueryRequest extends OperationRequest {
 
+    private final long index;
+
+    public QueryRequest(long session, long sequence, RaftOperation operation, long index) {
+        super(session, sequence, operation);
+        this.index = index;
+    }
+
     /**
      * Returns a new query request builder.
      * @return A new query request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long index;
-
-    public QueryRequest(long session, long sequence, RaftOperation operation, long index) {
-        super(session, sequence, operation);
-        this.index = index;
     }
 
     /**
@@ -100,12 +100,6 @@ public class QueryRequest extends OperationRequest {
             return this;
         }
 
-        @Override
-        protected void validate() {
-            super.validate();
-            checkArgument(index >= 0, "index must be positive");
-        }
-
         /**
          * @throws IllegalStateException if {@code query} is null
          */
@@ -113,6 +107,12 @@ public class QueryRequest extends OperationRequest {
         public QueryRequest build() {
             validate();
             return new QueryRequest(session, sequence, operation, index);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            checkArgument(index >= 0, "index must be positive");
         }
     }
 

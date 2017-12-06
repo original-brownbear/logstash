@@ -23,6 +23,10 @@ import org.logstash.cluster.utils.memory.DirectMemory;
  */
 public class UnsafeDirectBytes extends NativeBytes {
 
+    protected UnsafeDirectBytes(DirectMemory memory) {
+        super(memory);
+    }
+
     /**
      * Allocates a direct {@link java.nio.ByteBuffer} based byte array.
      * <p>
@@ -35,10 +39,6 @@ public class UnsafeDirectBytes extends NativeBytes {
      */
     public static UnsafeDirectBytes allocate(int size) {
         return new UnsafeDirectBytes(DirectMemory.allocate(size));
-    }
-
-    protected UnsafeDirectBytes(DirectMemory memory) {
-        super(memory);
     }
 
     /**

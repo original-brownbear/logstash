@@ -30,16 +30,16 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class CommandResponse extends OperationResponse {
 
+    public CommandResponse(Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
+        super(status, error, index, eventIndex, result, lastSequence);
+    }
+
     /**
      * Returns a new submit response builder.
      * @return A new submit response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public CommandResponse(Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
-        super(status, error, index, eventIndex, result, lastSequence);
     }
 
     /**

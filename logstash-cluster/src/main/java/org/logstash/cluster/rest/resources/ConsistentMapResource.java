@@ -115,6 +115,13 @@ public class ConsistentMapResource extends AbstractRestResource {
         });
     }
 
+    @DELETE
+    @Path("/")
+    @Produces(MediaType.APPLICATION_JSON)
+    public void delete(@Suspended AsyncResponse response) {
+        clear(response);
+    }
+
     @POST
     @Path("/clear")
     public void clear(@Suspended AsyncResponse response) {
@@ -126,13 +133,6 @@ public class ConsistentMapResource extends AbstractRestResource {
                 response.resume(Response.serverError().build());
             }
         });
-    }
-
-    @DELETE
-    @Path("/")
-    @Produces(MediaType.APPLICATION_JSON)
-    public void delete(@Suspended AsyncResponse response) {
-        clear(response);
     }
 
     /**

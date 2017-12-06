@@ -34,23 +34,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class KeepAliveResponse extends AbstractRaftResponse {
 
+    private final MemberId leader;
+    private final Collection<MemberId> members;
+    private final long[] sessionIds;
+    public KeepAliveResponse(Status status, RaftError error, MemberId leader, Collection<MemberId> members, long[] sessionIds) {
+        super(status, error);
+        this.leader = leader;
+        this.members = members;
+        this.sessionIds = sessionIds;
+    }
+
     /**
      * Returns a new keep alive response builder.
      * @return A new keep alive response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final MemberId leader;
-    private final Collection<MemberId> members;
-    private final long[] sessionIds;
-
-    public KeepAliveResponse(Status status, RaftError error, MemberId leader, Collection<MemberId> members, long[] sessionIds) {
-        super(status, error);
-        this.leader = leader;
-        this.members = members;
-        this.sessionIds = sessionIds;
     }
 
     /**
@@ -151,15 +150,6 @@ public class KeepAliveResponse extends AbstractRaftResponse {
             return this;
         }
 
-        @Override
-        protected void validate() {
-            super.validate();
-            if (status == Status.OK) {
-                checkNotNull(members, "members cannot be null");
-                checkNotNull(sessionIds, "sessionIds cannot be null");
-            }
-        }
-
         /**
          * @throws IllegalStateException if status is OK and members is null
          */
@@ -167,6 +157,15 @@ public class KeepAliveResponse extends AbstractRaftResponse {
         public KeepAliveResponse build() {
             validate();
             return new KeepAliveResponse(status, error, leader, members, sessionIds);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            if (status == Status.OK) {
+                checkNotNull(members, "members cannot be null");
+                checkNotNull(sessionIds, "sessionIds cannot be null");
+            }
         }
     }
 }

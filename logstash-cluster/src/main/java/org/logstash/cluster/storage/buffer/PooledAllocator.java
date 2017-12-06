@@ -28,16 +28,16 @@ public abstract class PooledAllocator implements BufferAllocator {
         this.pool = pool;
     }
 
+    @Override
+    public Buffer allocate() {
+        return allocate(4096, maxCapacity());
+    }
+
     /**
      * Returns the maximum buffer capacity.
      * @return The maximum buffer capacity.
      */
     protected abstract int maxCapacity();
-
-    @Override
-    public Buffer allocate() {
-        return allocate(4096, maxCapacity());
-    }
 
     @Override
     public Buffer allocate(int capacity) {

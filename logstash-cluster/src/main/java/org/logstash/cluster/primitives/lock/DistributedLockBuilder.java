@@ -46,21 +46,21 @@ public abstract class DistributedLockBuilder
     /**
      * Sets the lock timeout.
      * @param lockTimeout the lock timeout
-     * @param timeUnit the timeout time unit
-     * @return leader elector builder
-     */
-    public DistributedLockBuilder withLockTimeout(long lockTimeout, TimeUnit timeUnit) {
-        return withLockTimeout(Duration.ofMillis(timeUnit.toMillis(lockTimeout)));
-    }
-
-    /**
-     * Sets the lock timeout.
-     * @param lockTimeout the lock timeout
      * @return leader elector builder
      */
     public DistributedLockBuilder withLockTimeout(Duration lockTimeout) {
         this.lockTimeout = checkNotNull(lockTimeout);
         return this;
+    }
+
+    /**
+     * Sets the lock timeout.
+     * @param lockTimeout the lock timeout
+     * @param timeUnit the timeout time unit
+     * @return leader elector builder
+     */
+    public DistributedLockBuilder withLockTimeout(long lockTimeout, TimeUnit timeUnit) {
+        return withLockTimeout(Duration.ofMillis(timeUnit.toMillis(lockTimeout)));
     }
 
     /**

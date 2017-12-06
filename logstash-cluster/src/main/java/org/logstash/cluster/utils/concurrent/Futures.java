@@ -144,21 +144,6 @@ public final class Futures {
     }
 
     /**
-     * Returns a new CompletableFuture completed with a list of computed values
-     * when all of the given CompletableFuture complete.
-     * @param futures the CompletableFutures
-     * @param <T> value type of CompletableFuture
-     * @return a new CompletableFuture that is completed when all of the given CompletableFutures complete
-     */
-    public static <T> CompletableFuture<List<T>> allOf(final List<CompletableFuture<T>> futures) {
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
-            .thenApply(v -> futures.stream()
-                .map(CompletableFuture::join)
-                .collect(Collectors.toList())
-            );
-    }
-
-    /**
      * Returns a new CompletableFuture completed by reducing a list of computed values
      * when all of the given CompletableFuture complete.
      * @param futures the CompletableFutures
@@ -171,6 +156,21 @@ public final class Futures {
         final BinaryOperator<T> reducer,
         final T emptyValue) {
         return allOf(futures).thenApply(resultList -> resultList.stream().reduce(reducer).orElse(emptyValue));
+    }
+
+    /**
+     * Returns a new CompletableFuture completed with a list of computed values
+     * when all of the given CompletableFuture complete.
+     * @param futures the CompletableFutures
+     * @param <T> value type of CompletableFuture
+     * @return a new CompletableFuture that is completed when all of the given CompletableFutures complete
+     */
+    public static <T> CompletableFuture<List<T>> allOf(final List<CompletableFuture<T>> futures) {
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
+            .thenApply(v -> futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList())
+            );
     }
 
     /**

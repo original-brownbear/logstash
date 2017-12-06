@@ -16,7 +16,6 @@
 package org.logstash.cluster.utils;
 
 import com.google.common.collect.Maps;
-
 import java.util.Map;
 import java.util.ServiceLoader;
 
@@ -24,21 +23,20 @@ import java.util.ServiceLoader;
  * Service utilities.
  */
 public final class Services {
-  private static final Map<Class, Object> services = Maps.newConcurrentMap();
+    private static final Map<Class, Object> services = Maps.newConcurrentMap();
 
-  /**
-   * Loads the service for the given service class.
-   *
-   * @param serviceClass the service class for which to load the service
-   * @param <T> the service type
-   * @return the registered service of the given type
-   */
-  @SuppressWarnings("unchecked")
-  public static <T> T load(Class<T> serviceClass) {
-    return (T) services.computeIfAbsent(serviceClass, s -> ServiceLoader.load(serviceClass).iterator().next());
-  }
+    private Services() {
+    }
 
-  private Services() {
-  }
+    /**
+     * Loads the service for the given service class.
+     * @param serviceClass the service class for which to load the service
+     * @param <T> the service type
+     * @return the registered service of the given type
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T load(Class<T> serviceClass) {
+        return (T) services.computeIfAbsent(serviceClass, s -> ServiceLoader.load(serviceClass).iterator().next());
+    }
 
 }

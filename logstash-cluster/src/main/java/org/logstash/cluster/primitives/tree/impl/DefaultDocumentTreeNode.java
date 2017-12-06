@@ -1,22 +1,7 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -28,24 +13,22 @@ import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTreeNode;
 import org.logstash.cluster.time.Versioned;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * A {@code DocumentTree} node.
  */
 public class DefaultDocumentTreeNode<V> implements DocumentTreeNode<V> {
     private final DocumentPath key;
-    private Versioned<V> value;
     private final Map<String, DocumentTreeNode<V>> children;
     private final Ordering ordering;
     private final DocumentTreeNode<V> parent;
+    private Versioned<V> value;
 
     public DefaultDocumentTreeNode(DocumentPath key,
         V value,
         long version,
         Ordering ordering,
         DocumentTreeNode<V> parent) {
-        this.key = checkNotNull(key);
+        this.key = Preconditions.checkNotNull(key);
         this.value = new Versioned<>(value, version);
         this.ordering = ordering;
         this.parent = parent;
@@ -59,26 +42,6 @@ public class DefaultDocumentTreeNode<V> implements DocumentTreeNode<V> {
                 children = Maps.newTreeMap();
                 break;
         }
-    }
-
-    @Override
-    public DocumentPath path() {
-        return key;
-    }
-
-    @Override
-    public Versioned<V> value() {
-        return value;
-    }
-
-    @Override
-    public Iterator<DocumentTreeNode<V>> children() {
-        return ImmutableList.copyOf(children.values()).iterator();
-    }
-
-    @Override
-    public DocumentTreeNode<V> child(String name) {
-        return children.get(name);
     }
 
     public DocumentTreeNode<V> parent() {
@@ -101,6 +64,26 @@ public class DefaultDocumentTreeNode<V> implements DocumentTreeNode<V> {
         children.put(name, new DefaultDocumentTreeNode<>(
             new DocumentPath(name, path()), newValue, newVersion, ordering, this));
         return null;
+    }
+
+    @Override
+    public DocumentPath path() {
+        return key;
+    }
+
+    @Override
+    public Versioned<V> value() {
+        return value;
+    }
+
+    @Override
+    public DocumentTreeNode<V> child(String name) {
+        return children.get(name);
+    }
+
+    @Override
+    public Iterator<DocumentTreeNode<V>> children() {
+        return ImmutableList.copyOf(children.values()).iterator();
     }
 
     /**

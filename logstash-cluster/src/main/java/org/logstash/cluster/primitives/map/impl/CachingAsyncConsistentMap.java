@@ -99,6 +99,16 @@ public class CachingAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     }
 
     @Override
+    public CompletableFuture<Boolean> containsKey(K key) {
+        return cache.getUnchecked(key).thenApply(Objects::nonNull)
+            .whenComplete((r, e) -> {
+                if (e != null) {
+                    cache.invalidate(key);
+                }
+            });
+    }
+
+    @Override
     public CompletableFuture<Versioned<V>> get(K key) {
         return cache.getUnchecked(key)
             .whenComplete((r, e) -> {
@@ -146,31 +156,21 @@ public class CachingAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     }
 
     @Override
-    public CompletableFuture<Versioned<V>> putIfAbsent(K key, V value) {
-        return super.putIfAbsent(key, value)
-            .whenComplete((r, e) -> cache.invalidate(key));
-    }
-
-    @Override
     public CompletableFuture<Versioned<V>> remove(K key) {
         return super.remove(key)
             .whenComplete((r, e) -> cache.invalidate(key));
     }
 
     @Override
-    public CompletableFuture<Boolean> containsKey(K key) {
-        return cache.getUnchecked(key).thenApply(Objects::nonNull)
-            .whenComplete((r, e) -> {
-                if (e != null) {
-                    cache.invalidate(key);
-                }
-            });
-    }
-
-    @Override
     public CompletableFuture<Void> clear() {
         return super.clear()
             .whenComplete((r, e) -> cache.invalidateAll());
+    }
+
+    @Override
+    public CompletableFuture<Versioned<V>> putIfAbsent(K key, V value) {
+        return super.putIfAbsent(key, value)
+            .whenComplete((r, e) -> cache.invalidate(key));
     }
 
     @Override

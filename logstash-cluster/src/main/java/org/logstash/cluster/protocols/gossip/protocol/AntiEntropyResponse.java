@@ -24,57 +24,54 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  */
 public class AntiEntropyResponse<K> {
 
-  /**
-   * Anti-entropy response status.
-   */
-  public enum Status {
-    /**
-     * Signifies a successfully processed anti-entropy message.
-     */
-    PROCESSED,
+    private final Status status;
+    private final Set<K> keys;
+    public AntiEntropyResponse(Status status, Set<K> keys) {
+        this.status = status;
+        this.keys = keys;
+    }
 
     /**
-     * Signifies a unexpected failure during anti-entropy message processing.
+     * Returns the anti-entropy response status.
+     * @return the anti-entropy response status
      */
-    FAILED,
+    public Status status() {
+        return status;
+    }
 
     /**
-     * Signifies a ignored anti-entropy message, potentially due to the receiver operating under high load.
+     * Returns a set of keys to update.
+     * @return the set of keys that need updating
      */
-    IGNORED
-  }
+    public Set<K> keys() {
+        return keys;
+    }
 
-  private final Status status;
-  private final Set<K> keys;
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("status", status)
+            .add("keys", keys)
+            .toString();
+    }
 
-  public AntiEntropyResponse(Status status, Set<K> keys) {
-    this.status = status;
-    this.keys = keys;
-  }
+    /**
+     * Anti-entropy response status.
+     */
+    public enum Status {
+        /**
+         * Signifies a successfully processed anti-entropy message.
+         */
+        PROCESSED,
 
-  /**
-   * Returns the anti-entropy response status.
-   *
-   * @return the anti-entropy response status
-   */
-  public Status status() {
-    return status;
-  }
+        /**
+         * Signifies a unexpected failure during anti-entropy message processing.
+         */
+        FAILED,
 
-  /**
-   * Returns a set of keys to update.
-   *
-   * @return the set of keys that need updating
-   */
-  public Set<K> keys() {
-    return keys;
-  }
-
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("status", status)
-        .add("keys", keys)
-        .toString();
-  }
+        /**
+         * Signifies a ignored anti-entropy message, potentially due to the receiver operating under high load.
+         */
+        IGNORED
+    }
 }

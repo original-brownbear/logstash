@@ -121,23 +121,23 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
         /**
          * Sets the operation retry delay.
          * @param retryDelay the delay between operation retries
-         * @param timeUnit the delay time unit
-         * @return the proxy builder
-         * @throws NullPointerException if the time unit is null
-         */
-        public Builder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
-            return withRetryDelay(Duration.ofMillis(timeUnit.toMillis(retryDelay)));
-        }
-
-        /**
-         * Sets the operation retry delay.
-         * @param retryDelay the delay between operation retries
          * @return the proxy builder
          * @throws NullPointerException if the delay is null
          */
         public Builder withRetryDelay(Duration retryDelay) {
             this.retryDelay = checkNotNull(retryDelay, "retryDelay cannot be null");
             return this;
+        }
+
+        /**
+         * Sets the operation retry delay.
+         * @param retryDelay the delay between operation retries
+         * @param timeUnit the delay time unit
+         * @return the proxy builder
+         * @throws NullPointerException if the time unit is null
+         */
+        public Builder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
+            return withRetryDelay(Duration.ofMillis(timeUnit.toMillis(retryDelay)));
         }
 
         /**
@@ -192,6 +192,19 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws IllegalArgumentException if the session timeout is not positive
          * @throws NullPointerException if the timeout is null
          */
+        public Builder withMaxTimeout(Duration timeout) {
+            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
+            this.maxTimeout = timeout;
+            return this;
+        }
+
+        /**
+         * Sets the session timeout.
+         * @param timeout The session timeout.
+         * @return The session builder.
+         * @throws IllegalArgumentException if the session timeout is not positive
+         * @throws NullPointerException if the timeout is null
+         */
         @Deprecated
         public Builder withTimeout(Duration timeout) {
             return withMaxTimeout(timeout);
@@ -205,19 +218,6 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          */
         public Builder withMaxTimeout(long timeoutMillis) {
             return withMaxTimeout(Duration.ofMillis(timeoutMillis));
-        }
-
-        /**
-         * Sets the session timeout.
-         * @param timeout The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         * @throws NullPointerException if the timeout is null
-         */
-        public Builder withMaxTimeout(Duration timeout) {
-            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
-            this.maxTimeout = timeout;
-            return this;
         }
 
         /**

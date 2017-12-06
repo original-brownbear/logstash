@@ -35,12 +35,6 @@ public interface DocumentTree<V> extends SyncPrimitive {
     }
 
     /**
-     * Returns the {@link DocumentPath path} to root of the tree.
-     * @return path to root of the tree
-     */
-    DocumentPath root();
-
-    /**
      * Returns the child values for this node.
      * @param path path to the node
      * @return mapping from a child name to its value
@@ -113,14 +107,6 @@ public interface DocumentTree<V> extends SyncPrimitive {
     Versioned<V> removeNode(DocumentPath path);
 
     /**
-     * Registers a listener to be notified when a subtree rooted at the specified path
-     * is modified.
-     * @param path path to root of subtree to monitor for updates
-     * @param listener listener to be notified
-     */
-    void addListener(DocumentPath path, DocumentTreeListener<V> listener);
-
-    /**
      * Unregisters a previously added listener.
      * @param listener listener to unregister
      */
@@ -133,4 +119,18 @@ public interface DocumentTree<V> extends SyncPrimitive {
     default void addListener(DocumentTreeListener<V> listener) {
         addListener(root(), listener);
     }
+
+    /**
+     * Returns the {@link DocumentPath path} to root of the tree.
+     * @return path to root of the tree
+     */
+    DocumentPath root();
+
+    /**
+     * Registers a listener to be notified when a subtree rooted at the specified path
+     * is modified.
+     * @param path path to root of subtree to monitor for updates
+     * @param listener listener to be notified
+     */
+    void addListener(DocumentPath path, DocumentTreeListener<V> listener);
 }

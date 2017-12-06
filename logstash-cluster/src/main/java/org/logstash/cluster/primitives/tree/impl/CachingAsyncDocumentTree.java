@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.google.common.cache.CacheBuilder;
@@ -20,26 +5,24 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.tree.AsyncDocumentTree;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTreeListener;
 import org.logstash.cluster.time.Versioned;
 import org.slf4j.Logger;
-
-import static org.logstash.cluster.primitives.DistributedPrimitive.Status.INACTIVE;
-import static org.logstash.cluster.primitives.DistributedPrimitive.Status.SUSPENDED;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Caching asynchronous document tree.
  */
-public class CachingAsyncDocumentTree<V> extends DelegatingAsyncDocumentTree<V> implements AsyncDocumentTree<V> {
+public class CachingAsyncDocumentTree<V> extends DelegatingAsyncDocumentTree<V> {
     private static final int DEFAULT_CACHE_SIZE = 10000;
-    private final Logger log = getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final LoadingCache<DocumentPath, CompletableFuture<Versioned<V>>> cache;
     private final DocumentTreeListener<V> cacheUpdater;
-    private final Consumer<Status> statusListener;
+    private final Consumer<DistributedPrimitive.Status> statusListener;
 
     /**
      * Default constructor.
@@ -70,12 +53,12 @@ public class CachingAsyncDocumentTree<V> extends DelegatingAsyncDocumentTree<V> 
             log.debug("{} status changed to {}", this.name(), status);
             // If the status of the underlying map is SUSPENDED or INACTIVE
             // we can no longer guarantee that the cache will be in sync.
-            if (status == SUSPENDED || status == INACTIVE) {
+            if (status == DistributedPrimitive.Status.SUSPENDED || status == DistributedPrimitive.Status.INACTIVE) {
                 cache.invalidateAll();
             }
         };
-        super.addListener(cacheUpdater);
-        super.addStatusChangeListener(statusListener);
+        addListener(cacheUpdater);
+        addStatusChangeListener(statusListener);
     }
 
     @Override

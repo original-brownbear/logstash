@@ -24,37 +24,35 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  * Base type for gossip messages.
  */
 public class GossipMessage<K, V> {
-  private final LogicalTimestamp timestamp;
-  private final Collection<GossipUpdate<K, V>> updates;
+    private final LogicalTimestamp timestamp;
+    private final Collection<GossipUpdate<K, V>> updates;
 
-  public GossipMessage(LogicalTimestamp timestamp, Collection<GossipUpdate<K, V>> updates) {
-    this.timestamp = timestamp;
-    this.updates = updates;
-  }
+    public GossipMessage(LogicalTimestamp timestamp, Collection<GossipUpdate<K, V>> updates) {
+        this.timestamp = timestamp;
+        this.updates = updates;
+    }
 
-  /**
-   * Returns the logical timestamp for the message.
-   *
-   * @return the logical timestamp for the message
-   */
-  public LogicalTimestamp timestamp() {
-    return timestamp;
-  }
+    /**
+     * Returns the logical timestamp for the message.
+     * @return the logical timestamp for the message
+     */
+    public LogicalTimestamp timestamp() {
+        return timestamp;
+    }
 
-  /**
-   * Returns a list of gossip updates.
-   *
-   * @return a list of gossip updates
-   */
-  public Collection<GossipUpdate<K, V>> updates() {
-    return updates;
-  }
+    /**
+     * Returns a list of gossip updates.
+     * @return a list of gossip updates
+     */
+    public Collection<GossipUpdate<K, V>> updates() {
+        return updates;
+    }
 
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("timestamp", timestamp)
-        .add("updates", updates)
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("timestamp", timestamp)
+            .add("updates", updates)
+            .toString();
+    }
 }

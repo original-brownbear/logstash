@@ -79,6 +79,11 @@ public class Leader<T> {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(id, term, termStartTime);
+    }
+
+    @Override
     public boolean equals(Object other) {
         if (this == other) {
             return true;
@@ -90,11 +95,6 @@ public class Leader<T> {
                 this.termStartTime == that.termStartTime;
         }
         return false;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id, term, termStartTime);
     }
 
     @Override

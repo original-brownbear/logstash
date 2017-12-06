@@ -27,29 +27,26 @@ package org.logstash.cluster.protocols.raft.session;
  */
 public interface RaftSessions extends Iterable<RaftSession> {
 
-  /**
-   * Returns a session by session ID.
-   *
-   * @param sessionId The session ID.
-   * @return The session or {@code null} if no session with the given {@code sessionId} exists.
-   */
-  RaftSession getSession(long sessionId);
+    /**
+     * Returns a session by session ID.
+     * @param sessionId The session ID.
+     * @return The session or {@code null} if no session with the given {@code sessionId} exists.
+     */
+    RaftSession getSession(long sessionId);
 
-  /**
-   * Adds a listener to the sessions.
-   *
-   * @param listener The listener to add.
-   * @return The sessions.
-   * @throws NullPointerException if the session {@code listener} is {@code null}
-   */
-  RaftSessions addListener(RaftSessionListener listener);
+    /**
+     * Adds a listener to the sessions.
+     * @param listener The listener to add.
+     * @return The sessions.
+     * @throws NullPointerException if the session {@code listener} is {@code null}
+     */
+    RaftSessions addListener(RaftSessionListener listener);
 
-  /**
-   * Removes a listener from the sessions.
-   *
-   * @param listener The listener to remove.
-   * @return The sessions.
-   */
-  RaftSessions removeListener(RaftSessionListener listener);
+    /**
+     * Removes a listener from the sessions.
+     * @param listener The listener to remove.
+     * @return The sessions.
+     */
+    RaftSessions removeListener(RaftSessionListener listener);
 
 }

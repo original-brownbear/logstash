@@ -64,11 +64,6 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public DocumentPath root() {
-        return ROOT_PATH;
-    }
-
-    @Override
     public Map<String, Versioned<V>> getChildren(DocumentPath path) {
         DocumentTreeNode<V> node = getNode(path);
         if (node != null) {
@@ -173,18 +168,24 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public void addListener(DocumentPath path, DocumentTreeListener<V> listener) {
-        // TODO Auto-generated method stub
-    }
-
-    @Override
     public void removeListener(DocumentTreeListener<V> listener) {
         // TODO Auto-generated method stub
     }
 
     @Override
-    public void close() {
+    public DocumentPath root() {
+        return ROOT_PATH;
+    }
 
+    @Override
+    public void addListener(DocumentPath path, DocumentTreeListener<V> listener) {
+        // TODO Auto-generated method stub
+    }
+
+    private void checkRootModification(DocumentPath path) {
+        if (ROOT_PATH.equals(path)) {
+            throw new IllegalDocumentModificationException();
+        }
     }
 
     private DefaultDocumentTreeNode<V> getNode(DocumentPath path) {
@@ -201,9 +202,8 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
         return path.pathElements().get(path.pathElements().size() - 1);
     }
 
-    private void checkRootModification(DocumentPath path) {
-        if (ROOT_PATH.equals(path)) {
-            throw new IllegalDocumentModificationException();
-        }
+    @Override
+    public void close() {
+
     }
 }

@@ -25,21 +25,6 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  */
 public class FailureDetectionEvent<T extends Identifier> extends AbstractEvent<FailureDetectionEvent.Type, T> {
 
-    /**
-     * Failure detection event type.
-     */
-    public enum Type {
-        STATE_CHANGE,
-    }
-
-    /**
-     * Failure detection event state.
-     */
-    public enum State {
-        ACTIVE,
-        INACTIVE,
-    }
-
     private final State oldState;
     private final State newState;
 
@@ -73,5 +58,20 @@ public class FailureDetectionEvent<T extends Identifier> extends AbstractEvent<F
             .add("oldState", oldState)
             .add("newState", newState)
             .toString();
+    }
+
+    /**
+     * Failure detection event type.
+     */
+    public enum Type {
+        STATE_CHANGE,
+    }
+
+    /**
+     * Failure detection event state.
+     */
+    public enum State {
+        ACTIVE,
+        INACTIVE,
     }
 }

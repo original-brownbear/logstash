@@ -24,6 +24,12 @@ import java.util.function.Supplier;
  */
 public class LoggerContext {
 
+    private final Supplier<String> stringProvider;
+
+    public LoggerContext(Supplier<String> stringProvider) {
+        this.stringProvider = stringProvider;
+    }
+
     /**
      * Returns a new contextual logger builder.
      * @param name the logger name
@@ -42,12 +48,6 @@ public class LoggerContext {
         return new Builder(clazz.getSimpleName());
     }
 
-    private final Supplier<String> stringProvider;
-
-    public LoggerContext(Supplier<String> stringProvider) {
-        this.stringProvider = stringProvider;
-    }
-
     @Override
     public String toString() {
         return stringProvider.get();
@@ -63,15 +63,6 @@ public class LoggerContext {
 
         public Builder(String name) {
             this.identityStringHelper = MoreObjects.toStringHelper(name);
-        }
-
-        /**
-         * Initializes the arguments string helper.
-         */
-        private void initializeArgs() {
-            if (argsStringHelper == null) {
-                argsStringHelper = MoreObjects.toStringHelper("");
-            }
         }
 
         /**
@@ -95,6 +86,15 @@ public class LoggerContext {
             initializeArgs();
             argsStringHelper.add(name, value);
             return this;
+        }
+
+        /**
+         * Initializes the arguments string helper.
+         */
+        private void initializeArgs() {
+            if (argsStringHelper == null) {
+                argsStringHelper = MoreObjects.toStringHelper("");
+            }
         }
 
         /**

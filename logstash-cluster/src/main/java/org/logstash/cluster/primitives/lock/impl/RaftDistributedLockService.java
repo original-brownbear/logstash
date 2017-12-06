@@ -45,15 +45,48 @@ public class RaftDistributedLockService extends AbstractRaftService {
         .register(RaftDistributedLockEvents.NAMESPACE)
         .register(LockHolder.class)
         .build());
-
+    private final Map<Long, Scheduled> timers = new HashMap<>();
     private LockHolder lock;
     private Queue<LockHolder> queue = new ArrayDeque<>();
-    private final Map<Long, Scheduled> timers = new HashMap<>();
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
         executor.register(LOCK, SERIALIZER::decode, this::lock);
         executor.register(UNLOCK, SERIALIZER::decode, this::unlock);
+    }
+
+    @Override
+    public void onExpire(RaftSession session) {
+        releaseSession(session);
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        releaseSession(session);
+    }
+
+    private void releaseSession(RaftSession session) {
+        if (lock.session == session.sessionId().id()) {
+            lock = queue.poll();
+            while (lock != null) {
+                if (lock.session == session.sessionId().id()) {
+                    lock = queue.poll();
+                } else {
+                    Scheduled timer = timers.remove(lock.index);
+                    if (timer != null) {
+                        timer.cancel();
+                    }
+
+                    RaftSession lockSession = sessions().getSession(lock.session);
+                    if (lockSession == null || lockSession.getState() == RaftSession.State.EXPIRED || lockSession.getState() == RaftSession.State.CLOSED) {
+                        lock = queue.poll();
+                    } else {
+                        lockSession.publish(RaftDistributedLockEvents.LOCK, SERIALIZER::encode, new LockEvent(lock.id, lock.index));
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     @Override
@@ -80,16 +113,6 @@ public class RaftDistributedLockService extends AbstractRaftService {
                 }));
             }
         }
-    }
-
-    @Override
-    public void onExpire(RaftSession session) {
-        releaseSession(session);
-    }
-
-    @Override
-    public void onClose(RaftSession session) {
-        releaseSession(session);
     }
 
     /**
@@ -151,30 +174,6 @@ public class RaftDistributedLockService extends AbstractRaftService {
                 } else {
                     session.publish(RaftDistributedLockEvents.LOCK, SERIALIZER::encode, new LockEvent(lock.id, commit.index()));
                     break;
-                }
-            }
-        }
-    }
-
-    private void releaseSession(RaftSession session) {
-        if (lock.session == session.sessionId().id()) {
-            lock = queue.poll();
-            while (lock != null) {
-                if (lock.session == session.sessionId().id()) {
-                    lock = queue.poll();
-                } else {
-                    Scheduled timer = timers.remove(lock.index);
-                    if (timer != null) {
-                        timer.cancel();
-                    }
-
-                    RaftSession lockSession = sessions().getSession(lock.session);
-                    if (lockSession == null || lockSession.getState() == RaftSession.State.EXPIRED || lockSession.getState() == RaftSession.State.CLOSED) {
-                        lock = queue.poll();
-                    } else {
-                        lockSession.publish(RaftDistributedLockEvents.LOCK, SERIALIZER::encode, new LockEvent(lock.id, lock.index));
-                        break;
-                    }
                 }
             }
         }

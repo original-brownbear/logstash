@@ -49,6 +49,13 @@ public interface AsyncConsistentMultimap<K, V> extends AsyncPrimitive {
     }
 
     /**
+     * Removes all key-value pairs, after which it will be empty.
+     * @return a future whose value is irrelevant, simply used to determine if
+     * the call has completed
+     */
+    CompletableFuture<Void> clear();
+
+    /**
      * Returns the number of key-value pairs in this multimap.
      * @return the number of key-value pairs
      */
@@ -162,13 +169,6 @@ public interface AsyncConsistentMultimap<K, V> extends AsyncPrimitive {
      */
     CompletableFuture<Versioned<Collection<? extends V>>> replaceValues(
         K key, Collection<V> values);
-
-    /**
-     * Removes all key-value pairs, after which it will be empty.
-     * @return a future whose value is irrelevant, simply used to determine if
-     * the call has completed
-     */
-    CompletableFuture<Void> clear();
 
     /**
      * Returns a collection of values associated with the specified key, if the

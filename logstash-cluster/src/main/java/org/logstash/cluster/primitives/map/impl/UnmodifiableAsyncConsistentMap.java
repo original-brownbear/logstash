@@ -40,6 +40,11 @@ public class UnmodifiableAsyncConsistentMap<K, V> extends DelegatingAsyncConsist
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return Futures.exceptionalFuture(new UnsupportedOperationException(ERROR_MSG));
+    }
+
+    @Override
     public CompletableFuture<Versioned<V>> computeIf(K key,
         Predicate<? super V> condition,
         BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
@@ -58,11 +63,6 @@ public class UnmodifiableAsyncConsistentMap<K, V> extends DelegatingAsyncConsist
 
     @Override
     public CompletableFuture<Versioned<V>> remove(K key) {
-        return Futures.exceptionalFuture(new UnsupportedOperationException(ERROR_MSG));
-    }
-
-    @Override
-    public CompletableFuture<Void> clear() {
         return Futures.exceptionalFuture(new UnsupportedOperationException(ERROR_MSG));
     }
 

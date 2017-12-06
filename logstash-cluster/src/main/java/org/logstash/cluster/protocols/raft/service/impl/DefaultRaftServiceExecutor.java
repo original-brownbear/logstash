@@ -89,23 +89,6 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         }
     }
 
-    /**
-     * Checks that the current operation is of the given type.
-     * @param type the operation type
-     * @param message the message to print if the current operation does not match the given type
-     */
-    private void checkOperation(OperationType type, String message) {
-        checkState(operationType == type, message);
-    }
-
-    @Override
-    public void handle(OperationId operationId, Function<Commit<byte[]>, byte[]> callback) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
-        operations.put(operationId, callback);
-        log.debug("Registered operation callback {}", operationId);
-    }
-
     @Override
     public byte[] apply(Commit<byte[]> commit) {
         log.trace("Executing {}", commit);
@@ -132,6 +115,14 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         }
     }
 
+    @Override
+    public void handle(OperationId operationId, Function<Commit<byte[]>, byte[]> callback) {
+        checkNotNull(operationId, "operationId cannot be null");
+        checkNotNull(callback, "callback cannot be null");
+        operations.put(operationId, callback);
+        log.debug("Registered operation callback {}", operationId);
+    }
+
     /**
      * Executes tasks after an operation.
      */
@@ -150,6 +141,15 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
     public void execute(Runnable callback) {
         checkOperation(OperationType.COMMAND, "callbacks can only be scheduled during command execution");
         tasks.add(callback);
+    }
+
+    /**
+     * Checks that the current operation is of the given type.
+     * @param type the operation type
+     * @param message the message to print if the current operation does not match the given type
+     */
+    private void checkOperation(OperationType type, String message) {
+        checkState(operationType == type, message);
     }
 
     @Override
@@ -185,6 +185,16 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         }
 
         /**
+         * Reschedules the task.
+         */
+        private void reschedule(long timestamp) {
+            if (interval > 0) {
+                time = timestamp + interval;
+                schedule();
+            }
+        }
+
+        /**
          * Schedules the task.
          */
         private Scheduled schedule() {
@@ -217,16 +227,6 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
                 }
             }
             return this;
-        }
-
-        /**
-         * Reschedules the task.
-         */
-        private void reschedule(long timestamp) {
-            if (interval > 0) {
-                time = timestamp + interval;
-                schedule();
-            }
         }
 
         /**

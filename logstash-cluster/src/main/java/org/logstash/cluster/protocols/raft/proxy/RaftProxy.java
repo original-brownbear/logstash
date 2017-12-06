@@ -36,54 +36,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
 
     /**
-     * Indicates the state of the client's communication with the Raft cluster.
-     * <p>
-     * Throughout the lifetime of a client, the client will transition through various states according to its
-     * ability to communicate with the cluster within the context of a {@link RaftProxy}. In some cases, client
-     * state changes may be indicative of a loss of guarantees. Users of the client should
-     * {@link RaftProxy#addStateChangeListener(Consumer) watch the state of the client} to determine when guarantees
-     * are lost and react to changes in the client's ability to communicate with the cluster.
-     * <p>
-     * <pre>
-     *   {@code
-     *   client.onStateChange(state -> {
-     *     switch (state) {
-     *       case CONNECTED:
-     *         // The client is healthy
-     *         break;
-     *       case SUSPENDED:
-     *         // The client cannot connect to the cluster and operations may be unsafe
-     *         break;
-     *       case CLOSED:
-     *         // The client has been closed and pending operations have failed
-     *         break;
-     *     }
-     *   });
-     *   }
-     * </pre>
-     * So long as the client is in the {@link #CONNECTED} state, all guarantees with respect to reads and writes will
-     * be maintained, and a loss of the {@code CONNECTED} state may indicate a loss of linearizability. See the specific
-     * states for more info.
-     */
-    enum State {
-
-        /**
-         * Indicates that the client is connected and its session is open.
-         */
-        CONNECTED,
-
-        /**
-         * Indicates that the client is suspended and its session may or may not be expired.
-         */
-        SUSPENDED,
-
-        /**
-         * Indicates that the client is closed.
-         */
-        CLOSED,
-    }
-
-    /**
      * Submits an empty operation to the Raft cluster, awaiting a void result.
      * @param operationId the operation identifier
      * @return A completable future to be completed with the operation result. The future is guaranteed to be completed after all
@@ -174,6 +126,54 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
     void removeEventListener(EventType eventType, Consumer listener);
 
     /**
+     * Indicates the state of the client's communication with the Raft cluster.
+     * <p>
+     * Throughout the lifetime of a client, the client will transition through various states according to its
+     * ability to communicate with the cluster within the context of a {@link RaftProxy}. In some cases, client
+     * state changes may be indicative of a loss of guarantees. Users of the client should
+     * {@link RaftProxy#addStateChangeListener(Consumer) watch the state of the client} to determine when guarantees
+     * are lost and react to changes in the client's ability to communicate with the cluster.
+     * <p>
+     * <pre>
+     *   {@code
+     *   client.onStateChange(state -> {
+     *     switch (state) {
+     *       case CONNECTED:
+     *         // The client is healthy
+     *         break;
+     *       case SUSPENDED:
+     *         // The client cannot connect to the cluster and operations may be unsafe
+     *         break;
+     *       case CLOSED:
+     *         // The client has been closed and pending operations have failed
+     *         break;
+     *     }
+     *   });
+     *   }
+     * </pre>
+     * So long as the client is in the {@link #CONNECTED} state, all guarantees with respect to reads and writes will
+     * be maintained, and a loss of the {@code CONNECTED} state may indicate a loss of linearizability. See the specific
+     * states for more info.
+     */
+    enum State {
+
+        /**
+         * Indicates that the client is connected and its session is open.
+         */
+        CONNECTED,
+
+        /**
+         * Indicates that the client is suspended and its session may or may not be expired.
+         */
+        SUSPENDED,
+
+        /**
+         * Indicates that the client is closed.
+         */
+        CLOSED,
+    }
+
+    /**
      * Raft session builder.
      */
     abstract class Builder implements org.logstash.cluster.utils.Builder<RaftProxy> {
@@ -261,23 +261,23 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
         /**
          * Sets the operation retry delay.
          * @param retryDelay the delay between operation retries
-         * @param timeUnit the delay time unit
-         * @return the proxy builder
-         * @throws NullPointerException if the time unit is null
-         */
-        public Builder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
-            return withRetryDelay(Duration.ofMillis(timeUnit.toMillis(retryDelay)));
-        }
-
-        /**
-         * Sets the operation retry delay.
-         * @param retryDelay the delay between operation retries
          * @return the proxy builder
          * @throws NullPointerException if the delay is null
          */
         public Builder withRetryDelay(Duration retryDelay) {
             this.retryDelay = checkNotNull(retryDelay, "retryDelay cannot be null");
             return this;
+        }
+
+        /**
+         * Sets the operation retry delay.
+         * @param retryDelay the delay between operation retries
+         * @param timeUnit the delay time unit
+         * @return the proxy builder
+         * @throws NullPointerException if the time unit is null
+         */
+        public Builder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
+            return withRetryDelay(Duration.ofMillis(timeUnit.toMillis(retryDelay)));
         }
 
         /**
@@ -332,6 +332,19 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
          * @throws IllegalArgumentException if the session timeout is not positive
          * @throws NullPointerException if the timeout is null
          */
+        public Builder withMaxTimeout(Duration timeout) {
+            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
+            this.maxTimeout = timeout;
+            return this;
+        }
+
+        /**
+         * Sets the session timeout.
+         * @param timeout The session timeout.
+         * @return The session builder.
+         * @throws IllegalArgumentException if the session timeout is not positive
+         * @throws NullPointerException if the timeout is null
+         */
         @Deprecated
         public Builder withTimeout(Duration timeout) {
             return withMaxTimeout(timeout);
@@ -345,19 +358,6 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
          */
         public Builder withMaxTimeout(long timeoutMillis) {
             return withMaxTimeout(Duration.ofMillis(timeoutMillis));
-        }
-
-        /**
-         * Sets the session timeout.
-         * @param timeout The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         * @throws NullPointerException if the timeout is null
-         */
-        public Builder withMaxTimeout(Duration timeout) {
-            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
-            this.maxTimeout = timeout;
-            return this;
         }
 
         /**

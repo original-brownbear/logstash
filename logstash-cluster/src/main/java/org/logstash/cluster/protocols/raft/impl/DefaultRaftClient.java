@@ -77,6 +77,11 @@ public class DefaultRaftClient implements RaftClient {
     }
 
     @Override
+    public RaftProxy.Builder newProxyBuilder() {
+        return new ProxyBuilder();
+    }
+
+    @Override
     public synchronized CompletableFuture<RaftClient> connect(Collection<MemberId> cluster) {
         CompletableFuture<RaftClient> future = new CompletableFuture<>();
 
@@ -105,11 +110,6 @@ public class DefaultRaftClient implements RaftClient {
     }
 
     @Override
-    public RaftProxy.Builder newProxyBuilder() {
-        return new ProxyBuilder();
-    }
-
-    @Override
     public synchronized CompletableFuture<Void> close() {
         return sessionManager.close().thenRunAsync(threadContextFactory::close);
     }
@@ -119,6 +119,25 @@ public class DefaultRaftClient implements RaftClient {
         return toStringHelper(this)
             .add("id", clientId)
             .toString();
+    }
+
+    /**
+     * Default Raft client builder.
+     */
+    public static class Builder extends RaftClient.Builder {
+        public Builder(Collection<MemberId> cluster) {
+            super(cluster);
+        }
+
+        @Override
+        public RaftClient build() {
+            checkNotNull(nodeId, "nodeId cannot be null");
+            Logger log = ContextualLoggerFactory.getLogger(DefaultRaftClient.class, LoggerContext.builder(RaftClient.class)
+                .addValue(clientId)
+                .build());
+            ThreadContextFactory threadContextFactory = threadModel.factory("raft-client-" + clientId + "-%d", threadPoolSize, log);
+            return new DefaultRaftClient(clientId, nodeId, cluster, protocol, threadContextFactory);
+        }
     }
 
     /**
@@ -166,25 +185,6 @@ public class DefaultRaftClient implements RaftClient {
 
             // Create the proxy.
             return new DelegatingRaftProxy(client);
-        }
-    }
-
-    /**
-     * Default Raft client builder.
-     */
-    public static class Builder extends RaftClient.Builder {
-        public Builder(Collection<MemberId> cluster) {
-            super(cluster);
-        }
-
-        @Override
-        public RaftClient build() {
-            checkNotNull(nodeId, "nodeId cannot be null");
-            Logger log = ContextualLoggerFactory.getLogger(DefaultRaftClient.class, LoggerContext.builder(RaftClient.class)
-                .addValue(clientId)
-                .build());
-            ThreadContextFactory threadContextFactory = threadModel.factory("raft-client-" + clientId + "-%d", threadPoolSize, log);
-            return new DefaultRaftClient(clientId, nodeId, cluster, protocol, threadContextFactory);
         }
     }
 }

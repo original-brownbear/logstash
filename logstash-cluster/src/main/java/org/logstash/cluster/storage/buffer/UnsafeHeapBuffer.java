@@ -27,6 +27,18 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class UnsafeHeapBuffer extends AbstractBuffer {
 
+    private final UnsafeHeapBytes bytes;
+
+    protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, ReferenceManager<Buffer> referenceManager) {
+        super(bytes, referenceManager);
+        this.bytes = bytes;
+    }
+
+    protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity, null);
+        this.bytes = bytes;
+    }
+
     /**
      * Allocates a heap buffer with an initial capacity of {@code 4096} and a maximum capacity of {@link HeapMemory#MAX_SIZE}.
      * <p>
@@ -41,23 +53,6 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
      */
     public static UnsafeHeapBuffer allocate() {
         return allocate(DEFAULT_INITIAL_CAPACITY, HeapMemory.MAX_SIZE);
-    }
-
-    /**
-     * Allocates a heap buffer with the given initial capacity.
-     * <p>
-     * When the buffer is constructed, {@link io.atomix.utils.memory.HeapMemoryAllocator} will be used to allocate
-     * {@code capacity} bytes of memory on the Java heap. The resulting buffer will have an initial capacity of {@code capacity}.
-     * The underlying {@link UnsafeHeapBytes} will be initialized to the next power of {@code 2}.
-     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
-     * @return The heap buffer.
-     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed capacity for
-     * an array on the Java heap - {@code Integer.MAX_VALUE - 5}
-     * @see UnsafeHeapBuffer#allocate()
-     * @see UnsafeHeapBuffer#allocate(int, int)
-     */
-    public static UnsafeHeapBuffer allocate(int initialCapacity) {
-        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
     }
 
     /**
@@ -81,6 +76,23 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
     }
 
     /**
+     * Allocates a heap buffer with the given initial capacity.
+     * <p>
+     * When the buffer is constructed, {@link io.atomix.utils.memory.HeapMemoryAllocator} will be used to allocate
+     * {@code capacity} bytes of memory on the Java heap. The resulting buffer will have an initial capacity of {@code capacity}.
+     * The underlying {@link UnsafeHeapBytes} will be initialized to the next power of {@code 2}.
+     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
+     * @return The heap buffer.
+     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed capacity for
+     * an array on the Java heap - {@code Integer.MAX_VALUE - 5}
+     * @see UnsafeHeapBuffer#allocate()
+     * @see UnsafeHeapBuffer#allocate(int, int)
+     */
+    public static UnsafeHeapBuffer allocate(int initialCapacity) {
+        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
+    }
+
+    /**
      * Wraps the given bytes in a heap buffer.
      * <p>
      * The buffer will be created with an initial capacity and maximum capacity equal to the byte array count.
@@ -89,18 +101,6 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
      */
     public static UnsafeHeapBuffer wrap(byte[] bytes) {
         return new UnsafeHeapBuffer(UnsafeHeapBytes.wrap(bytes), 0, bytes.length, bytes.length);
-    }
-
-    private final UnsafeHeapBytes bytes;
-
-    protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
-        this.bytes = bytes;
-    }
-
-    protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity, null);
-        this.bytes = bytes;
     }
 
     @Override
@@ -119,6 +119,11 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
         return bytes.memory.array();
     }
 
+    @Override
+    public UnsafeHeapBuffer duplicate() {
+        return new UnsafeHeapBuffer(bytes, offset(), capacity(), maxCapacity());
+    }
+
     /**
      * Resets the internal heap array.
      * @param array The internal array.
@@ -128,10 +133,5 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
         bytes.memory.reset(array);
         clear();
         return this;
-    }
-
-    @Override
-    public UnsafeHeapBuffer duplicate() {
-        return new UnsafeHeapBuffer(bytes, offset(), capacity(), maxCapacity());
     }
 }

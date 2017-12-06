@@ -96,11 +96,14 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
     }
 
     @Override
-    public CompletableFuture<Void> close() {
-        return client != null ? client.close() : CompletableFuture.completedFuture(null);
+    public boolean isOpen() {
+        return client != null;
     }
 
     @Override
+    public CompletableFuture<Void> close() {
+        return client != null ? client.close() : CompletableFuture.completedFuture(null);
+    }    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentMap<K, V> newAsyncConsistentMap(String name, Serializer serializer) {
         RaftConsistentMap rawMap = new RaftConsistentMap(client.newProxyBuilder()
@@ -125,6 +128,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
     }
 
     @Override
+    public boolean isClosed() {
+        return client == null;
+    }    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentTreeMap<K, V> newAsyncConsistentTreeMap(String name, Serializer serializer) {
         RaftConsistentTreeMap rawMap =
@@ -150,7 +156,13 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
         return (AsyncConsistentTreeMap<K, V>) rawMap;
     }
 
-    @Override
+    private RaftClient newRaftClient(RaftClientProtocol protocol) {
+        return RaftClient.builder()
+            .withClientId(partition.name())
+            .withMemberId(localMemberId)
+            .withProtocol(protocol)
+            .build();
+    }    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentMultimap<K, V> newAsyncConsistentSetMultimap(String name, Serializer serializer) {
         RaftConsistentSetMultimap rawMap =
@@ -308,21 +320,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .collect(Collectors.toSet());
     }
 
-    @Override
-    public boolean isOpen() {
-        return client != null;
-    }
 
-    @Override
-    public boolean isClosed() {
-        return client == null;
-    }
 
-    private RaftClient newRaftClient(RaftClientProtocol protocol) {
-        return RaftClient.builder()
-            .withClientId(partition.name())
-            .withMemberId(localMemberId)
-            .withProtocol(protocol)
-            .build();
-    }
+
+
+
 }

@@ -35,6 +35,34 @@ public final class Match<T> {
     private final T value;
     private final boolean negation;
 
+    private Match() {
+        matchAny = true;
+        negation = false;
+        value = null;
+    }
+
+    private Match(T value, boolean negation) {
+        matchAny = false;
+        this.value = value;
+        this.negation = negation;
+    }
+
+    /**
+     * Maps this instance to a Match of another type.
+     * @param mapper transformation function
+     * @param <V> new match type
+     * @return new instance
+     */
+    public <V> Match<V> map(Function<T, V> mapper) {
+        if (matchAny) {
+            return any();
+        } else if (value == null) {
+            return negation ? ifNotNull() : ifNull();
+        } else {
+            return negation ? ifNotValue(mapper.apply(value)) : ifValue(mapper.apply(value));
+        }
+    }
+
     /**
      * Returns a Match that matches any value including null.
      * @param <T> match type
@@ -80,34 +108,6 @@ public final class Match<T> {
      */
     public static <T> Match<T> ifNotValue(T value) {
         return new Match<>(value, true);
-    }
-
-    private Match() {
-        matchAny = true;
-        negation = false;
-        value = null;
-    }
-
-    private Match(T value, boolean negation) {
-        matchAny = false;
-        this.value = value;
-        this.negation = negation;
-    }
-
-    /**
-     * Maps this instance to a Match of another type.
-     * @param mapper transformation function
-     * @param <V> new match type
-     * @return new instance
-     */
-    public <V> Match<V> map(Function<T, V> mapper) {
-        if (matchAny) {
-            return any();
-        } else if (value == null) {
-            return negation ? ifNotNull() : ifNull();
-        } else {
-            return negation ? ifNotValue(mapper.apply(value)) : ifValue(mapper.apply(value));
-        }
     }
 
     /**

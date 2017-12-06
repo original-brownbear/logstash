@@ -34,229 +34,214 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public interface RaftClient {
 
-  /**
-   * Returns a new Raft client builder.
-   * <p>
-   * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
-   * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
-   * the cluster's leader.
-   *
-   * @return The client builder.
-   */
-  @SuppressWarnings("unchecked")
-  static Builder builder() {
-    return builder(Collections.EMPTY_LIST);
-  }
-
-  /**
-   * Returns a new Raft client builder.
-   * <p>
-   * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
-   * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
-   * the cluster's leader.
-   *
-   * @param cluster The cluster to which to connect.
-   * @return The client builder.
-   */
-  static Builder builder(MemberId... cluster) {
-    return builder(Arrays.asList(cluster));
-  }
-
-  /**
-   * Returns a new Raft client builder.
-   * <p>
-   * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
-   * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
-   * the cluster's leader.
-   *
-   * @param cluster The cluster to which to connect.
-   * @return The client builder.
-   */
-  static Builder builder(Collection<MemberId> cluster) {
-    return new DefaultRaftClient.Builder(cluster);
-  }
-
-  /**
-   * @deprecated since 2.1
-   */
-  @Deprecated
-  static Builder newBuilder() {
-    return builder();
-  }
-
-  /**
-   * @deprecated since 2.1
-   */
-  @Deprecated
-  static Builder newBuilder(MemberId... cluster) {
-    return builder(cluster);
-  }
-
-  /**
-   * @deprecated since 2.1
-   */
-  @Deprecated
-  static Builder newBuilder(Collection<MemberId> cluster) {
-    return builder(cluster);
-  }
-
-  /**
-   * Returns the globally unique client identifier.
-   *
-   * @return the globally unique client identifier
-   */
-  String clientId();
-
-  /**
-   * Returns the Raft metadata.
-   *
-   * @return The Raft metadata.
-   */
-  RaftMetadataClient metadata();
-
-  /**
-   * Returns a new proxy builder.
-   *
-   * @return A new proxy builder.
-   */
-  RaftProxy.Builder newProxyBuilder();
-
-  /**
-   * Connects the client to Raft cluster via the default server address.
-   * <p>
-   * If the client was built with a default cluster list, the default server addresses will be used. Otherwise, the client
-   * will attempt to connect to localhost:8700.
-   * <p>
-   * The client will connect to servers in the cluster according to the pattern specified by the configured
-   * {@link CommunicationStrategy}.
-   *
-   * @return A completable future to be completed once the client is registered.
-   */
-  default CompletableFuture<RaftClient> connect() {
-    return connect((Collection<MemberId>) null);
-  }
-
-  /**
-   * Connects the client to Raft cluster via the provided server addresses.
-   * <p>
-   * The client will connect to servers in the cluster according to the pattern specified by the configured
-   * {@link CommunicationStrategy}.
-   *
-   * @param members A set of server addresses to which to connect.
-   * @return A completable future to be completed once the client is registered.
-   */
-  default CompletableFuture<RaftClient> connect(MemberId... members) {
-    if (members == null || members.length == 0) {
-      return connect();
-    } else {
-      return connect(Arrays.asList(members));
-    }
-  }
-
-  /**
-   * Connects the client to Raft cluster via the provided server addresses.
-   * <p>
-   * The client will connect to servers in the cluster according to the pattern specified by the configured
-   * {@link CommunicationStrategy}.
-   *
-   * @param members A set of server addresses to which to connect.
-   * @return A completable future to be completed once the client is registered.
-   */
-  CompletableFuture<RaftClient> connect(Collection<MemberId> members);
-
-  /**
-   * Closes the client.
-   *
-   * @return A completable future to be completed once the client has been closed.
-   */
-  CompletableFuture<Void> close();
-
-  /**
-   * Builds a new Raft client.
-   * <p>
-   * New client builders should be constructed using the static {@link #builder()} factory method.
-   * <pre>
-   *   {@code
-   *     RaftClient client = RaftClient.builder(new Address("123.456.789.0", 5000), new Address("123.456.789.1", 5000)
-   *       .withTransport(new NettyTransport())
-   *       .build();
-   *   }
-   * </pre>
-   */
-  abstract class Builder implements org.logstash.cluster.utils.Builder<RaftClient> {
-    protected final Collection<MemberId> cluster;
-    protected String clientId = UUID.randomUUID().toString();
-    protected MemberId nodeId;
-    protected RaftClientProtocol protocol;
-    protected ThreadModel threadModel = ThreadModel.SHARED_THREAD_POOL;
-    protected int threadPoolSize = Runtime.getRuntime().availableProcessors();
-
-    protected Builder(Collection<MemberId> cluster) {
-      this.cluster = checkNotNull(cluster, "cluster cannot be null");
+    /**
+     * @deprecated since 2.1
+     */
+    @Deprecated
+    static Builder newBuilder() {
+        return builder();
     }
 
     /**
-     * Sets the client ID.
+     * Returns a new Raft client builder.
      * <p>
-     * The client ID is a name that should be unique among all clients. The ID will be used to resolve
-     * and recover sessions.
-     *
-     * @param clientId The client ID.
+     * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
+     * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
+     * the cluster's leader.
      * @return The client builder.
-     * @throws NullPointerException if {@code clientId} is null
      */
-    public Builder withClientId(String clientId) {
-      this.clientId = checkNotNull(clientId, "clientId cannot be null");
-      return this;
+    @SuppressWarnings("unchecked")
+    static Builder builder() {
+        return builder(Collections.EMPTY_LIST);
     }
 
     /**
-     * Sets the local node identifier.
-     *
-     * @param nodeId The local node identifier.
+     * Returns a new Raft client builder.
+     * <p>
+     * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
+     * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
+     * the cluster's leader.
+     * @param cluster The cluster to which to connect.
      * @return The client builder.
-     * @throws NullPointerException if {@code nodeId} is null
      */
-    public Builder withMemberId(MemberId nodeId) {
-      this.nodeId = checkNotNull(nodeId, "nodeId cannot be null");
-      return this;
+    static Builder builder(Collection<MemberId> cluster) {
+        return new DefaultRaftClient.Builder(cluster);
     }
 
     /**
-     * Sets the client protocol.
-     *
-     * @param protocol the client protocol
-     * @return the client builder
-     * @throws NullPointerException if the protocol is null
+     * @deprecated since 2.1
      */
-    public Builder withProtocol(RaftClientProtocol protocol) {
-      this.protocol = checkNotNull(protocol, "protocol cannot be null");
-      return this;
+    @Deprecated
+    static Builder newBuilder(MemberId... cluster) {
+        return builder(cluster);
     }
 
     /**
-     * Sets the client thread model.
-     *
-     * @param threadModel the client thread model
-     * @return the client builder
-     * @throws NullPointerException if the thread model is null
-     */
-    public Builder withThreadModel(ThreadModel threadModel) {
-      this.threadModel = checkNotNull(threadModel, "threadModel cannot be null");
-      return this;
-    }
-
-    /**
-     * Sets the client thread pool size.
-     *
-     * @param threadPoolSize The client thread pool size.
+     * Returns a new Raft client builder.
+     * <p>
+     * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
+     * the complete list of servers in the cluster, but it must have at least one reachable member that can communicate with
+     * the cluster's leader.
+     * @param cluster The cluster to which to connect.
      * @return The client builder.
-     * @throws IllegalArgumentException if the thread pool size is not positive
      */
-    public Builder withThreadPoolSize(int threadPoolSize) {
-      checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
-      this.threadPoolSize = threadPoolSize;
-      return this;
+    static Builder builder(MemberId... cluster) {
+        return builder(Arrays.asList(cluster));
     }
-  }
+
+    /**
+     * @deprecated since 2.1
+     */
+    @Deprecated
+    static Builder newBuilder(Collection<MemberId> cluster) {
+        return builder(cluster);
+    }
+
+    /**
+     * Returns the globally unique client identifier.
+     * @return the globally unique client identifier
+     */
+    String clientId();
+
+    /**
+     * Returns the Raft metadata.
+     * @return The Raft metadata.
+     */
+    RaftMetadataClient metadata();
+
+    /**
+     * Returns a new proxy builder.
+     * @return A new proxy builder.
+     */
+    RaftProxy.Builder newProxyBuilder();
+
+    /**
+     * Connects the client to Raft cluster via the provided server addresses.
+     * <p>
+     * The client will connect to servers in the cluster according to the pattern specified by the configured
+     * {@link CommunicationStrategy}.
+     * @param members A set of server addresses to which to connect.
+     * @return A completable future to be completed once the client is registered.
+     */
+    default CompletableFuture<RaftClient> connect(MemberId... members) {
+        if (members == null || members.length == 0) {
+            return connect();
+        } else {
+            return connect(Arrays.asList(members));
+        }
+    }
+
+    /**
+     * Connects the client to Raft cluster via the default server address.
+     * <p>
+     * If the client was built with a default cluster list, the default server addresses will be used. Otherwise, the client
+     * will attempt to connect to localhost:8700.
+     * <p>
+     * The client will connect to servers in the cluster according to the pattern specified by the configured
+     * {@link CommunicationStrategy}.
+     * @return A completable future to be completed once the client is registered.
+     */
+    default CompletableFuture<RaftClient> connect() {
+        return connect((Collection<MemberId>) null);
+    }
+
+    /**
+     * Connects the client to Raft cluster via the provided server addresses.
+     * <p>
+     * The client will connect to servers in the cluster according to the pattern specified by the configured
+     * {@link CommunicationStrategy}.
+     * @param members A set of server addresses to which to connect.
+     * @return A completable future to be completed once the client is registered.
+     */
+    CompletableFuture<RaftClient> connect(Collection<MemberId> members);
+
+    /**
+     * Closes the client.
+     * @return A completable future to be completed once the client has been closed.
+     */
+    CompletableFuture<Void> close();
+
+    /**
+     * Builds a new Raft client.
+     * <p>
+     * New client builders should be constructed using the static {@link #builder()} factory method.
+     * <pre>
+     *   {@code
+     *     RaftClient client = RaftClient.builder(new Address("123.456.789.0", 5000), new Address("123.456.789.1", 5000)
+     *       .withTransport(new NettyTransport())
+     *       .build();
+     *   }
+     * </pre>
+     */
+    abstract class Builder implements org.logstash.cluster.utils.Builder<RaftClient> {
+        protected final Collection<MemberId> cluster;
+        protected String clientId = UUID.randomUUID().toString();
+        protected MemberId nodeId;
+        protected RaftClientProtocol protocol;
+        protected ThreadModel threadModel = ThreadModel.SHARED_THREAD_POOL;
+        protected int threadPoolSize = Runtime.getRuntime().availableProcessors();
+
+        protected Builder(Collection<MemberId> cluster) {
+            this.cluster = checkNotNull(cluster, "cluster cannot be null");
+        }
+
+        /**
+         * Sets the client ID.
+         * <p>
+         * The client ID is a name that should be unique among all clients. The ID will be used to resolve
+         * and recover sessions.
+         * @param clientId The client ID.
+         * @return The client builder.
+         * @throws NullPointerException if {@code clientId} is null
+         */
+        public Builder withClientId(String clientId) {
+            this.clientId = checkNotNull(clientId, "clientId cannot be null");
+            return this;
+        }
+
+        /**
+         * Sets the local node identifier.
+         * @param nodeId The local node identifier.
+         * @return The client builder.
+         * @throws NullPointerException if {@code nodeId} is null
+         */
+        public Builder withMemberId(MemberId nodeId) {
+            this.nodeId = checkNotNull(nodeId, "nodeId cannot be null");
+            return this;
+        }
+
+        /**
+         * Sets the client protocol.
+         * @param protocol the client protocol
+         * @return the client builder
+         * @throws NullPointerException if the protocol is null
+         */
+        public Builder withProtocol(RaftClientProtocol protocol) {
+            this.protocol = checkNotNull(protocol, "protocol cannot be null");
+            return this;
+        }
+
+        /**
+         * Sets the client thread model.
+         * @param threadModel the client thread model
+         * @return the client builder
+         * @throws NullPointerException if the thread model is null
+         */
+        public Builder withThreadModel(ThreadModel threadModel) {
+            this.threadModel = checkNotNull(threadModel, "threadModel cannot be null");
+            return this;
+        }
+
+        /**
+         * Sets the client thread pool size.
+         * @param threadPoolSize The client thread pool size.
+         * @return The client builder.
+         * @throws IllegalArgumentException if the thread pool size is not positive
+         */
+        public Builder withThreadPoolSize(int threadPoolSize) {
+            checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
+            this.threadPoolSize = threadPoolSize;
+            return this;
+        }
+    }
 }

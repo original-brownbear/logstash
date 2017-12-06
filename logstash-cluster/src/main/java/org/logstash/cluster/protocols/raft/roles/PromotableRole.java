@@ -22,12 +22,12 @@ import org.logstash.cluster.protocols.raft.impl.RaftContext;
  * Promotable role.
  */
 public class PromotableRole extends PassiveRole {
-  public PromotableRole(RaftContext context) {
-    super(context);
-  }
+    public PromotableRole(RaftContext context) {
+        super(context);
+    }
 
-  @Override
-  public RaftServer.Role role() {
-    return RaftServer.Role.PROMOTABLE;
-  }
+    @Override
+    public RaftServer.Role role() {
+        return RaftServer.Role.PROMOTABLE;
+    }
 }

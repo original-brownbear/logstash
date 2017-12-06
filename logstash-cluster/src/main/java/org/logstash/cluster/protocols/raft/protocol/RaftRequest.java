@@ -20,11 +20,10 @@ package org.logstash.cluster.protocols.raft.protocol;
  */
 public interface RaftRequest extends RaftMessage {
 
-  /**
-   * Request builder.
-   *
-   * @param <T> The builder type.
-   */
-  interface Builder<T extends Builder<T, U>, U extends RaftRequest> extends org.logstash.cluster.utils.Builder<U> {
-  }
+    /**
+     * Request builder.
+     * @param <T> The builder type.
+     */
+    interface Builder<T extends Builder<T, U>, U extends RaftRequest> extends org.logstash.cluster.utils.Builder<U> {
+    }
 }

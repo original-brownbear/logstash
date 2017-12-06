@@ -49,11 +49,6 @@ public class TranscodingAsyncDocumentTree<V1, V2> implements AsyncDocumentTree<V
     }
 
     @Override
-    public DocumentPath root() {
-        return backingTree.root();
-    }
-
-    @Override
     public CompletableFuture<Map<String, Versioned<V1>>> getChildren(DocumentPath path) {
         return backingTree.getChildren(path)
             .thenApply(children -> Maps.transformValues(children, v -> v.map(valueDecoder)));
@@ -95,15 +90,6 @@ public class TranscodingAsyncDocumentTree<V1, V2> implements AsyncDocumentTree<V
     }
 
     @Override
-    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V1> listener) {
-        synchronized (listeners) {
-            InternalDocumentTreeListener internalListener =
-                listeners.computeIfAbsent(listener, k -> new InternalDocumentTreeListener(listener));
-            return backingTree.addListener(path, internalListener);
-        }
-    }
-
-    @Override
     public CompletableFuture<Void> removeListener(DocumentTreeListener<V1> listener) {
         synchronized (listeners) {
             InternalDocumentTreeListener internalListener = listeners.remove(listener);
@@ -112,6 +98,20 @@ public class TranscodingAsyncDocumentTree<V1, V2> implements AsyncDocumentTree<V
             } else {
                 return CompletableFuture.completedFuture(null);
             }
+        }
+    }
+
+    @Override
+    public DocumentPath root() {
+        return backingTree.root();
+    }
+
+    @Override
+    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V1> listener) {
+        synchronized (listeners) {
+            InternalDocumentTreeListener internalListener =
+                listeners.computeIfAbsent(listener, k -> new InternalDocumentTreeListener(listener));
+            return backingTree.addListener(path, internalListener);
         }
     }
 

@@ -142,6 +142,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public interface RaftServer {
 
+    @Deprecated
+    static Builder newBuilder() {
+        return builder();
+    }
+
     /**
      * Returns a new Raft server builder using the default host:port.
      * <p>
@@ -163,86 +168,12 @@ public interface RaftServer {
         return new DefaultRaftServer.Builder(localMemberId);
     }
 
-    @Deprecated
-    static Builder newBuilder() {
-        return builder();
-    }
-
     /**
      * @deprecated since 2.1
      */
     @Deprecated
     static Builder newBuilder(MemberId localMemberId) {
         return builder(localMemberId);
-    }
-
-    /**
-     * Raft server state types.
-     * <p>
-     * States represent the context of the server's internal state machine. Throughout the lifetime of a server,
-     * the server will periodically transition between states based on requests, responses, and timeouts.
-     * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
-     */
-    enum Role {
-
-        /**
-         * Represents the state of an inactive server.
-         * <p>
-         * All servers start in this state and return to this state when {@link #leave() stopped}.
-         */
-        INACTIVE(false),
-
-        /**
-         * Represents the state of a server in the process of catching up its log.
-         * <p>
-         * Upon successfully joining an existing cluster, the server will transition to the passive state and remain there
-         * until the leader determines that the server has caught up enough to be promoted to a full member.
-         */
-        PASSIVE(false),
-
-        /**
-         * Represents the state of a server in the process of being promoted to an active voting member.
-         */
-        PROMOTABLE(false),
-
-        /**
-         * Represents the state of a server participating in normal log replication.
-         * <p>
-         * The follower state is a standard Raft state in which the server receives replicated log entries from the leader.
-         */
-        FOLLOWER(true),
-
-        /**
-         * Represents the state of a server attempting to become the leader.
-         * <p>
-         * When a server in the follower state fails to receive communication from a valid leader for some time period,
-         * the follower will transition to the candidate state. During this period, the candidate requests votes from
-         * each of the other servers in the cluster. If the candidate wins the election by receiving votes from a majority
-         * of the cluster, it will transition to the leader state.
-         */
-        CANDIDATE(true),
-
-        /**
-         * Represents the state of a server which is actively coordinating and replicating logs with other servers.
-         * <p>
-         * Leaders are responsible for handling and replicating writes from clients. Note that more than one leader can
-         * exist at any given time, but Raft guarantees that no two leaders will exist for the same {@link RaftCluster#getTerm()}.
-         */
-        LEADER(true);
-
-        private final boolean active;
-
-        Role(boolean active) {
-            this.active = active;
-        }
-
-        /**
-         * Returns whether the role is a voting Raft member role.
-         * @return whether the role is a voting member
-         */
-        public boolean active() {
-            return active;
-        }
     }
 
     /**
@@ -273,6 +204,14 @@ public interface RaftServer {
     RaftCluster cluster();
 
     /**
+     * Returns whether the server is the leader.
+     * @return whether the server is the leader
+     */
+    default boolean isLeader() {
+        return getRole() == Role.LEADER;
+    }
+
+    /**
      * Returns the server role.
      * <p>
      * The initial state of a Raft server is {@link Role#INACTIVE}. Once the server is {@link #bootstrap() started} and
@@ -281,14 +220,6 @@ public interface RaftServer {
      * @return The server role.
      */
     Role getRole();
-
-    /**
-     * Returns whether the server is the leader.
-     * @return whether the server is the leader
-     */
-    default boolean isLeader() {
-        return getRole() == Role.LEADER;
-    }
 
     /**
      * Returns whether the server is a follower.
@@ -357,12 +288,10 @@ public interface RaftServer {
      * <p>
      * The {@link CompletableFuture} returned by this method will be completed once the cluster has been bootstrapped,
      * a leader has been elected, and the leader has been notified of the local server's client configurations.
-     * @param members The bootstrap cluster configuration.
+     * @param cluster The bootstrap cluster configuration.
      * @return A completable future to be completed once the cluster has been bootstrapped.
      */
-    default CompletableFuture<RaftServer> bootstrap(MemberId... members) {
-        return bootstrap(Arrays.asList(members));
-    }
+    CompletableFuture<RaftServer> bootstrap(Collection<MemberId> cluster);
 
     /**
      * Bootstraps the cluster using the provided cluster configuration.
@@ -385,10 +314,12 @@ public interface RaftServer {
      * <p>
      * The {@link CompletableFuture} returned by this method will be completed once the cluster has been bootstrapped,
      * a leader has been elected, and the leader has been notified of the local server's client configurations.
-     * @param cluster The bootstrap cluster configuration.
+     * @param members The bootstrap cluster configuration.
      * @return A completable future to be completed once the cluster has been bootstrapped.
      */
-    CompletableFuture<RaftServer> bootstrap(Collection<MemberId> cluster);
+    default CompletableFuture<RaftServer> bootstrap(MemberId... members) {
+        return bootstrap(Arrays.asList(members));
+    }
 
     /**
      * Joins the cluster.
@@ -495,6 +426,75 @@ public interface RaftServer {
     CompletableFuture<Void> leave();
 
     /**
+     * Raft server state types.
+     * <p>
+     * States represent the context of the server's internal state machine. Throughout the lifetime of a server,
+     * the server will periodically transition between states based on requests, responses, and timeouts.
+     * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
+     */
+    enum Role {
+
+        /**
+         * Represents the state of an inactive server.
+         * <p>
+         * All servers start in this state and return to this state when {@link #leave() stopped}.
+         */
+        INACTIVE(false),
+
+        /**
+         * Represents the state of a server in the process of catching up its log.
+         * <p>
+         * Upon successfully joining an existing cluster, the server will transition to the passive state and remain there
+         * until the leader determines that the server has caught up enough to be promoted to a full member.
+         */
+        PASSIVE(false),
+
+        /**
+         * Represents the state of a server in the process of being promoted to an active voting member.
+         */
+        PROMOTABLE(false),
+
+        /**
+         * Represents the state of a server participating in normal log replication.
+         * <p>
+         * The follower state is a standard Raft state in which the server receives replicated log entries from the leader.
+         */
+        FOLLOWER(true),
+
+        /**
+         * Represents the state of a server attempting to become the leader.
+         * <p>
+         * When a server in the follower state fails to receive communication from a valid leader for some time period,
+         * the follower will transition to the candidate state. During this period, the candidate requests votes from
+         * each of the other servers in the cluster. If the candidate wins the election by receiving votes from a majority
+         * of the cluster, it will transition to the leader state.
+         */
+        CANDIDATE(true),
+
+        /**
+         * Represents the state of a server which is actively coordinating and replicating logs with other servers.
+         * <p>
+         * Leaders are responsible for handling and replicating writes from clients. Note that more than one leader can
+         * exist at any given time, but Raft guarantees that no two leaders will exist for the same {@link RaftCluster#getTerm()}.
+         */
+        LEADER(true);
+
+        private final boolean active;
+
+        Role(boolean active) {
+            this.active = active;
+        }
+
+        /**
+         * Returns whether the role is a voting Raft member role.
+         * @return whether the role is a voting member
+         */
+        public boolean active() {
+            return active;
+        }
+    }
+
+    /**
      * Builds a single-use Raft server.
      * <p>
      * This builder should be used to programmatically configure and construct a new {@link RaftServer} instance.
@@ -534,7 +534,7 @@ public interface RaftServer {
         private static final int DEFAULT_SESSION_FAILURE_THRESHOLD = 3;
         private static final ThreadModel DEFAULT_THREAD_MODEL = ThreadModel.SHARED_THREAD_POOL;
         private static final int DEFAULT_THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
-
+        protected final RaftServiceFactoryRegistry serviceRegistry = new RaftServiceFactoryRegistry();
         protected String name;
         protected MemberId localMemberId;
         protected RaftServerProtocol protocol;
@@ -544,7 +544,6 @@ public interface RaftServer {
         protected int electionThreshold = DEFAULT_ELECTION_THRESHOLD;
         protected Duration sessionTimeout = DEFAULT_SESSION_TIMEOUT;
         protected int sessionFailureThreshold = DEFAULT_SESSION_FAILURE_THRESHOLD;
-        protected final RaftServiceFactoryRegistry serviceRegistry = new RaftServiceFactoryRegistry();
         protected ThreadModel threadModel = DEFAULT_THREAD_MODEL;
         protected int threadPoolSize = DEFAULT_THREAD_POOL_SIZE;
 

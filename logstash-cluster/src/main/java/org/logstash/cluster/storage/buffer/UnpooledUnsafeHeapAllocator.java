@@ -19,19 +19,18 @@ import org.logstash.cluster.utils.memory.HeapMemory;
 
 /**
  * Unpooled heap allocator.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class UnpooledUnsafeHeapAllocator extends UnpooledAllocator {
 
-  @Override
-  protected int maxCapacity() {
-    return HeapMemory.MAX_SIZE;
-  }
+    @Override
+    protected int maxCapacity() {
+        return HeapMemory.MAX_SIZE;
+    }
 
-  @Override
-  public Buffer allocate(int initialCapacity, int maxCapacity) {
-    return UnsafeHeapBuffer.allocate(initialCapacity, maxCapacity);
-  }
+    @Override
+    public Buffer allocate(int initialCapacity, int maxCapacity) {
+        return UnsafeHeapBuffer.allocate(initialCapacity, maxCapacity);
+    }
 
 }

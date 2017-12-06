@@ -20,17 +20,16 @@ package org.logstash.cluster.event;
  */
 public interface EventSink<E extends Event> {
 
-  /**
-   * Processes the specified event.
-   *
-   * @param event event to be processed
-   */
-  void process(E event);
+    /**
+     * Processes the specified event.
+     * @param event event to be processed
+     */
+    void process(E event);
 
-  /**
-   * Handles notification that event processing time limit has been exceeded.
-   */
-  default void onProcessLimit() {
-  }
+    /**
+     * Handles notification that event processing time limit has been exceeded.
+     */
+    default void onProcessLimit() {
+    }
 
 }

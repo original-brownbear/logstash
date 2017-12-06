@@ -26,16 +26,16 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class InstallResponse extends AbstractRaftResponse {
 
+    public InstallResponse(Status status, RaftError error) {
+        super(status, error);
+    }
+
     /**
      * Returns a new install response builder.
      * @return A new install response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public InstallResponse(Status status, RaftError error) {
-        super(status, error);
     }
 
     /**

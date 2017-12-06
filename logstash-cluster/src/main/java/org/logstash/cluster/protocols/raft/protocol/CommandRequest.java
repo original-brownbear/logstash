@@ -36,16 +36,16 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  */
 public class CommandRequest extends OperationRequest {
 
+    public CommandRequest(long session, long sequence, RaftOperation operation) {
+        super(session, sequence, operation);
+    }
+
     /**
      * Returns a new submit request builder.
      * @return A new submit request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public CommandRequest(long session, long sequence, RaftOperation operation) {
-        super(session, sequence, operation);
     }
 
     @Override

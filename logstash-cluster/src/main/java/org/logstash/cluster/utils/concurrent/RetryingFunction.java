@@ -16,12 +16,10 @@
 package org.logstash.cluster.utils.concurrent;
 
 import com.google.common.base.Throwables;
-
 import java.util.function.Function;
 
 /**
  * Function that retries execution on failure.
- *
  * @param <U> input type
  * @param <V> output type
  */
@@ -32,9 +30,9 @@ public class RetryingFunction<U, V> implements Function<U, V> {
     private final int maxDelayBetweenRetries;
 
     public RetryingFunction(Function<U, V> baseFunction,
-            Class<? extends Throwable> exceptionClass,
-            int maxRetries,
-            int maxDelayBetweenRetries) {
+        Class<? extends Throwable> exceptionClass,
+        int maxRetries,
+        int maxDelayBetweenRetries) {
         this.baseFunction = baseFunction;
         this.exceptionClass = exceptionClass;
         this.maxRetries = maxRetries;

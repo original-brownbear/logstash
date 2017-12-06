@@ -190,6 +190,11 @@ public class TranscodingAsyncConsistentTreeMap<K1, V1, K2, V2> implements AsyncC
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return backingMap.clear();
+    }
+
+    @Override
     public CompletableFuture<Integer> size() {
         return backingMap.size();
     }
@@ -257,11 +262,6 @@ public class TranscodingAsyncConsistentTreeMap<K1, V1, K2, V2> implements AsyncC
     @Override
     public CompletableFuture<Versioned<V1>> remove(K1 key) {
         return backingMap.remove(keyEncoder.apply(key)).thenApply(versionedValueTransform);
-    }
-
-    @Override
-    public CompletableFuture<Void> clear() {
-        return backingMap.clear();
     }
 
     @Override

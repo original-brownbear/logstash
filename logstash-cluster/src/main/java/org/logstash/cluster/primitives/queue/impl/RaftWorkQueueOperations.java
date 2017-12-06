@@ -36,6 +36,15 @@ public enum RaftWorkQueueOperations implements OperationId {
     COMPLETE("complete", OperationType.COMMAND),
     CLEAR("clear", OperationType.COMMAND);
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
+        .register(Add.class)
+        .register(Take.class)
+        .register(Complete.class)
+        .register(Task.class)
+        .register(WorkQueueStats.class)
+        .build(RaftWorkQueueOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
 
@@ -53,16 +62,6 @@ public enum RaftWorkQueueOperations implements OperationId {
     public OperationType type() {
         return type;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .register(KryoNamespaces.BASIC)
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Add.class)
-        .register(Take.class)
-        .register(Complete.class)
-        .register(Task.class)
-        .register(WorkQueueStats.class)
-        .build(RaftWorkQueueOperations.class.getSimpleName());
 
     /**
      * Work queue operation.

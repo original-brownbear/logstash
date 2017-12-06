@@ -49,11 +49,6 @@ public class BlockingDocumentTree<V> extends Synchronous<AsyncDocumentTree<V>> i
     }
 
     @Override
-    public DocumentPath root() {
-        return backingTree.root();
-    }
-
-    @Override
     public Map<String, Versioned<V>> getChildren(DocumentPath path) {
         return complete(backingTree.getChildren(path));
     }
@@ -94,11 +89,6 @@ public class BlockingDocumentTree<V> extends Synchronous<AsyncDocumentTree<V>> i
     }
 
     @Override
-    public void addListener(DocumentPath path, DocumentTreeListener<V> listener) {
-        complete(backingTree.addListener(path, listener));
-    }
-
-    @Override
     public void removeListener(DocumentTreeListener<V> listener) {
         complete(backingTree.removeListener(listener));
     }
@@ -106,6 +96,16 @@ public class BlockingDocumentTree<V> extends Synchronous<AsyncDocumentTree<V>> i
     @Override
     public void addListener(DocumentTreeListener<V> listener) {
         complete(backingTree.addListener(listener));
+    }
+
+    @Override
+    public DocumentPath root() {
+        return backingTree.root();
+    }
+
+    @Override
+    public void addListener(DocumentPath path, DocumentTreeListener<V> listener) {
+        complete(backingTree.addListener(path, listener));
     }
 
     private <T> T complete(CompletableFuture<T> future) {

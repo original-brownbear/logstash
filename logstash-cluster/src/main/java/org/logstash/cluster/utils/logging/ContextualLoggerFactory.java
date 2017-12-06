@@ -22,27 +22,26 @@ import org.slf4j.LoggerFactory;
  */
 public class ContextualLoggerFactory {
 
-  /**
-   * Returns a contextual logger.
-   *
-   * @param name the contextual logger name
-   * @param context the logger context
-   * @return the logger
-   */
-  public static ContextualLogger getLogger(String name, LoggerContext context) {
-    return new ContextualLogger(LoggerFactory.getLogger(name), context);
-  }
+    private ContextualLoggerFactory() {
+    }
 
-  /**
-   * Returns a contextual logger.
-   *
-   * @param clazz the contextual logger class
-   * @param context the logger context
-   * @return the logger
-   */
-  public static ContextualLogger getLogger(Class clazz, LoggerContext context) {
-    return new ContextualLogger(LoggerFactory.getLogger(clazz), context);
-  }
+    /**
+     * Returns a contextual logger.
+     * @param name the contextual logger name
+     * @param context the logger context
+     * @return the logger
+     */
+    public static ContextualLogger getLogger(String name, LoggerContext context) {
+        return new ContextualLogger(LoggerFactory.getLogger(name), context);
+    }
 
-  private ContextualLoggerFactory() {}
+    /**
+     * Returns a contextual logger.
+     * @param clazz the contextual logger class
+     * @param context the logger context
+     * @return the logger
+     */
+    public static ContextualLogger getLogger(Class clazz, LoggerContext context) {
+        return new ContextualLogger(LoggerFactory.getLogger(clazz), context);
+    }
 }

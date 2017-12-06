@@ -32,6 +32,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Abstract base class for primitives that interact with Raft replicated state machines via proxy.
  */
 public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
+    protected final RaftProxy proxy;
     private final Function<RaftProxy.State, Status> mapper = state -> {
         switch (state) {
             case CONNECTED:
@@ -44,8 +45,6 @@ public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
                 throw new IllegalStateException("Unknown state " + state);
         }
     };
-
-    protected final RaftProxy proxy;
     private final Set<Consumer<Status>> statusChangeListeners = Sets.newCopyOnWriteArraySet();
 
     public AbstractRaftPrimitive(RaftProxy proxy) {
@@ -56,14 +55,6 @@ public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
     @Override
     public String name() {
         return proxy.name();
-    }
-
-    /**
-     * Handles a Raft session state change.
-     * @param state the updated Raft session state
-     */
-    private void onStateChange(RaftProxy.State state) {
-        statusChangeListeners.forEach(listener -> listener.accept(mapper.apply(state)));
     }
 
     @Override
@@ -79,6 +70,14 @@ public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
     @Override
     public Collection<Consumer<Status>> statusChangeListeners() {
         return ImmutableSet.copyOf(statusChangeListeners);
+    }
+
+    /**
+     * Handles a Raft session state change.
+     * @param state the updated Raft session state
+     */
+    private void onStateChange(RaftProxy.State state) {
+        statusChangeListeners.forEach(listener -> listener.accept(mapper.apply(state)));
     }
 
     @Override

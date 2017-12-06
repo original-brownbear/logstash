@@ -30,6 +30,7 @@ public final class RaftMemberContext {
     private static final int MAX_APPENDS = 2;
     private static final int APPEND_WINDOW_SIZE = 8;
     private final DefaultRaftMember member;
+    private final DescriptiveStatistics timeStats = new DescriptiveStatistics(APPEND_WINDOW_SIZE);
     private long term;
     private long configIndex;
     private long snapshotIndex;
@@ -47,7 +48,6 @@ public final class RaftMemberContext {
     private int failures;
     private long failureTime;
     private volatile RaftLogReader reader;
-    private final DescriptiveStatistics timeStats = new DescriptiveStatistics(APPEND_WINDOW_SIZE);
 
     RaftMemberContext(DefaultRaftMember member, RaftClusterContext cluster) {
         this.member = checkNotNull(member, "member cannot be null").setCluster(cluster);
@@ -250,18 +250,18 @@ public final class RaftMemberContext {
     }
 
     /**
-     * Flags the last append to the member is failed.
-     */
-    public void appendFailed() {
-        appendSucceeded(false);
-    }
-
-    /**
      * Sets whether the last append to the member succeeded.
      * @param succeeded Whether the last append to the member succeeded.
      */
     private void appendSucceeded(boolean succeeded) {
         this.appendSucceeded = succeeded;
+    }
+
+    /**
+     * Flags the last append to the member is failed.
+     */
+    public void appendFailed() {
+        appendSucceeded(false);
     }
 
     /**

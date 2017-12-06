@@ -21,7 +21,6 @@ import org.logstash.cluster.messaging.MessageSubject;
  * Protocol message context.
  */
 class RaftMessageContext {
-    private final String prefix;
     final MessageSubject heartbeatSubject;
     final MessageSubject openSessionSubject;
     final MessageSubject closeSessionSubject;
@@ -38,6 +37,7 @@ class RaftMessageContext {
     final MessageSubject pollSubject;
     final MessageSubject voteSubject;
     final MessageSubject appendSubject;
+    private final String prefix;
 
     RaftMessageContext(String prefix) {
         this.prefix = prefix;

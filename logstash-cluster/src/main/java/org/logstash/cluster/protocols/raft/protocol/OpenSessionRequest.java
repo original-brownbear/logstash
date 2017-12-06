@@ -29,21 +29,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class OpenSessionRequest extends AbstractRaftRequest {
 
-    /**
-     * Returns a new open session request builder.
-     * @return A new open session request builder.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
     private final String member;
     private final String name;
     private final String typeName;
     private final ReadConsistency readConsistency;
     private final long minTimeout;
     private final long maxTimeout;
-
     public OpenSessionRequest(String member, String name, String typeName, ReadConsistency readConsistency, long minTimeout, long maxTimeout) {
         this.member = member;
         this.name = name;
@@ -51,6 +42,14 @@ public class OpenSessionRequest extends AbstractRaftRequest {
         this.readConsistency = readConsistency;
         this.minTimeout = minTimeout;
         this.maxTimeout = maxTimeout;
+    }
+
+    /**
+     * Returns a new open session request builder.
+     * @return A new open session request builder.
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -211,6 +210,15 @@ public class OpenSessionRequest extends AbstractRaftRequest {
             return this;
         }
 
+        /**
+         * @throws IllegalStateException is session is not positive
+         */
+        @Override
+        public OpenSessionRequest build() {
+            validate();
+            return new OpenSessionRequest(memberId, serviceName, serviceType, readConsistency, minTimeout, maxTimeout);
+        }
+
         @Override
         protected void validate() {
             super.validate();
@@ -219,15 +227,6 @@ public class OpenSessionRequest extends AbstractRaftRequest {
             checkNotNull(serviceType, "typeName cannot be null");
             checkArgument(minTimeout >= 0, "minTimeout must be positive");
             checkArgument(maxTimeout >= 0, "maxTimeout must be positive");
-        }
-
-        /**
-         * @throws IllegalStateException is session is not positive
-         */
-        @Override
-        public OpenSessionRequest build() {
-            validate();
-            return new OpenSessionRequest(memberId, serviceName, serviceType, readConsistency, minTimeout, maxTimeout);
         }
     }
 }

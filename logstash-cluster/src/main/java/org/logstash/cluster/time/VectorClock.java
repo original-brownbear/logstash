@@ -48,17 +48,17 @@ public class VectorClock<T extends Identifier> implements Clock<VectorTimestamp<
         }
     }
 
-    @Override
-    public VectorTimestamp<T> getTime() {
-        return vector.get(localIdentifier);
-    }
-
     /**
      * Returns the local logical timestamp.
      * @return the logical timestamp for the local identifier
      */
     public LogicalTimestamp getLocalTimestamp() {
         return getTime();
+    }
+
+    @Override
+    public VectorTimestamp<T> getTime() {
+        return vector.get(localIdentifier);
     }
 
     /**
@@ -71,11 +71,13 @@ public class VectorClock<T extends Identifier> implements Clock<VectorTimestamp<
     }
 
     /**
-     * Returns a collection of identifier-timestamp pairs.
-     * @return a collection of identifier-timestamp pairs
+     * Updates the vector clock.
+     * @param clock the vector clock with which to update this clock
      */
-    public Collection<VectorTimestamp<T>> getTimestamps() {
-        return vector.values();
+    public void update(VectorClock<T> clock) {
+        for (VectorTimestamp<T> timestamp : clock.vector.values()) {
+            update(timestamp);
+        }
     }
 
     /**
@@ -89,21 +91,19 @@ public class VectorClock<T extends Identifier> implements Clock<VectorTimestamp<
         }
     }
 
-    /**
-     * Updates the vector clock.
-     * @param clock the vector clock with which to update this clock
-     */
-    public void update(VectorClock<T> clock) {
-        for (VectorTimestamp<T> timestamp : clock.vector.values()) {
-            update(timestamp);
-        }
-    }
-
     @Override
     public String toString() {
         return toStringHelper(this)
             .add("time", getTime())
             .add("vector", getTimestamps())
             .toString();
+    }
+
+    /**
+     * Returns a collection of identifier-timestamp pairs.
+     * @return a collection of identifier-timestamp pairs
+     */
+    public Collection<VectorTimestamp<T>> getTimestamps() {
+        return vector.values();
     }
 }

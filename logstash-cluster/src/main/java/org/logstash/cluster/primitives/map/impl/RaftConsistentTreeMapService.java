@@ -103,15 +103,6 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
         executor.register(HIGHER_KEY, serializer()::decode, this::higherKey, serializer()::encode);
     }
 
-    protected NavigableMap<String, MapEntryValue> subMap(
-        Commit<? extends RaftConsistentTreeMapOperations.SubMap> commit) {
-        // Do not support this until lazy communication is possible.  At present
-        // it transmits up to the entire map.
-        RaftConsistentTreeMapOperations.SubMap<String, MapEntryValue> subMap = commit.value();
-        return entries().subMap(subMap.fromKey(), subMap.isInclusiveFrom(),
-            subMap.toKey(), subMap.isInclusiveTo());
-    }
-
     protected String firstKey() {
         return isEmpty() ? null : entries().firstKey();
     }
@@ -120,12 +111,14 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
         return isEmpty() ? null : entries().lastKey();
     }
 
-    protected Map.Entry<String, Versioned<byte[]>> higherEntry(Commit<? extends RaftConsistentTreeMapOperations.HigherEntry> commit) {
-        return isEmpty() ? null : toVersionedEntry(entries().higherEntry(commit.value().key()));
-    }
-
     protected Map.Entry<String, Versioned<byte[]>> firstEntry() {
         return isEmpty() ? null : toVersionedEntry(entries().firstEntry());
+    }
+
+    private Map.Entry<String, Versioned<byte[]>> toVersionedEntry(
+        Map.Entry<String, MapEntryValue> entry) {
+        return entry == null || valueIsNull(entry.getValue())
+            ? null : Maps.immutableEntry(entry.getKey(), toVersioned(entry.getValue()));
     }
 
     protected Map.Entry<String, Versioned<byte[]>> lastEntry() {
@@ -138,6 +131,33 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
 
     protected Map.Entry<String, Versioned<byte[]>> pollLastEntry() {
         return toVersionedEntry(entries().pollLastEntry());
+    }
+
+    @Override
+    public void onExpire(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    private void closeListener(Long sessionId) {
+        listeners.remove(sessionId);
+    }
+
+    protected NavigableMap<String, MapEntryValue> subMap(
+        Commit<? extends RaftConsistentTreeMapOperations.SubMap> commit) {
+        // Do not support this until lazy communication is possible.  At present
+        // it transmits up to the entire map.
+        RaftConsistentTreeMapOperations.SubMap<String, MapEntryValue> subMap = commit.value();
+        return entries().subMap(subMap.fromKey(), subMap.isInclusiveFrom(),
+            subMap.toKey(), subMap.isInclusiveTo());
+    }
+
+    protected Map.Entry<String, Versioned<byte[]>> higherEntry(Commit<? extends RaftConsistentTreeMapOperations.HigherEntry> commit) {
+        return isEmpty() ? null : toVersionedEntry(entries().higherEntry(commit.value().key()));
     }
 
     protected Map.Entry<String, Versioned<byte[]>> lowerEntry(Commit<? extends RaftConsistentTreeMapOperations.LowerEntry> commit) {
@@ -166,25 +186,5 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
 
     protected String higherKey(Commit<RaftConsistentTreeMapOperations.HigherKey> commit) {
         return entries().higherKey(commit.value().key());
-    }
-
-    private Map.Entry<String, Versioned<byte[]>> toVersionedEntry(
-        Map.Entry<String, MapEntryValue> entry) {
-        return entry == null || valueIsNull(entry.getValue())
-            ? null : Maps.immutableEntry(entry.getKey(), toVersioned(entry.getValue()));
-    }
-
-    @Override
-    public void onExpire(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
-
-    @Override
-    public void onClose(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
-
-    private void closeListener(Long sessionId) {
-        listeners.remove(sessionId);
     }
 }

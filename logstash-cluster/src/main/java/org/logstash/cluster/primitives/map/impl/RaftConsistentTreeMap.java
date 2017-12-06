@@ -55,13 +55,13 @@ public class RaftConsistentTreeMap extends RaftConsistentMap implements AsyncCon
     }
 
     @Override
-    protected Serializer serializer() {
-        return SERIALIZER;
+    public CompletableFuture<String> firstKey() {
+        return proxy.invoke(RaftConsistentTreeMapOperations.FIRST_KEY, serializer()::decode);
     }
 
     @Override
-    public CompletableFuture<String> firstKey() {
-        return proxy.invoke(RaftConsistentTreeMapOperations.FIRST_KEY, serializer()::decode);
+    protected Serializer serializer() {
+        return SERIALIZER;
     }
 
     @Override
