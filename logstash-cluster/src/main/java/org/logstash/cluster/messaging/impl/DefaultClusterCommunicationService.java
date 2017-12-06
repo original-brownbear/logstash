@@ -51,7 +51,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     private final NodeId localNodeId;
     private final AtomicBoolean open = new AtomicBoolean();
 
-    public DefaultClusterCommunicationService(ClusterService cluster, MessagingService messagingService) {
+    public DefaultClusterCommunicationService(final ClusterService cluster, final MessagingService messagingService) {
         this.cluster = checkNotNull(cluster, "clusterService cannot be null");
         this.messagingService = checkNotNull(messagingService, "messagingService cannot be null");
         this.localNodeId = cluster.getLocalNode().id();
@@ -84,10 +84,8 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     }
 
     @Override
-    public <M> void broadcast(
-        MessageSubject subject,
-        M message,
-        Function<M, byte[]> encoder) {
+    public <M> void broadcast(final MessageSubject subject, final M message,
+        final Function<M, byte[]> encoder) {
         multicast(subject, message, encoder, cluster.getNodes()
             .stream()
             .filter(node -> !Objects.equal(node, cluster.getLocalNode()))
@@ -96,10 +94,8 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     }
 
     @Override
-    public <M> void broadcastIncludeSelf(
-        MessageSubject subject,
-        M message,
-        Function<M, byte[]> encoder) {
+    public <M> void broadcastIncludeSelf(final MessageSubject subject, final M message,
+        final Function<M, byte[]> encoder) {
         multicast(subject, message, encoder, cluster.getNodes()
             .stream()
             .map(Node::id)
@@ -108,29 +104,29 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
 
     @Override
     public <M> CompletableFuture<Void> unicast(
-        MessageSubject subject,
-        M message,
-        Function<M, byte[]> encoder,
-        NodeId toNodeId) {
+        final MessageSubject subject,
+        final M message,
+        final Function<M, byte[]> encoder,
+        final NodeId toNodeId) {
         try {
-            byte[] payload = new ClusterMessage(
+            final byte[] payload = new ClusterMessage(
                 localNodeId,
                 subject,
                 encoder.apply(message)
             ).getBytes();
             return doUnicast(subject, payload, toNodeId);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return Futures.exceptionalFuture(e);
         }
     }
 
     @Override
     public <M> void multicast(
-        MessageSubject subject,
-        M message,
-        Function<M, byte[]> encoder,
-        Set<NodeId> nodes) {
-        byte[] payload = new ClusterMessage(
+        final MessageSubject subject,
+        final M message,
+        final Function<M, byte[]> encoder,
+        final Set<NodeId> nodes) {
+        final byte[] payload = new ClusterMessage(
             localNodeId,
             subject,
             encoder.apply(message))
@@ -140,41 +136,41 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
 
     @Override
     public <M, R> CompletableFuture<R> sendAndReceive(
-        MessageSubject subject,
-        M message,
-        Function<M, byte[]> encoder,
-        Function<byte[], R> decoder,
-        NodeId toNodeId) {
+        final MessageSubject subject,
+        final M message,
+        final Function<M, byte[]> encoder,
+        final Function<byte[], R> decoder,
+        final NodeId toNodeId) {
         try {
-            ClusterMessage envelope = new ClusterMessage(
+            final ClusterMessage envelope = new ClusterMessage(
                 cluster.getLocalNode().id(),
                 subject,
                 encoder.apply(message));
             return sendAndReceive(subject, envelope.getBytes(), toNodeId).thenApply(decoder);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             return Futures.exceptionalFuture(e);
         }
     }
 
-    private CompletableFuture<byte[]> sendAndReceive(MessageSubject subject, byte[] payload, NodeId toNodeId) {
-        Node node = cluster.getNode(toNodeId);
+    private CompletableFuture<byte[]> sendAndReceive(final MessageSubject subject, final byte[] payload, final NodeId toNodeId) {
+        final Node node = cluster.getNode(toNodeId);
         checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
         return messagingService.sendAndReceive(node.endpoint(), subject.toString(), payload);
     }
 
     @Override
-    public <M, R> CompletableFuture<Void> addSubscriber(MessageSubject subject,
-        Function<byte[], M> decoder,
-        Function<M, R> handler,
-        Function<R, byte[]> encoder,
-        Executor executor) {
+    public <M, R> CompletableFuture<Void> addSubscriber(final MessageSubject subject,
+        final Function<byte[], M> decoder,
+        final Function<M, R> handler,
+        final Function<R, byte[]> encoder,
+        final Executor executor) {
         messagingService.registerHandler(subject.toString(),
             new InternalMessageResponder<>(decoder, encoder, m -> {
-                CompletableFuture<R> responseFuture = new CompletableFuture<>();
+                final CompletableFuture<R> responseFuture = new CompletableFuture<>();
                 executor.execute(() -> {
                     try {
                         responseFuture.complete(handler.apply(m));
-                    } catch (Exception e) {
+                    } catch (final Exception e) {
                         responseFuture.completeExceptionally(e);
                     }
                 });
@@ -184,20 +180,20 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     }
 
     @Override
-    public <M, R> CompletableFuture<Void> addSubscriber(MessageSubject subject,
-        Function<byte[], M> decoder,
-        Function<M, CompletableFuture<R>> handler,
-        Function<R, byte[]> encoder) {
+    public <M, R> CompletableFuture<Void> addSubscriber(final MessageSubject subject,
+        final Function<byte[], M> decoder,
+        final Function<M, CompletableFuture<R>> handler,
+        final Function<R, byte[]> encoder) {
         messagingService.registerHandler(subject.toString(),
             new InternalMessageResponder<>(decoder, encoder, handler));
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public <M> CompletableFuture<Void> addSubscriber(MessageSubject subject,
-        Function<byte[], M> decoder,
-        Consumer<M> handler,
-        Executor executor) {
+    public <M> CompletableFuture<Void> addSubscriber(final MessageSubject subject,
+        final Function<byte[], M> decoder,
+        final Consumer<M> handler,
+        final Executor executor) {
         messagingService.registerHandler(subject.toString(),
             new InternalMessageConsumer<>(decoder, handler),
             executor);
@@ -205,12 +201,12 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     }
 
     @Override
-    public void removeSubscriber(MessageSubject subject) {
+    public void removeSubscriber(final MessageSubject subject) {
         messagingService.unregisterHandler(subject.toString());
     }
 
-    private CompletableFuture<Void> doUnicast(MessageSubject subject, byte[] payload, NodeId toNodeId) {
-        Node node = cluster.getNode(toNodeId);
+    private CompletableFuture<Void> doUnicast(final MessageSubject subject, final byte[] payload, final NodeId toNodeId) {
+        final Node node = cluster.getNode(toNodeId);
         checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
         return messagingService.sendAsync(node.endpoint(), subject.toString(), payload);
     }
@@ -220,16 +216,16 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         private final Function<R, byte[]> encoder;
         private final Function<M, CompletableFuture<R>> handler;
 
-        public InternalMessageResponder(Function<byte[], M> decoder,
-            Function<R, byte[]> encoder,
-            Function<M, CompletableFuture<R>> handler) {
+        public InternalMessageResponder(final Function<byte[], M> decoder,
+            final Function<R, byte[]> encoder,
+            final Function<M, CompletableFuture<R>> handler) {
             this.decoder = decoder;
             this.encoder = encoder;
             this.handler = handler;
         }
 
         @Override
-        public CompletableFuture<byte[]> apply(Endpoint sender, byte[] bytes) {
+        public CompletableFuture<byte[]> apply(final Endpoint sender, final byte[] bytes) {
             return handler.apply(decoder.apply(ClusterMessage.fromBytes(bytes).payload())).thenApply(encoder);
         }
     }
@@ -238,13 +234,13 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         private final Function<byte[], M> decoder;
         private final Consumer<M> consumer;
 
-        public InternalMessageConsumer(Function<byte[], M> decoder, Consumer<M> consumer) {
+        public InternalMessageConsumer(final Function<byte[], M> decoder, final Consumer<M> consumer) {
             this.decoder = decoder;
             this.consumer = consumer;
         }
 
         @Override
-        public void accept(Endpoint sender, byte[] bytes) {
+        public void accept(final Endpoint sender, final byte[] bytes) {
             consumer.accept(decoder.apply(ClusterMessage.fromBytes(bytes).payload()));
         }
     }

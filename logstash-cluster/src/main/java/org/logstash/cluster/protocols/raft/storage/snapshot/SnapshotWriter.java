@@ -15,9 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import java.nio.charset.Charset;
+import java.util.function.Function;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.BufferOutput;
 import org.logstash.cluster.storage.buffer.Bytes;
