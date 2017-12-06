@@ -72,9 +72,9 @@ public class MatchTest {
 
     @Test
     public void testIfNotNull() {
-       Match<String> m = Match.ifNotNull();
-       assertFalse(m.matches(null));
-       assertTrue(m.matches("foo"));
+        Match<String> m = Match.ifNotNull();
+        assertFalse(m.matches(null));
+        assertTrue(m.matches("foo"));
     }
 
     @Test

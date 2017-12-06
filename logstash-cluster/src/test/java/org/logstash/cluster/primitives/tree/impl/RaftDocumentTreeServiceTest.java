@@ -48,11 +48,6 @@ public class RaftDocumentTreeServiceTest {
         testSnapshot(Ordering.NATURAL);
     }
 
-    @Test
-    public void testInsertionOrderedSnapshot() throws Exception {
-        testSnapshot(Ordering.INSERTION);
-    }
-
     private void testSnapshot(Ordering ordering) throws Exception {
         SnapshotStore store = new SnapshotStore(RaftStorage.builder()
             .withPrefix("test")
@@ -91,5 +86,10 @@ public class RaftDocumentTreeServiceTest {
             System.currentTimeMillis()));
         assertNotNull(value);
         assertArrayEquals("Hello world!".getBytes(), value.value());
+    }
+
+    @Test
+    public void testInsertionOrderedSnapshot() throws Exception {
+        testSnapshot(Ordering.INSERTION);
     }
 }

@@ -108,7 +108,14 @@ public class RaftTest extends ConcurrentTestCase {
         .build());
 
     private static final Serializer clientSerializer = Serializer.using(KryoNamespace.DEFAULT);
-
+    private static final OperationId WRITE = OperationId.command("write");
+    private static final OperationId EVENT = OperationId.command("event");
+    private static final OperationId EXPIRE = OperationId.command("expire");
+    private static final OperationId CLOSE = OperationId.command("close");
+    private static final OperationId READ = OperationId.query("read");
+    private static final EventType CHANGE_EVENT = EventType.from("change");
+    private static final EventType EXPIRE_EVENT = EventType.from("expire");
+    private static final EventType CLOSE_EVENT = EventType.from("close");
     protected volatile int nextId;
     protected volatile List<RaftMember> members;
     protected volatile List<RaftClient> clients = new ArrayList<>();
@@ -134,6 +141,103 @@ public class RaftTest extends ConcurrentTestCase {
         assertEquals(2, serviceSessions.size());
         serviceSessions = client.metadata().getSessions(ServiceType.from("test"), "test").join();
         assertEquals(2, serviceSessions.size());
+    }
+
+    /**
+     * Creates a set of Raft servers.
+     */
+    private List<RaftServer> createServers(int nodes) throws Throwable {
+        List<RaftServer> servers = new ArrayList<>();
+
+        for (int i = 0; i < nodes; i++) {
+            members.add(nextMember(RaftMember.Type.ACTIVE));
+        }
+
+        for (int i = 0; i < nodes; i++) {
+            RaftServer server = createServer(members.get(i).memberId());
+            if (members.get(i).getType() == RaftMember.Type.ACTIVE) {
+                server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
+            } else {
+                server.listen(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
+            }
+            servers.add(server);
+        }
+
+        await(30000 * nodes, nodes);
+
+        return servers;
+    }
+
+    /**
+     * Returns the next server address.
+     * @param type The startup member type.
+     * @return The next server address.
+     */
+    private RaftMember nextMember(RaftMember.Type type) {
+        return new TestMember(nextMemberId(), type);
+    }
+
+    /**
+     * Returns the next unique member identifier.
+     * @return The next unique member identifier.
+     */
+    private MemberId nextMemberId() {
+        return MemberId.from(String.valueOf(++nextId));
+    }
+
+    /**
+     * Creates a Raft server.
+     */
+    private RaftServer createServer(MemberId memberId) {
+        RaftServer.Builder builder = RaftServer.builder(memberId)
+            .withProtocol(protocolFactory.newServerProtocol(memberId))
+            .withStorage(RaftStorage.builder()
+                .withStorageLevel(StorageLevel.DISK)
+                .withDirectory(new File(String.format("target/test-logs/%s", memberId)))
+                .withSerializer(storageSerializer)
+                .withMaxSegmentSize(1024 * 10)
+                .withMaxEntriesPerSegment(10)
+                .build())
+            .addService("test", TestStateMachine::new);
+
+        RaftServer server = builder.build();
+        servers.add(server);
+        return server;
+    }
+
+    /**
+     * Creates a Raft client.
+     */
+    private RaftClient createClient() throws Throwable {
+        MemberId memberId = nextMemberId();
+        RaftClient client = RaftClient.builder()
+            .withMemberId(memberId)
+            .withProtocol(protocolFactory.newClientProtocol(memberId))
+            .build();
+        client.connect(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
+        await(30000);
+        clients.add(client);
+        return client;
+    }
+
+    /**
+     * Creates a test session.
+     */
+    private RaftProxy createSession(RaftClient client) throws Exception {
+        return createSession(client, ReadConsistency.LINEARIZABLE);
+    }
+
+    /**
+     * Creates a test session.
+     */
+    private RaftProxy createSession(RaftClient client, ReadConsistency consistency) throws Exception {
+        return client.newProxyBuilder()
+            .withName("test")
+            .withServiceType("test")
+            .withReadConsistency(consistency)
+            .build()
+            .open()
+            .get(5, TimeUnit.SECONDS);
     }
 
     /**
@@ -288,14 +392,6 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests a passive member joining the cluster.
-     */
-    @Test
-    public void testPassiveJoin() throws Throwable {
-        testServerJoin(RaftMember.Type.PASSIVE);
-    }
-
-    /**
      * Tests a server joining the cluster.
      */
     private void testServerJoin(RaftMember.Type type) throws Throwable {
@@ -307,6 +403,14 @@ public class RaftTest extends ConcurrentTestCase {
             server.listen(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
         }
         await(10000);
+    }
+
+    /**
+     * Tests a passive member joining the cluster.
+     */
+    @Test
+    public void testPassiveJoin() throws Throwable {
+        testServerJoin(RaftMember.Type.PASSIVE);
     }
 
     /**
@@ -398,6 +502,19 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
+     * Tests submitting a command with a configured consistency level.
+     */
+    private void testSubmitCommand(int nodes) throws Throwable {
+        createServers(nodes);
+
+        RaftClient client = createClient();
+        RaftProxy session = createSession(client);
+        session.invoke(WRITE).thenRun(this::resume);
+
+        await(30000);
+    }
+
+    /**
      * Tests submitting a command.
      */
     @Test
@@ -430,10 +547,18 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting a command with a configured consistency level.
+     * Tests submitting a command.
      */
-    private void testSubmitCommand(int nodes) throws Throwable {
-        createServers(nodes);
+    @Test
+    public void testTwoOfThreeNodeSubmitCommand() throws Throwable {
+        testSubmitCommand(2, 3);
+    }
+
+    /**
+     * Tests submitting a command to a partial cluster.
+     */
+    private void testSubmitCommand(int live, int total) throws Throwable {
+        createServers(live, total);
 
         RaftClient client = createClient();
         RaftProxy session = createSession(client);
@@ -443,11 +568,28 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting a command.
+     * Creates a set of Raft servers.
      */
-    @Test
-    public void testTwoOfThreeNodeSubmitCommand() throws Throwable {
-        testSubmitCommand(2, 3);
+    private List<RaftServer> createServers(int live, int total) throws Throwable {
+        List<RaftServer> servers = new ArrayList<>();
+
+        for (int i = 0; i < total; i++) {
+            members.add(nextMember(RaftMember.Type.ACTIVE));
+        }
+
+        for (int i = 0; i < live; i++) {
+            RaftServer server = createServer(members.get(i).memberId());
+            if (members.get(i).getType() == RaftMember.Type.ACTIVE) {
+                server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
+            } else {
+                server.listen(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
+            }
+            servers.add(server);
+        }
+
+        await(30000 * live, live);
+
+        return servers;
     }
 
     /**
@@ -467,24 +609,24 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting a command to a partial cluster.
-     */
-    private void testSubmitCommand(int live, int total) throws Throwable {
-        createServers(live, total);
-
-        RaftClient client = createClient();
-        RaftProxy session = createSession(client);
-        session.invoke(WRITE).thenRun(this::resume);
-
-        await(30000);
-    }
-
-    /**
      * Tests submitting a query.
      */
     @Test
     public void testOneNodeSubmitQueryWithSequentialConsistency() throws Throwable {
         testSubmitQuery(1, ReadConsistency.SEQUENTIAL);
+    }
+
+    /**
+     * Tests submitting a query with a configured consistency level.
+     */
+    private void testSubmitQuery(int nodes, ReadConsistency consistency) throws Throwable {
+        createServers(nodes);
+
+        RaftClient client = createClient();
+        RaftProxy session = createSession(client, consistency);
+        session.invoke(READ).thenRun(this::resume);
+
+        await(30000);
     }
 
     /**
@@ -600,24 +742,39 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting a query with a configured consistency level.
-     */
-    private void testSubmitQuery(int nodes, ReadConsistency consistency) throws Throwable {
-        createServers(nodes);
-
-        RaftClient client = createClient();
-        RaftProxy session = createSession(client, consistency);
-        session.invoke(READ).thenRun(this::resume);
-
-        await(30000);
-    }
-
-    /**
      * Tests submitting a sequential event.
      */
     @Test
     public void testOneNodeSequentialEvent() throws Throwable {
         testSequentialEvent(1);
+    }
+
+    /**
+     * Tests submitting a sequential event.
+     */
+    private void testSequentialEvent(int nodes) throws Throwable {
+        createServers(nodes);
+
+        AtomicLong count = new AtomicLong();
+        AtomicLong index = new AtomicLong();
+
+        RaftClient client = createClient();
+        RaftProxy session = createSession(client);
+        session.<Long>addEventListener(CHANGE_EVENT, clientSerializer::decode, event -> {
+            threadAssertEquals(count.incrementAndGet(), 2L);
+            threadAssertEquals(index.get(), event);
+            resume();
+        });
+
+        session.<Boolean, Long>invoke(EVENT, clientSerializer::encode, true, clientSerializer::decode)
+            .thenAccept(result -> {
+                threadAssertNotNull(result);
+                threadAssertEquals(count.incrementAndGet(), 1L);
+                index.set(result);
+                resume();
+            });
+
+        await(30000, 2);
     }
 
     /**
@@ -653,39 +810,37 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting a sequential event.
-     */
-    private void testSequentialEvent(int nodes) throws Throwable {
-        createServers(nodes);
-
-        AtomicLong count = new AtomicLong();
-        AtomicLong index = new AtomicLong();
-
-        RaftClient client = createClient();
-        RaftProxy session = createSession(client);
-        session.<Long>addEventListener(CHANGE_EVENT, clientSerializer::decode, event -> {
-            threadAssertEquals(count.incrementAndGet(), 2L);
-            threadAssertEquals(index.get(), event);
-            resume();
-        });
-
-        session.<Boolean, Long>invoke(EVENT, clientSerializer::encode, true, clientSerializer::decode)
-            .thenAccept(result -> {
-                threadAssertNotNull(result);
-                threadAssertEquals(count.incrementAndGet(), 1L);
-                index.set(result);
-                resume();
-            });
-
-        await(30000, 2);
-    }
-
-    /**
      * Tests submitting sequential events.
      */
     @Test
     public void testOneNodeEvents() throws Throwable {
         testEvents(1);
+    }
+
+    /**
+     * Tests submitting sequential events to all sessions.
+     */
+    private void testEvents(int nodes) throws Throwable {
+        createServers(nodes);
+
+        RaftClient client = createClient();
+        RaftProxy session = createSession(client);
+        session.addEventListener(event -> {
+            threadAssertNotNull(event);
+            resume();
+        });
+        createSession(createClient()).addEventListener(event -> {
+            threadAssertNotNull(event);
+            resume();
+        });
+        createSession(createClient()).addEventListener(event -> {
+            threadAssertNotNull(event);
+            resume();
+        });
+
+        session.invoke(EVENT, clientSerializer::encode, false).thenRun(this::resume);
+
+        await(30000, 4);
     }
 
     /**
@@ -721,53 +876,11 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting sequential events to all sessions.
-     */
-    private void testEvents(int nodes) throws Throwable {
-        createServers(nodes);
-
-        RaftClient client = createClient();
-        RaftProxy session = createSession(client);
-        session.addEventListener(event -> {
-            threadAssertNotNull(event);
-            resume();
-        });
-        createSession(createClient()).addEventListener(event -> {
-            threadAssertNotNull(event);
-            resume();
-        });
-        createSession(createClient()).addEventListener(event -> {
-            threadAssertNotNull(event);
-            resume();
-        });
-
-        session.invoke(EVENT, clientSerializer::encode, false).thenRun(this::resume);
-
-        await(30000, 4);
-    }
-
-    /**
      * Tests that operations are properly sequenced on the client.
      */
     @Test
     public void testSequenceLinearizableOperations() throws Throwable {
         testSequenceOperations(5, ReadConsistency.LINEARIZABLE);
-    }
-
-    /**
-     * Tests that operations are properly sequenced on the client.
-     */
-    @Test
-    public void testSequenceBoundedLinearizableOperations() throws Throwable {
-        testSequenceOperations(5, ReadConsistency.LINEARIZABLE_LEASE);
-    }
-
-    /**
-     * Tests that operations are properly sequenced on the client.
-     */
-    @Test
-    public void testSequenceSequentialOperations() throws Throwable {
-        testSequenceOperations(5, ReadConsistency.SEQUENTIAL);
     }
 
     /**
@@ -812,6 +925,22 @@ public class RaftTest extends ConcurrentTestCase {
         });
 
         await(30000, 4);
+    }
+
+    /**
+     * Tests that operations are properly sequenced on the client.
+     */
+    @Test
+    public void testSequenceBoundedLinearizableOperations() throws Throwable {
+        testSequenceOperations(5, ReadConsistency.LINEARIZABLE_LEASE);
+    }
+
+    /**
+     * Tests that operations are properly sequenced on the client.
+     */
+    @Test
+    public void testSequenceSequentialOperations() throws Throwable {
+        testSequenceOperations(5, ReadConsistency.SEQUENTIAL);
     }
 
     /**
@@ -884,14 +1013,6 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting linearizable events.
-     */
-    @Test
-    public void testFiveNodesManyEventsAfterLeaderShutdown() throws Throwable {
-        testManyEventsAfterLeaderShutdown(5);
-    }
-
-    /**
      * Tests submitting a linearizable event that publishes to all sessions.
      */
     private void testManyEventsAfterLeaderShutdown(int nodes) throws Throwable {
@@ -921,12 +1042,11 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests submitting sequential events.
+     * Tests submitting linearizable events.
      */
     @Test
-    @Ignore // Ignored due to lack of timeouts/retries in test protocol
-    public void testThreeNodesEventsAfterFollowerKill() throws Throwable {
-        testEventsAfterFollowerKill(3);
+    public void testFiveNodesManyEventsAfterLeaderShutdown() throws Throwable {
+        testManyEventsAfterLeaderShutdown(5);
     }
 
     /**
@@ -934,8 +1054,8 @@ public class RaftTest extends ConcurrentTestCase {
      */
     @Test
     @Ignore // Ignored due to lack of timeouts/retries in test protocol
-    public void testFiveNodesEventsAfterFollowerKill() throws Throwable {
-        testEventsAfterFollowerKill(5);
+    public void testThreeNodesEventsAfterFollowerKill() throws Throwable {
+        testEventsAfterFollowerKill(3);
     }
 
     /**
@@ -969,6 +1089,15 @@ public class RaftTest extends ConcurrentTestCase {
 
             await(30000, 2);
         }
+    }
+
+    /**
+     * Tests submitting sequential events.
+     */
+    @Test
+    @Ignore // Ignored due to lack of timeouts/retries in test protocol
+    public void testFiveNodesEventsAfterFollowerKill() throws Throwable {
+        testEventsAfterFollowerKill(5);
     }
 
     /**
@@ -1060,22 +1189,6 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Tests session expiring events.
-     */
-    @Test
-    public void testThreeNodeExpireEvent() throws Throwable {
-        testSessionExpire(3);
-    }
-
-    /**
-     * Tests session expiring events.
-     */
-    @Test
-    public void testFiveNodeExpireEvent() throws Throwable {
-        testSessionExpire(5);
-    }
-
-    /**
      * Tests a session expiring.
      */
     private void testSessionExpire(int nodes) throws Throwable {
@@ -1092,27 +1205,27 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
+     * Tests session expiring events.
+     */
+    @Test
+    public void testThreeNodeExpireEvent() throws Throwable {
+        testSessionExpire(3);
+    }
+
+    /**
+     * Tests session expiring events.
+     */
+    @Test
+    public void testFiveNodeExpireEvent() throws Throwable {
+        testSessionExpire(5);
+    }
+
+    /**
      * Tests session close events.
      */
     @Test
     public void testOneNodeCloseEvent() throws Throwable {
         testSessionClose(1);
-    }
-
-    /**
-     * Tests session close events.
-     */
-    @Test
-    public void testThreeNodeCloseEvent() throws Throwable {
-        testSessionClose(3);
-    }
-
-    /**
-     * Tests session close events.
-     */
-    @Test
-    public void testFiveNodeCloseEvent() throws Throwable {
-        testSessionClose(5);
     }
 
     /**
@@ -1132,125 +1245,19 @@ public class RaftTest extends ConcurrentTestCase {
     }
 
     /**
-     * Returns the next unique member identifier.
-     * @return The next unique member identifier.
+     * Tests session close events.
      */
-    private MemberId nextMemberId() {
-        return MemberId.from(String.valueOf(++nextId));
+    @Test
+    public void testThreeNodeCloseEvent() throws Throwable {
+        testSessionClose(3);
     }
 
     /**
-     * Returns the next server address.
-     * @param type The startup member type.
-     * @return The next server address.
+     * Tests session close events.
      */
-    private RaftMember nextMember(RaftMember.Type type) {
-        return new TestMember(nextMemberId(), type);
-    }
-
-    /**
-     * Creates a set of Raft servers.
-     */
-    private List<RaftServer> createServers(int nodes) throws Throwable {
-        List<RaftServer> servers = new ArrayList<>();
-
-        for (int i = 0; i < nodes; i++) {
-            members.add(nextMember(RaftMember.Type.ACTIVE));
-        }
-
-        for (int i = 0; i < nodes; i++) {
-            RaftServer server = createServer(members.get(i).memberId());
-            if (members.get(i).getType() == RaftMember.Type.ACTIVE) {
-                server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
-            } else {
-                server.listen(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
-            }
-            servers.add(server);
-        }
-
-        await(30000 * nodes, nodes);
-
-        return servers;
-    }
-
-    /**
-     * Creates a set of Raft servers.
-     */
-    private List<RaftServer> createServers(int live, int total) throws Throwable {
-        List<RaftServer> servers = new ArrayList<>();
-
-        for (int i = 0; i < total; i++) {
-            members.add(nextMember(RaftMember.Type.ACTIVE));
-        }
-
-        for (int i = 0; i < live; i++) {
-            RaftServer server = createServer(members.get(i).memberId());
-            if (members.get(i).getType() == RaftMember.Type.ACTIVE) {
-                server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
-            } else {
-                server.listen(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
-            }
-            servers.add(server);
-        }
-
-        await(30000 * live, live);
-
-        return servers;
-    }
-
-    /**
-     * Creates a Raft server.
-     */
-    private RaftServer createServer(MemberId memberId) {
-        RaftServer.Builder builder = RaftServer.builder(memberId)
-            .withProtocol(protocolFactory.newServerProtocol(memberId))
-            .withStorage(RaftStorage.builder()
-                .withStorageLevel(StorageLevel.DISK)
-                .withDirectory(new File(String.format("target/test-logs/%s", memberId)))
-                .withSerializer(storageSerializer)
-                .withMaxSegmentSize(1024 * 10)
-                .withMaxEntriesPerSegment(10)
-                .build())
-            .addService("test", TestStateMachine::new);
-
-        RaftServer server = builder.build();
-        servers.add(server);
-        return server;
-    }
-
-    /**
-     * Creates a Raft client.
-     */
-    private RaftClient createClient() throws Throwable {
-        MemberId memberId = nextMemberId();
-        RaftClient client = RaftClient.builder()
-            .withMemberId(memberId)
-            .withProtocol(protocolFactory.newClientProtocol(memberId))
-            .build();
-        client.connect(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).thenRun(this::resume);
-        await(30000);
-        clients.add(client);
-        return client;
-    }
-
-    /**
-     * Creates a test session.
-     */
-    private RaftProxy createSession(RaftClient client) throws Exception {
-        return createSession(client, ReadConsistency.LINEARIZABLE);
-    }
-
-    /**
-     * Creates a test session.
-     */
-    private RaftProxy createSession(RaftClient client, ReadConsistency consistency) throws Exception {
-        return client.newProxyBuilder()
-            .withName("test")
-            .withServiceType("test")
-            .withReadConsistency(consistency)
-            .build()
-            .open()
-            .get(5, TimeUnit.SECONDS);
+    @Test
+    public void testFiveNodeCloseEvent() throws Throwable {
+        testSessionClose(5);
     }
 
     @Before
@@ -1296,17 +1303,6 @@ public class RaftTest extends ConcurrentTestCase {
         protocolFactory = new TestRaftProtocolFactory();
     }
 
-    private static final OperationId WRITE = OperationId.command("write");
-    private static final OperationId EVENT = OperationId.command("event");
-    private static final OperationId EXPIRE = OperationId.command("expire");
-    private static final OperationId CLOSE = OperationId.command("close");
-
-    private static final OperationId READ = OperationId.query("read");
-
-    private static final EventType CHANGE_EVENT = EventType.from("change");
-    private static final EventType EXPIRE_EVENT = EventType.from("expire");
-    private static final EventType CLOSE_EVENT = EventType.from("close");
-
     /**
      * Test state machine.
      */
@@ -1335,6 +1331,10 @@ public class RaftTest extends ConcurrentTestCase {
             if (close != null && !session.equals(close.session())) {
                 close.session().publish(CLOSE_EVENT);
             }
+        }
+
+        public void close(Commit<Void> commit) {
+            this.close = commit;
         }
 
         @Override
@@ -1366,10 +1366,6 @@ public class RaftTest extends ConcurrentTestCase {
             return commit.index();
         }
 
-        public void close(Commit<Void> commit) {
-            this.close = commit;
-        }
-
         public void expire(Commit<Void> commit) {
             this.expire = commit;
         }
@@ -1393,13 +1389,13 @@ public class RaftTest extends ConcurrentTestCase {
         }
 
         @Override
-        public Type getType() {
-            return type;
+        public int hash() {
+            return 0;
         }
 
         @Override
-        public int hash() {
-            return 0;
+        public Type getType() {
+            return type;
         }
 
         @Override

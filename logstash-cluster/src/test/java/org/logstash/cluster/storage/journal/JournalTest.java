@@ -34,14 +34,6 @@ public class JournalTest {
         .register(byte[].class)
         .build());
 
-    private Journal<TestEntry> createJournal() {
-        return SegmentedJournal.<TestEntry>builder()
-            .withName("test")
-            .withSerializer(serializer)
-            .withStorageLevel(StorageLevel.MEMORY)
-            .build();
-    }
-
     @Test
     public void testLogWriteRead() throws Exception {
         Journal<TestEntry> journal = createJournal();
@@ -134,5 +126,13 @@ public class JournalTest {
         assertEquals(reader.getCurrentEntry(), closeSession);
         assertEquals(reader.getCurrentIndex(), 2);
         assertFalse(reader.hasNext());
+    }
+
+    private Journal<TestEntry> createJournal() {
+        return SegmentedJournal.<TestEntry>builder()
+            .withName("test")
+            .withSerializer(serializer)
+            .withStorageLevel(StorageLevel.MEMORY)
+            .build();
     }
 }

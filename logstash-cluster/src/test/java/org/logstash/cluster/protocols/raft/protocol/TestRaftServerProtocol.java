@@ -30,6 +30,7 @@ import org.logstash.cluster.utils.concurrent.Futures;
  * Test server protocol.
  */
 public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServerProtocol {
+    private final Map<Long, Consumer<ResetRequest>> resetListeners = Maps.newConcurrentMap();
     private Function<OpenSessionRequest, CompletableFuture<OpenSessionResponse>> openSessionHandler;
     private Function<CloseSessionRequest, CompletableFuture<CloseSessionResponse>> closeSessionHandler;
     private Function<KeepAliveRequest, CompletableFuture<KeepAliveResponse>> keepAliveHandler;
@@ -45,11 +46,15 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     private Function<PollRequest, CompletableFuture<PollResponse>> pollHandler;
     private Function<VoteRequest, CompletableFuture<VoteResponse>> voteHandler;
     private Function<AppendRequest, CompletableFuture<AppendResponse>> appendHandler;
-    private final Map<Long, Consumer<ResetRequest>> resetListeners = Maps.newConcurrentMap();
 
     public TestRaftServerProtocol(MemberId memberId, Map<MemberId, TestRaftServerProtocol> servers, Map<MemberId, TestRaftClientProtocol> clients) {
         super(servers, clients);
         servers.put(memberId, this);
+    }
+
+    @Override
+    public CompletableFuture<OpenSessionResponse> openSession(MemberId memberId, OpenSessionRequest request) {
+        return getServer(memberId).thenCompose(listener -> listener.openSession(request));
     }
 
     private CompletableFuture<TestRaftServerProtocol> getServer(MemberId memberId) {
@@ -59,20 +64,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         } else {
             return Futures.exceptionalFuture(new ConnectException());
         }
-    }
-
-    private CompletableFuture<TestRaftClientProtocol> getClient(MemberId memberId) {
-        TestRaftClientProtocol client = client(memberId);
-        if (client != null) {
-            return Futures.completedFuture(client);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
-    @Override
-    public CompletableFuture<OpenSessionResponse> openSession(MemberId memberId, OpenSessionRequest request) {
-        return getServer(memberId).thenCompose(listener -> listener.openSession(request));
     }
 
     @Override
@@ -146,18 +137,19 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     }
 
     @Override
-    public void publish(MemberId memberId, PublishRequest request) {
-        getClient(memberId).thenAccept(protocol -> protocol.publish(request));
-    }
-
-    @Override
     public CompletableFuture<HeartbeatResponse> heartbeat(MemberId memberId, HeartbeatRequest request) {
         return getClient(memberId).thenCompose(protocol -> protocol.heartbeat(request));
     }
 
-    CompletableFuture<OpenSessionResponse> openSession(OpenSessionRequest request) {
-        if (openSessionHandler != null) {
-            return openSessionHandler.apply(request);
+    @Override
+    public void publish(MemberId memberId, PublishRequest request) {
+        getClient(memberId).thenAccept(protocol -> protocol.publish(request));
+    }
+
+    private CompletableFuture<TestRaftClientProtocol> getClient(MemberId memberId) {
+        TestRaftClientProtocol client = client(memberId);
+        if (client != null) {
+            return Futures.completedFuture(client);
         } else {
             return Futures.exceptionalFuture(new ConnectException());
         }
@@ -173,14 +165,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.openSessionHandler = null;
     }
 
-    CompletableFuture<CloseSessionResponse> closeSession(CloseSessionRequest request) {
-        if (closeSessionHandler != null) {
-            return closeSessionHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
     @Override
     public void registerCloseSessionHandler(Function<CloseSessionRequest, CompletableFuture<CloseSessionResponse>> handler) {
         this.closeSessionHandler = handler;
@@ -189,14 +173,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterCloseSessionHandler() {
         this.closeSessionHandler = null;
-    }
-
-    CompletableFuture<KeepAliveResponse> keepAlive(KeepAliveRequest request) {
-        if (keepAliveHandler != null) {
-            return keepAliveHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     @Override
@@ -209,14 +185,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.keepAliveHandler = null;
     }
 
-    CompletableFuture<QueryResponse> query(QueryRequest request) {
-        if (queryHandler != null) {
-            return queryHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
     @Override
     public void registerQueryHandler(Function<QueryRequest, CompletableFuture<QueryResponse>> handler) {
         this.queryHandler = handler;
@@ -225,14 +193,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterQueryHandler() {
         this.queryHandler = null;
-    }
-
-    CompletableFuture<CommandResponse> command(CommandRequest request) {
-        if (commandHandler != null) {
-            return commandHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     @Override
@@ -245,14 +205,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.commandHandler = null;
     }
 
-    CompletableFuture<MetadataResponse> metadata(MetadataRequest request) {
-        if (metadataHandler != null) {
-            return metadataHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
     @Override
     public void registerMetadataHandler(Function<MetadataRequest, CompletableFuture<MetadataResponse>> handler) {
         this.metadataHandler = handler;
@@ -261,14 +213,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterMetadataHandler() {
         this.metadataHandler = null;
-    }
-
-    CompletableFuture<JoinResponse> join(JoinRequest request) {
-        if (joinHandler != null) {
-            return joinHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     @Override
@@ -281,14 +225,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.joinHandler = null;
     }
 
-    CompletableFuture<LeaveResponse> leave(LeaveRequest request) {
-        if (leaveHandler != null) {
-            return leaveHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
     @Override
     public void registerLeaveHandler(Function<LeaveRequest, CompletableFuture<LeaveResponse>> handler) {
         this.leaveHandler = handler;
@@ -297,68 +233,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterLeaveHandler() {
         this.leaveHandler = null;
-    }
-
-    CompletableFuture<ConfigureResponse> configure(ConfigureRequest request) {
-        if (configureHandler != null) {
-            return configureHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
-    @Override
-    public void registerConfigureHandler(Function<ConfigureRequest, CompletableFuture<ConfigureResponse>> handler) {
-        this.configureHandler = handler;
-    }
-
-    @Override
-    public void unregisterConfigureHandler() {
-        this.configureHandler = null;
-    }
-
-    CompletableFuture<ReconfigureResponse> reconfigure(ReconfigureRequest request) {
-        if (reconfigureHandler != null) {
-            return reconfigureHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
-    @Override
-    public void registerReconfigureHandler(Function<ReconfigureRequest, CompletableFuture<ReconfigureResponse>> handler) {
-        this.reconfigureHandler = handler;
-    }
-
-    @Override
-    public void unregisterReconfigureHandler() {
-        this.reconfigureHandler = null;
-    }
-
-    CompletableFuture<InstallResponse> install(InstallRequest request) {
-        if (installHandler != null) {
-            return installHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
-    @Override
-    public void registerInstallHandler(Function<InstallRequest, CompletableFuture<InstallResponse>> handler) {
-        this.installHandler = handler;
-    }
-
-    @Override
-    public void unregisterInstallHandler() {
-        this.installHandler = null;
-    }
-
-    CompletableFuture<TransferResponse> transfer(TransferRequest request) {
-        if (transferHandler != null) {
-            return transferHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     @Override
@@ -371,12 +245,34 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.transferHandler = null;
     }
 
-    CompletableFuture<PollResponse> poll(PollRequest request) {
-        if (pollHandler != null) {
-            return pollHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
+    @Override
+    public void registerConfigureHandler(Function<ConfigureRequest, CompletableFuture<ConfigureResponse>> handler) {
+        this.configureHandler = handler;
+    }
+
+    @Override
+    public void unregisterConfigureHandler() {
+        this.configureHandler = null;
+    }
+
+    @Override
+    public void registerReconfigureHandler(Function<ReconfigureRequest, CompletableFuture<ReconfigureResponse>> handler) {
+        this.reconfigureHandler = handler;
+    }
+
+    @Override
+    public void unregisterReconfigureHandler() {
+        this.reconfigureHandler = null;
+    }
+
+    @Override
+    public void registerInstallHandler(Function<InstallRequest, CompletableFuture<InstallResponse>> handler) {
+        this.installHandler = handler;
+    }
+
+    @Override
+    public void unregisterInstallHandler() {
+        this.installHandler = null;
     }
 
     @Override
@@ -389,14 +285,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.pollHandler = null;
     }
 
-    CompletableFuture<VoteResponse> vote(VoteRequest request) {
-        if (voteHandler != null) {
-            return voteHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
-    }
-
     @Override
     public void registerVoteHandler(Function<VoteRequest, CompletableFuture<VoteResponse>> handler) {
         this.voteHandler = handler;
@@ -405,14 +293,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterVoteHandler() {
         this.voteHandler = null;
-    }
-
-    CompletableFuture<AppendResponse> append(AppendRequest request) {
-        if (appendHandler != null) {
-            return appendHandler.apply(request);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     @Override
@@ -425,13 +305,6 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
         this.appendHandler = null;
     }
 
-    void reset(ResetRequest request) {
-        Consumer<ResetRequest> listener = resetListeners.get(request.session());
-        if (listener != null) {
-            listener.accept(request);
-        }
-    }
-
     @Override
     public void registerResetListener(SessionId sessionId, Consumer<ResetRequest> listener, Executor executor) {
         resetListeners.put(sessionId.id(), request -> executor.execute(() -> listener.accept(request)));
@@ -440,5 +313,132 @@ public class TestRaftServerProtocol extends TestRaftProtocol implements RaftServ
     @Override
     public void unregisterResetListener(SessionId sessionId) {
         resetListeners.remove(sessionId.id());
+    }
+
+    CompletableFuture<AppendResponse> append(AppendRequest request) {
+        if (appendHandler != null) {
+            return appendHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<VoteResponse> vote(VoteRequest request) {
+        if (voteHandler != null) {
+            return voteHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<PollResponse> poll(PollRequest request) {
+        if (pollHandler != null) {
+            return pollHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<TransferResponse> transfer(TransferRequest request) {
+        if (transferHandler != null) {
+            return transferHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<InstallResponse> install(InstallRequest request) {
+        if (installHandler != null) {
+            return installHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<ReconfigureResponse> reconfigure(ReconfigureRequest request) {
+        if (reconfigureHandler != null) {
+            return reconfigureHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<ConfigureResponse> configure(ConfigureRequest request) {
+        if (configureHandler != null) {
+            return configureHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<LeaveResponse> leave(LeaveRequest request) {
+        if (leaveHandler != null) {
+            return leaveHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<JoinResponse> join(JoinRequest request) {
+        if (joinHandler != null) {
+            return joinHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<MetadataResponse> metadata(MetadataRequest request) {
+        if (metadataHandler != null) {
+            return metadataHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<CommandResponse> command(CommandRequest request) {
+        if (commandHandler != null) {
+            return commandHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<QueryResponse> query(QueryRequest request) {
+        if (queryHandler != null) {
+            return queryHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<KeepAliveResponse> keepAlive(KeepAliveRequest request) {
+        if (keepAliveHandler != null) {
+            return keepAliveHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<CloseSessionResponse> closeSession(CloseSessionRequest request) {
+        if (closeSessionHandler != null) {
+            return closeSessionHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    CompletableFuture<OpenSessionResponse> openSession(OpenSessionRequest request) {
+        if (openSessionHandler != null) {
+            return openSessionHandler.apply(request);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
+    }
+
+    void reset(ResetRequest request) {
+        Consumer<ResetRequest> listener = resetListeners.get(request.session());
+        if (listener != null) {
+            listener.accept(request);
+        }
     }
 }

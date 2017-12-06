@@ -69,84 +69,6 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
         basicMapOperationTests();
     }
 
-    /**
-     * Tests various map compute* operations on different cluster sizes.
-     */
-    @Test
-    public void testMapComputeOperations() throws Throwable {
-        mapComputeOperationTests();
-    }
-
-    /**
-     * Tests null values.
-     */
-    @Test
-    public void testNullValues() throws Throwable {
-        final byte[] rawFooValue = "Hello foo!".getBytes();
-        final byte[] rawBarValue = "Hello bar!".getBytes();
-
-        RaftConsistentMap map = newPrimitive("testNullValues");
-
-        map.get("foo")
-            .thenAccept(v -> assertNull(v)).join();
-        map.put("foo", null)
-            .thenAccept(v -> assertNull(v)).join();
-        map.put("foo", rawFooValue).thenAccept(v -> {
-            assertNotNull(v);
-            assertNull(v.value());
-        }).join();
-        map.get("foo").thenAccept(v -> {
-            assertNotNull(v);
-            assertTrue(Arrays.equals(v.value(), rawFooValue));
-        }).join();
-        map.replace("foo", rawFooValue, null)
-            .thenAccept(replaced -> assertTrue(replaced)).join();
-        map.get("foo").thenAccept(v -> {
-            assertNotNull(v);
-            assertNull(v.value());
-        }).join();
-        map.replace("foo", rawFooValue, rawBarValue)
-            .thenAccept(replaced -> assertFalse(replaced)).join();
-        map.replace("foo", null, rawBarValue)
-            .thenAccept(replaced -> assertTrue(replaced)).join();
-        map.get("foo").thenAccept(v -> {
-            assertNotNull(v);
-            assertTrue(Arrays.equals(v.value(), rawBarValue));
-        }).join();
-    }
-
-    /**
-     * Tests map event notifications.
-     */
-    @Test
-    public void testMapListeners() throws Throwable {
-        mapListenerTests();
-    }
-
-    /**
-     * Tests map transaction prepare.
-     */
-    @Test
-    public void testTransactionPrepare() throws Throwable {
-        transactionPrepareTests();
-    }
-
-    /**
-     * Tests map transaction commit.
-     */
-    @Test
-    public void testTransactionCommit() throws Throwable {
-        transactionCommitTests();
-    }
-
-    /**
-     * Tests map transaction rollback.
-     */
-    @Test
-    public void testTransactionRollback() throws Throwable {
-        transactionRollbackTests();
-    }
-
     protected void basicMapOperationTests() throws Throwable {
         final byte[] rawFooValue = "Hello foo!".getBytes();
         final byte[] rawBarValue = "Hello bar!".getBytes();
@@ -281,6 +203,14 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
         }).join();
     }
 
+    /**
+     * Tests various map compute* operations on different cluster sizes.
+     */
+    @Test
+    public void testMapComputeOperations() throws Throwable {
+        mapComputeOperationTests();
+    }
+
     public void mapComputeOperationTests() throws Throwable {
         final byte[] value1 = "value1".getBytes();
         final byte[] value2 = "value2".getBytes();
@@ -315,6 +245,52 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
         map.compute("foo", (k, v) -> value2).thenAccept(result -> {
             assertTrue(Arrays.equals(Versioned.valueOrElse(result, null), value2));
         }).join();
+    }
+
+    /**
+     * Tests null values.
+     */
+    @Test
+    public void testNullValues() throws Throwable {
+        final byte[] rawFooValue = "Hello foo!".getBytes();
+        final byte[] rawBarValue = "Hello bar!".getBytes();
+
+        RaftConsistentMap map = newPrimitive("testNullValues");
+
+        map.get("foo")
+            .thenAccept(v -> assertNull(v)).join();
+        map.put("foo", null)
+            .thenAccept(v -> assertNull(v)).join();
+        map.put("foo", rawFooValue).thenAccept(v -> {
+            assertNotNull(v);
+            assertNull(v.value());
+        }).join();
+        map.get("foo").thenAccept(v -> {
+            assertNotNull(v);
+            assertTrue(Arrays.equals(v.value(), rawFooValue));
+        }).join();
+        map.replace("foo", rawFooValue, null)
+            .thenAccept(replaced -> assertTrue(replaced)).join();
+        map.get("foo").thenAccept(v -> {
+            assertNotNull(v);
+            assertNull(v.value());
+        }).join();
+        map.replace("foo", rawFooValue, rawBarValue)
+            .thenAccept(replaced -> assertFalse(replaced)).join();
+        map.replace("foo", null, rawBarValue)
+            .thenAccept(replaced -> assertTrue(replaced)).join();
+        map.get("foo").thenAccept(v -> {
+            assertNotNull(v);
+            assertTrue(Arrays.equals(v.value(), rawBarValue));
+        }).join();
+    }
+
+    /**
+     * Tests map event notifications.
+     */
+    @Test
+    public void testMapListeners() throws Throwable {
+        mapListenerTests();
     }
 
     protected void mapListenerTests() throws Throwable {
@@ -374,6 +350,14 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
         assertTrue(Arrays.equals(value2, event.oldValue().value()));
 
         map.removeListener(listener).join();
+    }
+
+    /**
+     * Tests map transaction prepare.
+     */
+    @Test
+    public void testTransactionPrepare() throws Throwable {
+        transactionPrepareTests();
     }
 
     protected void transactionPrepareTests() throws Throwable {
@@ -447,6 +431,14 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
             .thenAccept(result -> {
                 assertTrue(result);
             }).join();
+    }
+
+    /**
+     * Tests map transaction commit.
+     */
+    @Test
+    public void testTransactionCommit() throws Throwable {
+        transactionCommitTests();
     }
 
     protected void transactionCommitTests() throws Throwable {
@@ -547,6 +539,14 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
             assertThat(size, is(0));
         }).join();
 
+    }
+
+    /**
+     * Tests map transaction rollback.
+     */
+    @Test
+    public void testTransactionRollback() throws Throwable {
+        transactionRollbackTests();
     }
 
     protected void transactionRollbackTests() throws Throwable {

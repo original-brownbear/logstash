@@ -17,19 +17,18 @@ package org.logstash.cluster.storage.buffer;
 
 /**
  * Direct buffer test.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class UnsafeDirectBufferTest extends BufferTest {
 
-  @Override
-  protected Buffer createBuffer(int capacity) {
-    return UnsafeDirectBuffer.allocate(capacity);
-  }
+    @Override
+    protected Buffer createBuffer(int capacity) {
+        return UnsafeDirectBuffer.allocate(capacity);
+    }
 
-  @Override
-  protected Buffer createBuffer(int capacity, int maxCapacity) {
-    return UnsafeDirectBuffer.allocate(capacity, maxCapacity);
-  }
+    @Override
+    protected Buffer createBuffer(int capacity, int maxCapacity) {
+        return UnsafeDirectBuffer.allocate(capacity, maxCapacity);
+    }
 
 }

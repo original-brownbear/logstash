@@ -270,6 +270,69 @@ public class RaftConsistentTreeMapTest extends AbstractRaftPrimitiveTest<RaftCon
             }).join());
     }
 
+    private RaftConsistentTreeMap createResource(String mapName) {
+        try {
+            RaftConsistentTreeMap map = newPrimitive(mapName);
+            return map;
+        } catch (Throwable e) {
+            throw new RuntimeException(e.toString());
+        }
+    }
+
+    /**
+     * Returns two arrays contain the same set of elements,
+     * regardless of order.
+     * @param o1 first collection
+     * @param o2 second collection
+     * @return true if they contain the same elements
+     */
+    private boolean byteArrayCollectionIsEqual(
+        Collection<? extends byte[]> o1, Collection<? extends byte[]> o2) {
+        if (o1 == null || o2 == null || o1.size() != o2.size()) {
+            return false;
+        }
+        for (byte[] array1 : o1) {
+            boolean matched = false;
+            for (byte[] array2 : o2) {
+                if (Arrays.equals(array1, array2)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Compares two collections of strings returns true if they contain the
+     * same strings, false otherwise.
+     * @param s1 string collection one
+     * @param s2 string collection two
+     * @return true if the two sets contain the same strings
+     */
+    private boolean stringArrayCollectionIsEqual(
+        Collection<? extends String> s1, Collection<? extends String> s2) {
+        if (s1 == null || s2 == null || s1.size() != s2.size()) {
+            return false;
+        }
+        for (String string1 : s1) {
+            boolean matched = false;
+            for (String string2 : s2) {
+                if (string1.equals(string2)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Test
     public void mapListenerTests() throws Throwable {
         final byte[] value1 = "value1".getBytes();
@@ -492,15 +555,6 @@ public class RaftConsistentTreeMapTest extends AbstractRaftPrimitiveTest<RaftCon
         //map.delete().join();
     }
 
-    private RaftConsistentTreeMap createResource(String mapName) {
-        try {
-            RaftConsistentTreeMap map = newPrimitive(mapName);
-            return map;
-        } catch (Throwable e) {
-            throw new RuntimeException(e.toString());
-        }
-    }
-
     private static class TestMapEventListener
         implements MapEventListener<String, byte[]> {
 
@@ -523,59 +577,5 @@ public class RaftConsistentTreeMapTest extends AbstractRaftPrimitiveTest<RaftCon
         public MapEvent<String, byte[]> event() throws InterruptedException {
             return queue.take();
         }
-    }
-
-    /**
-     * Returns two arrays contain the same set of elements,
-     * regardless of order.
-     * @param o1 first collection
-     * @param o2 second collection
-     * @return true if they contain the same elements
-     */
-    private boolean byteArrayCollectionIsEqual(
-        Collection<? extends byte[]> o1, Collection<? extends byte[]> o2) {
-        if (o1 == null || o2 == null || o1.size() != o2.size()) {
-            return false;
-        }
-        for (byte[] array1 : o1) {
-            boolean matched = false;
-            for (byte[] array2 : o2) {
-                if (Arrays.equals(array1, array2)) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Compares two collections of strings returns true if they contain the
-     * same strings, false otherwise.
-     * @param s1 string collection one
-     * @param s2 string collection two
-     * @return true if the two sets contain the same strings
-     */
-    private boolean stringArrayCollectionIsEqual(
-        Collection<? extends String> s1, Collection<? extends String> s2) {
-        if (s1 == null || s2 == null || s1.size() != s2.size()) {
-            return false;
-        }
-        for (String string1 : s1) {
-            boolean matched = false;
-            for (String string2 : s2) {
-                if (string1.equals(string2)) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched) {
-                return false;
-            }
-        }
-        return true;
     }
 }

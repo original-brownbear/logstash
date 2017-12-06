@@ -50,11 +50,9 @@ import static org.junit.Assert.fail;
  */
 public class NettyMessagingServiceTest {
 
+    private static final String IP_STRING = "127.0.0.1";
     ManagedMessagingService netty1;
     ManagedMessagingService netty2;
-
-    private static final String IP_STRING = "127.0.0.1";
-
     Endpoint ep1;
     Endpoint ep2;
     Endpoint invalidEndPoint;
@@ -78,12 +76,16 @@ public class NettyMessagingServiceTest {
         invalidEndPoint = new Endpoint(InetAddress.getByName(IP_STRING), 5003);
     }
 
-    /**
-     * Returns a random String to be used as a test subject.
-     * @return string
-     */
-    private String nextSubject() {
-        return UUID.randomUUID().toString();
+    private static int findAvailablePort(int defaultPort) {
+        try {
+            ServerSocket socket = new ServerSocket(0);
+            socket.setReuseAddress(true);
+            int port = socket.getLocalPort();
+            socket.close();
+            return port;
+        } catch (IOException ex) {
+            return defaultPort;
+        }
     }
 
     @After
@@ -116,6 +118,14 @@ public class NettyMessagingServiceTest {
             latch2.countDown();
         });
         Uninterruptibles.awaitUninterruptibly(latch2);
+    }
+
+    /**
+     * Returns a random String to be used as a test subject.
+     * @return string
+     */
+    private String nextSubject() {
+        return UUID.randomUUID().toString();
     }
 
     @Test
@@ -195,17 +205,5 @@ public class NettyMessagingServiceTest {
         assertTrue(Arrays.equals("hello there".getBytes(), response.join()));
         assertEquals("completion-thread", completionThreadName.get());
         assertEquals("handler-thread", handlerThreadName.get());
-    }
-
-    private static int findAvailablePort(int defaultPort) {
-        try {
-            ServerSocket socket = new ServerSocket(0);
-            socket.setReuseAddress(true);
-            int port = socket.getLocalPort();
-            socket.close();
-            return port;
-        } catch (IOException ex) {
-            return defaultPort;
-        }
     }
 }

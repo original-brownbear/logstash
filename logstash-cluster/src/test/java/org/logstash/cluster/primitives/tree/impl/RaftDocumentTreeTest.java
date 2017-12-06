@@ -53,13 +53,13 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
     }
 
     @Override
-    protected RaftDocumentTree createPrimitive(RaftProxy proxy) {
-        return new RaftDocumentTree(proxy);
+    protected RaftDocumentTree newPrimitive(String name) {
+        return newPrimitive(name, Ordering.NATURAL);
     }
 
     @Override
-    protected RaftDocumentTree newPrimitive(String name) {
-        return newPrimitive(name, Ordering.NATURAL);
+    protected RaftDocumentTree createPrimitive(RaftProxy proxy) {
+        return new RaftDocumentTree(proxy);
     }
 
     protected RaftDocumentTree newPrimitive(String name, Ordering ordering) {
@@ -76,6 +76,10 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
         Versioned<byte[]> root = tree.get(path("root")).join();
         assertEquals(1, root.version());
         assertNull(root.value());
+    }
+
+    private static DocumentPath path(String path) {
+        return DocumentPath.from(path.replace(".", DocumentPath.DEFAULT_SEPARATOR));
     }
 
     /**
@@ -434,9 +438,5 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
         public DocumentTreeEvent<byte[]> event() throws InterruptedException {
             return queue.take();
         }
-    }
-
-    private static DocumentPath path(String path) {
-        return DocumentPath.from(path.replace(".", DocumentPath.DEFAULT_SEPARATOR));
     }
 }

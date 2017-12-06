@@ -63,13 +63,13 @@ public class TestRaftClientCommunicator implements RaftClientProtocol {
         this.clusterCommunicator = Preconditions.checkNotNull(clusterCommunicator, "clusterCommunicator cannot be null");
     }
 
-    private <T, U> CompletableFuture<U> sendAndReceive(MessageSubject subject, T request, MemberId memberId) {
-        return clusterCommunicator.sendAndReceive(subject, request, serializer::encode, serializer::decode, NodeId.from(memberId.id()));
-    }
-
     @Override
     public CompletableFuture<OpenSessionResponse> openSession(MemberId memberId, OpenSessionRequest request) {
         return sendAndReceive(context.openSessionSubject, request, memberId);
+    }
+
+    private <T, U> CompletableFuture<U> sendAndReceive(MessageSubject subject, T request, MemberId memberId) {
+        return clusterCommunicator.sendAndReceive(subject, request, serializer::encode, serializer::decode, NodeId.from(memberId.id()));
     }
 
     @Override
@@ -98,6 +98,12 @@ public class TestRaftClientCommunicator implements RaftClientProtocol {
     }
 
     @Override
+    public void reset(Collection<MemberId> members, ResetRequest request) {
+        Set<NodeId> nodes = members.stream().map(m -> NodeId.from(m.id())).collect(Collectors.toSet());
+        clusterCommunicator.multicast(context.resetSubject(request.session()), request, serializer::encode, nodes);
+    }
+
+    @Override
     public void registerHeartbeatHandler(Function<HeartbeatRequest, CompletableFuture<HeartbeatResponse>> handler) {
         clusterCommunicator.addSubscriber(context.heartbeatSubject, serializer::decode, handler, serializer::encode);
     }
@@ -105,12 +111,6 @@ public class TestRaftClientCommunicator implements RaftClientProtocol {
     @Override
     public void unregisterHeartbeatHandler() {
         clusterCommunicator.removeSubscriber(context.heartbeatSubject);
-    }
-
-    @Override
-    public void reset(Collection<MemberId> members, ResetRequest request) {
-        Set<NodeId> nodes = members.stream().map(m -> NodeId.from(m.id())).collect(Collectors.toSet());
-        clusterCommunicator.multicast(context.resetSubject(request.session()), request, serializer::encode, nodes);
     }
 
     @Override

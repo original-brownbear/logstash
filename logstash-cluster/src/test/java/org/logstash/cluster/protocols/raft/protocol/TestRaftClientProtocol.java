@@ -31,21 +31,12 @@ import org.logstash.cluster.utils.concurrent.Futures;
  * Test Raft client protocol.
  */
 public class TestRaftClientProtocol extends TestRaftProtocol implements RaftClientProtocol {
-    private Function<HeartbeatRequest, CompletableFuture<HeartbeatResponse>> heartbeatHandler;
     private final Map<Long, Consumer<PublishRequest>> publishListeners = Maps.newConcurrentMap();
+    private Function<HeartbeatRequest, CompletableFuture<HeartbeatResponse>> heartbeatHandler;
 
     public TestRaftClientProtocol(MemberId memberId, Map<MemberId, TestRaftServerProtocol> servers, Map<MemberId, TestRaftClientProtocol> clients) {
         super(servers, clients);
         clients.put(memberId, this);
-    }
-
-    private CompletableFuture<TestRaftServerProtocol> getServer(MemberId memberId) {
-        TestRaftServerProtocol server = server(memberId);
-        if (server != null) {
-            return Futures.completedFuture(server);
-        } else {
-            return Futures.exceptionalFuture(new ConnectException());
-        }
     }
 
     CompletableFuture<HeartbeatResponse> heartbeat(HeartbeatRequest request) {
@@ -57,18 +48,17 @@ public class TestRaftClientProtocol extends TestRaftProtocol implements RaftClie
     }
 
     @Override
-    public void registerHeartbeatHandler(Function<HeartbeatRequest, CompletableFuture<HeartbeatResponse>> handler) {
-        this.heartbeatHandler = handler;
-    }
-
-    @Override
-    public void unregisterHeartbeatHandler() {
-        this.heartbeatHandler = null;
-    }
-
-    @Override
     public CompletableFuture<OpenSessionResponse> openSession(MemberId memberId, OpenSessionRequest request) {
         return getServer(memberId).thenCompose(protocol -> protocol.openSession(request));
+    }
+
+    private CompletableFuture<TestRaftServerProtocol> getServer(MemberId memberId) {
+        TestRaftServerProtocol server = server(memberId);
+        if (server != null) {
+            return Futures.completedFuture(server);
+        } else {
+            return Futures.exceptionalFuture(new ConnectException());
+        }
     }
 
     @Override
@@ -106,11 +96,14 @@ public class TestRaftClientProtocol extends TestRaftProtocol implements RaftClie
         });
     }
 
-    void publish(PublishRequest request) {
-        Consumer<PublishRequest> listener = publishListeners.get(request.session());
-        if (listener != null) {
-            listener.accept(request);
-        }
+    @Override
+    public void registerHeartbeatHandler(Function<HeartbeatRequest, CompletableFuture<HeartbeatResponse>> handler) {
+        this.heartbeatHandler = handler;
+    }
+
+    @Override
+    public void unregisterHeartbeatHandler() {
+        this.heartbeatHandler = null;
     }
 
     @Override
@@ -121,5 +114,12 @@ public class TestRaftClientProtocol extends TestRaftProtocol implements RaftClie
     @Override
     public void unregisterPublishListener(SessionId sessionId) {
         publishListeners.remove(sessionId.id());
+    }
+
+    void publish(PublishRequest request) {
+        Consumer<PublishRequest> listener = publishListeners.get(request.session());
+        if (listener != null) {
+            listener.accept(request);
+        }
     }
 }
