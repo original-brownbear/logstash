@@ -18,10 +18,10 @@ import org.logstash.cluster.messaging.netty.NettyMessagingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LsClusterServer {
+public final class LsClusterServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(LsClusterServer.class);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(final String... args) throws Exception {
         ArgumentType<Node> nodeType = (argumentParser, argument, value) -> {
             String[] address = parseAddress(value);
             return Node.builder()
@@ -32,7 +32,7 @@ public class LsClusterServer {
 
         ArgumentType<File> fileType = (argumentParser, argument, value) -> new File(value);
 
-        ArgumentParser parser = ArgumentParsers.newArgumentParser("AtomixServer")
+        ArgumentParser parser = ArgumentParsers.newFor("AtomixServer").build()
             .defaultHelp(true)
             .description("Atomix server");
         parser.addArgument("node")
@@ -50,12 +50,6 @@ public class LsClusterServer {
             .metavar("NAME:HOST:PORT")
             .required(false)
             .help("Bootstraps a new cluster");
-        parser.addArgument("--http-port", "-p")
-            .type(Integer.class)
-            .metavar("PORT")
-            .required(false)
-            .setDefault(5678)
-            .help("An optional HTTP server port");
         parser.addArgument("--data-dir", "-d")
             .type(fileType)
             .metavar("FILE")
@@ -88,7 +82,6 @@ public class LsClusterServer {
             .withLocalNode(localNode)
             .withBootstrapNodes(bootstrap)
             .withDataDir(dataDir)
-            .withHttpPort(httpPort)
             .build();
 
         atomix.open().join();
