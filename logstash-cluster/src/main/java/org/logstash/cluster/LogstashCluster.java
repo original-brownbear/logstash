@@ -1,20 +1,7 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
@@ -72,10 +59,6 @@ import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 public final class LogstashCluster implements PrimitiveService, Managed<LogstashCluster> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LogstashCluster.class);
@@ -95,12 +78,12 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         ManagedClusterEventService clusterEventService,
         ManagedPartitionService partitions,
         PrimitiveService primitives) {
-        this.cluster = checkNotNull(cluster, "cluster cannot be null");
-        this.messagingService = checkNotNull(messagingService, "messagingService cannot be null");
-        this.clusterCommunicator = checkNotNull(clusterCommunicator, "clusterCommunicator cannot be null");
-        this.clusterEventService = checkNotNull(clusterEventService, "clusterEventService cannot be null");
-        this.partitions = checkNotNull(partitions, "partitions cannot be null");
-        this.primitives = checkNotNull(primitives, "primitives cannot be null");
+        this.cluster = Preconditions.checkNotNull(cluster, "cluster cannot be null");
+        this.messagingService = Preconditions.checkNotNull(messagingService, "messagingService cannot be null");
+        this.clusterCommunicator = Preconditions.checkNotNull(clusterCommunicator, "clusterCommunicator cannot be null");
+        this.clusterEventService = Preconditions.checkNotNull(clusterEventService, "clusterEventService cannot be null");
+        this.partitions = Preconditions.checkNotNull(partitions, "partitions cannot be null");
+        this.primitives = Preconditions.checkNotNull(primitives, "primitives cannot be null");
     }
 
     public static Builder builder() {
@@ -248,7 +231,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("partitions", getPartitionService())
             .toString();
     }
@@ -280,7 +263,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws NullPointerException if the name is null
          */
         public Builder withClusterName(String name) {
-            this.name = checkNotNull(name, "name cannot be null");
+            this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
 
@@ -290,7 +273,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          */
         public Builder withLocalNode(Node localNode) {
-            this.localNode = checkNotNull(localNode, "localNode cannot be null");
+            this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
 
@@ -301,7 +284,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
         public Builder withBootstrapNodes(Node... bootstrapNodes) {
-            return withBootstrapNodes(Arrays.asList(checkNotNull(bootstrapNodes)));
+            return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
         /**
@@ -311,7 +294,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
         public Builder withBootstrapNodes(Collection<Node> bootstrapNodes) {
-            this.bootstrapNodes = checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
+            this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }
 
@@ -322,7 +305,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws IllegalArgumentException if the number of partitions is not positive
          */
         public Builder withNumPartitions(int numPartitions) {
-            checkArgument(numPartitions > 0, "numPartitions must be positive");
+            Preconditions.checkArgument(numPartitions > 0, "numPartitions must be positive");
             this.numPartitions = numPartitions;
             return this;
         }
@@ -334,7 +317,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws IllegalArgumentException if the partition size is not positive
          */
         public Builder withPartitionSize(int partitionSize) {
-            checkArgument(partitionSize > 0, "partitionSize must be positive");
+            Preconditions.checkArgument(partitionSize > 0, "partitionSize must be positive");
             this.partitionSize = partitionSize;
             return this;
         }
@@ -346,7 +329,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @throws IllegalArgumentException if the number of buckets within each partition is not positive
          */
         public Builder withNumBuckets(int numBuckets) {
-            checkArgument(numBuckets > 0, "numBuckets must be positive");
+            Preconditions.checkArgument(numBuckets > 0, "numBuckets must be positive");
             this.numBuckets = numBuckets;
             return this;
         }
@@ -357,7 +340,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          */
         public Builder withPartitions(Collection<PartitionMetadata> partitions) {
-            this.partitions = checkNotNull(partitions, "partitions cannot be null");
+            this.partitions = Preconditions.checkNotNull(partitions, "partitions cannot be null");
             return this;
         }
 
@@ -367,7 +350,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the replica builder
          */
         public Builder withDataDir(File dataDir) {
-            this.dataDir = checkNotNull(dataDir, "dataDir cannot be null");
+            this.dataDir = Preconditions.checkNotNull(dataDir, "dataDir cannot be null");
             return this;
         }
 
