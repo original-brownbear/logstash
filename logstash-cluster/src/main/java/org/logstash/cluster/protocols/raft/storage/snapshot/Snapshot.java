@@ -28,10 +28,10 @@ import static com.google.common.base.Preconditions.checkState;
  * User-provided state machines which implement the {@link Snapshottable} interface
  * transparently write snapshots to and read snapshots from files on disk. Each time a snapshot is taken of
  * the state machine state, the snapshot will be written to a single file represented by this interface.
- * Snapshots are backed by a {@link io.atomix.storage.buffer.Buffer} dictated by the parent
- * {@link io.atomix.storage.StorageLevel} configuration. Snapshots for file-based storage
- * levels like {@link io.atomix.storage.StorageLevel#DISK DISK} will be stored in a disk
- * backed buffer, and {@link io.atomix.storage.StorageLevel#MEMORY MEMORY} snapshots will
+ * Snapshots are backed by a {@link org.logstash.cluster.storage.buffer.Buffer} dictated by the parent
+ * {@link org.logstash.cluster.storage.StorageLevel} configuration. Snapshots for file-based storage
+ * levels like {@link org.logstash.cluster.storage.StorageLevel#DISK DISK} will be stored in a disk
+ * backed buffer, and {@link org.logstash.cluster.storage.StorageLevel#MEMORY MEMORY} snapshots will
  * be stored in an on-heap buffer.
  * <p>
  * Snapshots are read and written by a {@link SnapshotReader} and {@link SnapshotWriter} respectively.
@@ -131,13 +131,6 @@ public abstract class Snapshot implements AutoCloseable {
     protected static SnapshotReader openReader(SnapshotReader reader, SnapshotDescriptor descriptor) {
         checkState(descriptor.isLocked(), "cannot read from unlocked snapshot descriptor");
         return reader;
-    }
-
-    /**
-     * Closes the current snapshot reader.
-     */
-    protected static void closeReader(SnapshotReader reader) {
-        reader = null;
     }
 
     /**

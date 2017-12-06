@@ -1,18 +1,3 @@
-/*
- * Copyright 2014-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.serializer.kryo;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -27,6 +12,7 @@ import com.esotericsoftware.kryo.pool.KryoFactory;
 import com.esotericsoftware.kryo.pool.KryoPool;
 import com.esotericsoftware.kryo.serializers.CompatibleFieldSerializer;
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -41,9 +27,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.logstash.cluster.serializer.Namespace;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 import org.slf4j.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Pool of Kryo instances, with classes pre-registered.
@@ -70,12 +54,12 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
 
     private static final String NO_NAME = "(no name)";
 
-    private static final Logger log = getLogger(KryoNamespace.class);
+    private static final Logger log = LoggerFactory.getLogger(KryoNamespace.class);
 
     /**
      * Default Kryo namespace.
      */
-    public static Namespace DEFAULT = builder().build();
+    public static final Namespace DEFAULT = builder().build();
 
     private final KryoPool pool = new KryoPool.Builder(this)
         .softReferences()
@@ -101,7 +85,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
         this.registeredBlocks = ImmutableList.copyOf(registeredTypes);
         this.registrationRequired = registrationRequired;
         this.compatible = compatible;
-        this.friendlyName = checkNotNull(friendlyName);
+        this.friendlyName = Preconditions.checkNotNull(friendlyName);
     }
 
     /**
@@ -418,7 +402,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
          * @return this
          */
         public Builder register(Serializer<?> serializer, final Class<?>... classes) {
-            types.add(Pair.of(classes, checkNotNull(serializer)));
+            types.add(Pair.of(classes, Preconditions.checkNotNull(serializer)));
             return this;
         }
 
@@ -524,7 +508,9 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
         @Override
         public int hashCode() {
             return types.hashCode();
-        }        @Override
+        }
+
+        @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass())
                 .add("begin", begin)
@@ -546,8 +532,9 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
             return false;
         }
 
+    }
 
-    }    @Override
+    @Override
     public String toString() {
         if (friendlyName != NO_NAME) {
             return MoreObjects.toStringHelper(getClass())
@@ -560,6 +547,5 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
             .add("registeredBlocks", registeredBlocks)
             .toString();
     }
-
 
 }
