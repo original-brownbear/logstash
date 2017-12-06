@@ -15,19 +15,13 @@
  */
 package org.logstash.cluster.protocols.raft.storage.log;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
@@ -59,7 +53,9 @@ import static org.junit.Assert.assertTrue;
 public abstract class AbstractLogTest {
     protected static final int MAX_ENTRIES_PER_SEGMENT = 10;
     protected static final int MAX_SEGMENT_SIZE = 1024 * 8;
-    private static final Path PATH = Paths.get("target/test-logs/");
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     private static final Serializer serializer = Serializer.using(KryoNamespace.builder()
         .register(CloseSessionEntry.class)
@@ -203,7 +199,7 @@ public abstract class AbstractLogTest {
     protected RaftLog createLog() {
         return RaftLog.builder()
             .withName("test")
-            .withDirectory(PATH.toFile())
+            .withDirectory(temporaryFolder.getRoot())
             .withSerializer(serializer)
             .withStorageLevel(storageLevel())
             .withMaxEntriesPerSegment(MAX_ENTRIES_PER_SEGMENT)
@@ -305,26 +301,6 @@ public abstract class AbstractLogTest {
             assertEquals(i, entry.index());
             assertEquals(1, entry.entry().term());
             assertEquals(32, entry.entry().bytes().length);
-        }
-    }
-
-    @Before
-    @After
-    public void cleanupStorage() throws IOException {
-        if (Files.exists(PATH)) {
-            Files.walkFileTree(PATH, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
         }
     }
 }

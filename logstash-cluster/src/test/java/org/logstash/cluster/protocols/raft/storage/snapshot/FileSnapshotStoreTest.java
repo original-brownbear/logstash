@@ -15,18 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.UUID;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.logstash.cluster.protocols.raft.service.ServiceId;
 import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.storage.StorageLevel;
@@ -41,6 +35,10 @@ import static org.junit.Assert.assertNull;
  * @author <a href="http://github.com/kuujo>Jordan Halterman</a>
  */
 public class FileSnapshotStoreTest extends AbstractSnapshotStoreTest {
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     private String testId;
 
     /**
@@ -80,7 +78,9 @@ public class FileSnapshotStoreTest extends AbstractSnapshotStoreTest {
     protected SnapshotStore createSnapshotStore() {
         RaftStorage storage = RaftStorage.builder()
             .withPrefix("test")
-            .withDirectory(new File(String.format("target/test-logs/%s", testId)))
+            .withDirectory(
+                temporaryFolder.getRoot().toPath().resolve("test-logs").resolve(testId).toFile()
+            )
             .withStorageLevel(StorageLevel.DISK)
             .build();
         return new SnapshotStore(storage);
@@ -131,23 +131,7 @@ public class FileSnapshotStoreTest extends AbstractSnapshotStoreTest {
 
     @Before
     @After
-    public void cleanupStorage() throws IOException {
-        Path directory = Paths.get("target/test-logs/");
-        if (Files.exists(directory)) {
-            Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    Files.delete(file);
-                    return FileVisitResult.CONTINUE;
-                }
-
-                @Override
-                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        }
+    public void cleanupStorage() {
         testId = UUID.randomUUID().toString();
     }
 
