@@ -349,7 +349,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
     /**
      * Subscriber iterator that iterates subscribers in a loop.
      */
-    private class SubscriberIterator implements Iterator<NodeId> {
+    private static class SubscriberIterator implements Iterator<NodeId> {
         private final AtomicInteger counter = new AtomicInteger();
         private final NodeId[] subscribers;
         private final int length;

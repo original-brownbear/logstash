@@ -387,7 +387,7 @@ public class NettyMessagingService implements ManagedMessagingService {
         });
     }
 
-    private int getChannelOffset(final String messageType) {
+    private static int getChannelOffset(final String messageType) {
         return Math.abs(messageType.hashCode() % CHANNEL_POOL_SIZE);
     }
 

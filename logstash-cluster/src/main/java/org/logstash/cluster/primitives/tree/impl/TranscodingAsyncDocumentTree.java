@@ -136,7 +136,7 @@ public class TranscodingAsyncDocumentTree<V1, V2> implements AsyncDocumentTree<V
 
         @Override
         public void event(DocumentTreeEvent<V2> event) {
-            listener.event(new DocumentTreeEvent<V1>(
+            listener.event(new DocumentTreeEvent<>(
                 event.path(),
                 event.type(),
                 event.newValue().map(v -> v.map(valueDecoder)),

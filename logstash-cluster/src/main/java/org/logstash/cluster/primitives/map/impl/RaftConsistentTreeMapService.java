@@ -115,7 +115,7 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
         return isEmpty() ? null : toVersionedEntry(entries().firstEntry());
     }
 
-    private Map.Entry<String, Versioned<byte[]>> toVersionedEntry(
+    private static Map.Entry<String, Versioned<byte[]>> toVersionedEntry(
         Map.Entry<String, MapEntryValue> entry) {
         return entry == null || valueIsNull(entry.getValue())
             ? null : Maps.immutableEntry(entry.getKey(), toVersioned(entry.getValue()));

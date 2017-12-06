@@ -48,7 +48,7 @@ public class DocumentTreeResult<V> {
      * @return successful result
      */
     public static <V> DocumentTreeResult<V> ok(V result) {
-        return new DocumentTreeResult<V>(Status.OK, result);
+        return new DocumentTreeResult<>(Status.OK, result);
     }
 
     /**

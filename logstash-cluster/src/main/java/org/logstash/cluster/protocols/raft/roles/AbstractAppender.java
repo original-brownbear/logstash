@@ -265,7 +265,7 @@ abstract class AbstractAppender implements AutoCloseable {
     /**
      * Succeeds an attempt to contact a member.
      */
-    protected void succeedAttempt(RaftMemberContext member) {
+    protected static void succeedAttempt(RaftMemberContext member) {
         // Reset the member failure count and time.
         member.resetFailureCount();
     }
@@ -278,7 +278,7 @@ abstract class AbstractAppender implements AutoCloseable {
     /**
      * Updates the match index when a response is received.
      */
-    protected void updateMatchIndex(RaftMemberContext member, AppendResponse response) {
+    protected static void updateMatchIndex(RaftMemberContext member, AppendResponse response) {
         // If the replica returned a valid match index then update the existing match index.
         member.setMatchIndex(response.lastLogIndex());
     }

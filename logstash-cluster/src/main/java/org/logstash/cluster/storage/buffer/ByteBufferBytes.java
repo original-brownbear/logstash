@@ -88,7 +88,7 @@ public abstract class ByteBufferBytes extends AbstractBytes {
     /**
      * Returns the index for the given offset.
      */
-    private int index(int offset) {
+    private static int index(int offset) {
         return (int) offset;
     }
 

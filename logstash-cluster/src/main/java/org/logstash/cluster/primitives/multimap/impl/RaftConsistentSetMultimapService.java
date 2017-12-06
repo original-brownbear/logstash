@@ -174,8 +174,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
     protected int size(Commit<Void> commit) {
         return backingMap.values()
             .stream()
-            .map(valueCollection -> valueCollection.values().size())
-            .collect(Collectors.summingInt(size -> size));
+            .map(valueCollection -> valueCollection.values().size()).mapToInt(size -> size).sum();
     }
 
     /**
@@ -307,7 +306,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @return versioned instance or an empty list versioned -1 if argument is
      * null
      */
-    private Versioned<Collection<? extends byte[]>> toVersioned(
+    private static Versioned<Collection<? extends byte[]>> toVersioned(
         MapEntryValue value) {
         return value == null ? new Versioned<>(Lists.newArrayList(), -1) :
             new Versioned<>(value.values(),
@@ -597,7 +596,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * values in the map an equal number of times to the number of sets in
      * which they participate.
      */
-    private class HashMultisetValueCollector implements
+    private static class HashMultisetValueCollector implements
         Collector<MapEntryValue,
             HashMultiset<byte[]>,
             HashMultiset<byte[]>> {
@@ -637,7 +636,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * A collector that creates Entries of {@code <String, MapEntryValue>} and
      * creates a set of entries all key value pairs in the map.
      */
-    private class EntrySetCollector implements
+    private static class EntrySetCollector implements
         Collector<Map.Entry<String, MapEntryValue>,
             Set<Map.Entry<String, byte[]>>,
             Set<Map.Entry<String, byte[]>>> {

@@ -35,8 +35,8 @@ public abstract class NativeBuffer extends AbstractBuffer {
     @Override
     protected void compact(int from, int to, int length) {
         NativeMemory memory = ((NativeBytes) bytes).memory;
-        memory.unsafe().copyMemory(memory.address(from), memory.address(to), length);
-        memory.unsafe().setMemory(memory.address(from), length, (byte) 0);
+        NativeMemory.unsafe().copyMemory(memory.address(from), memory.address(to), length);
+        NativeMemory.unsafe().setMemory(memory.address(from), length, (byte) 0);
     }
 
 }

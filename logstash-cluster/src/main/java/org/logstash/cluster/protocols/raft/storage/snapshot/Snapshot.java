@@ -128,7 +128,7 @@ public abstract class Snapshot implements AutoCloseable {
     /**
      * Opens the given snapshot reader.
      */
-    protected SnapshotReader openReader(SnapshotReader reader, SnapshotDescriptor descriptor) {
+    protected static SnapshotReader openReader(SnapshotReader reader, SnapshotDescriptor descriptor) {
         checkState(descriptor.isLocked(), "cannot read from unlocked snapshot descriptor");
         return reader;
     }
@@ -136,7 +136,7 @@ public abstract class Snapshot implements AutoCloseable {
     /**
      * Closes the current snapshot reader.
      */
-    protected void closeReader(SnapshotReader reader) {
+    protected static void closeReader(SnapshotReader reader) {
         reader = null;
     }
 

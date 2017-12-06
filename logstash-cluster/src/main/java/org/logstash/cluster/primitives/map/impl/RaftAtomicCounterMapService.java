@@ -99,7 +99,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     /**
      * Returns the primitive value for the given primitive wrapper.
      */
-    private long primitive(Long value) {
+    private static long primitive(Long value) {
         if (value != null) {
             return value;
         } else {

@@ -851,7 +851,7 @@ public class RaftContext implements AutoCloseable {
     /**
      * Unregisters server handlers on the configured protocol.
      */
-    private void unregisterHandlers(RaftServerProtocol protocol) {
+    private static void unregisterHandlers(RaftServerProtocol protocol) {
         protocol.unregisterOpenSessionHandler();
         protocol.unregisterCloseSessionHandler();
         protocol.unregisterKeepAliveHandler();

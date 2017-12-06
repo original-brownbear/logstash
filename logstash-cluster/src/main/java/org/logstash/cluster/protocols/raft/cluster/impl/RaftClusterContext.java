@@ -322,7 +322,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
      */
     public List<RaftMemberContext> getRemoteMemberStates(RaftMember.Type type) {
         List<RaftMemberContext> members = memberTypes.get(type);
-        return members != null ? members : Collections.EMPTY_LIST;
+        return members != null ? members : Collections.emptyList();
     }
 
     /**

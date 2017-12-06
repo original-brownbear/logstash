@@ -242,7 +242,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
      * @param value map entry value
      * @return versioned instance
      */
-    protected Versioned<byte[]> toVersioned(MapEntryValue value) {
+    protected static Versioned<byte[]> toVersioned(MapEntryValue value) {
         return value != null && value.type() != MapEntryValue.Type.TOMBSTONE
             ? new Versioned<>(value.value(), value.version()) : null;
     }
@@ -277,7 +277,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
      * @param value the value to check
      * @return indicates whether the given value is null or is a tombstone
      */
-    protected boolean valueIsNull(MapEntryValue value) {
+    protected static boolean valueIsNull(MapEntryValue value) {
         return value == null || value.type() == MapEntryValue.Type.TOMBSTONE;
     }
 
@@ -438,7 +438,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
      * @param newValue the second value to compare
      * @return indicates whether the two values are equal
      */
-    protected boolean valuesEqual(MapEntryValue oldValue, MapEntryValue newValue) {
+    protected static boolean valuesEqual(MapEntryValue oldValue, MapEntryValue newValue) {
         return (oldValue == null && newValue == null)
             || (oldValue != null && newValue != null && valuesEqual(oldValue.value(), newValue.value()));
     }
@@ -449,7 +449,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
      * @param newValue the second value to compare
      * @return indicates whether the two values are equal
      */
-    protected boolean valuesEqual(byte[] oldValue, byte[] newValue) {
+    protected static boolean valuesEqual(byte[] oldValue, byte[] newValue) {
         return (oldValue == null && newValue == null)
             || (oldValue != null && newValue != null && Arrays.equals(oldValue, newValue));
     }

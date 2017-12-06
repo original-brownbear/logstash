@@ -186,7 +186,7 @@ public final class DistributedPrimitives {
      * @return caching tree
      */
     public static <V> AsyncDocumentTree<V> newCachingDocumentTree(AsyncDocumentTree<V> tree) {
-        return new CachingAsyncDocumentTree<V>(tree);
+        return new CachingAsyncDocumentTree<>(tree);
     }
 
 }

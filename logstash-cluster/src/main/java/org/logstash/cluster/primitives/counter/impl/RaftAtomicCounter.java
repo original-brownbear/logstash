@@ -36,7 +36,7 @@ public class RaftAtomicCounter extends AbstractRaftPrimitive implements AsyncAto
         super(proxy);
     }
 
-    private long nullOrZero(Long value) {
+    private static long nullOrZero(Long value) {
         return value != null ? value : 0;
     }
 
@@ -62,7 +62,7 @@ public class RaftAtomicCounter extends AbstractRaftPrimitive implements AsyncAto
 
     @Override
     public CompletableFuture<Long> get() {
-        return proxy.<Long>invoke(RaftAtomicCounterOperations.GET, SERIALIZER::decode).thenApply(this::nullOrZero);
+        return proxy.<Long>invoke(RaftAtomicCounterOperations.GET, SERIALIZER::decode).thenApply(RaftAtomicCounter::nullOrZero);
     }
 
     @Override

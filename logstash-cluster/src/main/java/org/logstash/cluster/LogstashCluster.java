@@ -78,12 +78,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-/**
- * Atomix!
- */
-public class Atomix implements PrimitiveService, Managed<Atomix> {
+public final class LogstashCluster implements PrimitiveService, Managed<LogstashCluster> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(Atomix.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogstashCluster.class);
     private final ManagedClusterService cluster;
     private final ManagedMessagingService messagingService;
     private final ManagedClusterCommunicationService clusterCommunicator;
@@ -93,7 +90,8 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
     private final PrimitiveService primitives;
     private final AtomicBoolean open = new AtomicBoolean();
     private final ThreadContext context = new SingleThreadContext("atomix-%d");
-    protected Atomix(
+
+    private LogstashCluster(
         ManagedClusterService cluster,
         ManagedMessagingService messagingService,
         ManagedClusterCommunicationService clusterCommunicator,
@@ -110,18 +108,10 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         this.primitives = checkNotNull(primitives, "primitives cannot be null");
     }
 
-    /**
-     * Returns a new Atomix builder.
-     * @return a new Atomix builder
-     */
     public static Builder builder() {
         return new Builder();
     }
 
-    /**
-     * Returns the Atomix cluster.
-     * @return the Atomix cluster
-     */
     public ClusterService getClusterService() {
         return cluster;
     }
@@ -224,7 +214,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
     }
 
     @Override
-    public CompletableFuture<Atomix> open() {
+    public CompletableFuture<LogstashCluster> open() {
         return messagingService.open()
             .thenComposeAsync(v -> cluster.open(), context)
             .thenComposeAsync(v -> clusterCommunicator.open(), context)
@@ -278,10 +268,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         return partitions;
     }
 
-    /**
-     * Atomix builder.
-     */
-    public static class Builder implements org.logstash.cluster.utils.Builder<Atomix> {
+    public static class Builder implements org.logstash.cluster.utils.Builder<LogstashCluster> {
         private static final String DEFAULT_CLUSTER_NAME = "atomix";
         private static final int DEFAULT_NUM_BUCKETS = 128;
         private String name = DEFAULT_CLUSTER_NAME;
@@ -403,7 +390,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         }
 
         @Override
-        public Atomix build() {
+        public LogstashCluster build() {
             ManagedMessagingService messagingService = buildMessagingService();
             ManagedClusterService clusterService = buildClusterService(messagingService);
             ManagedClusterCommunicationService clusterCommunicator = buildClusterCommunicationService(clusterService, messagingService);
@@ -411,7 +398,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
             ManagedPartitionService partitionService = buildPartitionService(clusterCommunicator);
             PrimitiveService primitives = buildPrimitiveService(partitionService);
             ManagedRestService restService = buildRestService(clusterService, clusterCommunicator, clusterEventService, primitives);
-            return new Atomix(
+            return new LogstashCluster(
                 clusterService,
                 messagingService,
                 clusterCommunicator,
@@ -444,7 +431,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         /**
          * Builds a cluster communication service.
          */
-        private ManagedClusterCommunicationService buildClusterCommunicationService(
+        private static ManagedClusterCommunicationService buildClusterCommunicationService(
             ClusterService clusterService, MessagingService messagingService) {
             return new DefaultClusterCommunicationService(clusterService, messagingService);
         }
@@ -452,7 +439,7 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         /**
          * Builds a cluster event service.
          */
-        private ManagedClusterEventService buildClusterEventService(
+        private static ManagedClusterEventService buildClusterEventService(
             ClusterService clusterService, ClusterCommunicationService clusterCommunicator) {
             return new DefaultClusterEventService(clusterService, clusterCommunicator);
         }

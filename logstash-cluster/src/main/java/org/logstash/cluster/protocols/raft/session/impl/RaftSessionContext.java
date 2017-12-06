@@ -430,7 +430,7 @@ public class RaftSessionContext implements RaftSession {
      */
     public void registerSequenceQuery(long sequence, Runnable query) {
         // Add a query to be run once the session's sequence number reaches the given sequence number.
-        List<Runnable> queries = this.sequenceQueries.computeIfAbsent(sequence, v -> new LinkedList<Runnable>());
+        List<Runnable> queries = this.sequenceQueries.computeIfAbsent(sequence, v -> new LinkedList<>());
         queries.add(query);
     }
 

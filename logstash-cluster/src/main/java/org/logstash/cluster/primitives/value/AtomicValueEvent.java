@@ -40,7 +40,7 @@ public final class AtomicValueEvent<V> {
      * Returns the type of the event.
      * @return the type of the event
      */
-    public Type type() {
+    public static Type type() {
         return AtomicValueEvent.Type.UPDATE;
     }
 

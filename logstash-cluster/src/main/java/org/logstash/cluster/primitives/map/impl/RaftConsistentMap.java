@@ -329,19 +329,19 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
         return CompletableFuture.completedFuture(null);
     }
 
-    private void throwIfLocked(MapEntryUpdateResult<String, byte[]> result) {
+    private static void throwIfLocked(MapEntryUpdateResult<String, byte[]> result) {
         if (result != null) {
             throwIfLocked(result.status());
         }
     }
 
-    private void throwIfLocked(MapEntryUpdateResult.Status status) {
+    private static void throwIfLocked(MapEntryUpdateResult.Status status) {
         if (status == MapEntryUpdateResult.Status.WRITE_LOCK) {
             throw new ConcurrentModificationException("Cannot update map: Another transaction in progress");
         }
     }
 
-    private CompletableFuture<MapEntryUpdateResult<String, byte[]>> checkLocked(
+    private static CompletableFuture<MapEntryUpdateResult<String, byte[]>> checkLocked(
         MapEntryUpdateResult<String, byte[]> result) {
         if (result.status() == MapEntryUpdateResult.Status.PRECONDITION_FAILED ||
             result.status() == MapEntryUpdateResult.Status.WRITE_LOCK) {

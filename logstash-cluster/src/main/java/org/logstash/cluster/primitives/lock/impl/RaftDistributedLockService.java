@@ -179,7 +179,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
         }
     }
 
-    private class LockHolder {
+    private static class LockHolder {
         private final int id;
         private final long index;
         private final long session;

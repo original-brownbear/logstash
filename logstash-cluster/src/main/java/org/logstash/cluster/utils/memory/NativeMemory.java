@@ -299,7 +299,7 @@ public class NativeMemory implements Memory {
      * Returns the underlying {@link Unsafe} instance.
      * @return The underlying unsafe memory instance.
      */
-    public final Unsafe unsafe() {
+    public static Unsafe unsafe() {
         return UNSAFE;
     }
 

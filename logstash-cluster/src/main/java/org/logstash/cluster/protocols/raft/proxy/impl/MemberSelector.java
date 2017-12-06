@@ -149,7 +149,7 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
     /**
      * Returns a boolean value indicating whether the servers in the first list match the servers in the second list.
      */
-    private boolean matches(Collection<MemberId> left, Collection<MemberId> right) {
+    private static boolean matches(Collection<MemberId> left, Collection<MemberId> right) {
         if (left.size() != right.size())
             return false;
 

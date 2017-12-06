@@ -92,7 +92,7 @@ public class BlockingAwareFuture<T> extends CompletableFuture<T> {
      * @return a new blockable future
      */
     private <U> CompletableFuture<U> wrap(CompletableFuture<U> future) {
-        BlockingAwareFuture<U> blockingFuture = new BlockingAwareFuture<U>(blocked);
+        BlockingAwareFuture<U> blockingFuture = new BlockingAwareFuture<>(blocked);
         future.whenComplete((result, error) -> {
             if (error == null) {
                 blockingFuture.complete(result);
