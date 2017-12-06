@@ -108,7 +108,21 @@ idea {
 }
 
 dependencies {
-    compile project(':logstash-cluster')
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    runtime group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
+    compile 'io.netty:netty-all:4.1.13.Final'
+    compile 'org.elasticsearch:elasticsearch:6.0.0'
+    compile group: 'com.esotericsoftware', name: 'kryo', version: '4.0.1'
+    compile group: 'com.google.guava', name: 'guava', version: '22.0'
+    testCompile group: 'com.google.guava', name: 'guava-testlib', version: '22.0'
+    compile group: 'net.sourceforge.argparse4j', name: 'argparse4j', version: '0.8.1'
+    compile group: 'org.apache.commons', name: 'commons-lang3', version: '3.7'
+    compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
+    testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
+    testCompile 'org.elasticsearch.test:framework:6.0.0'
+    testCompile('junit:junit:4.12') {
+        exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    }
     compile 'org.apache.logging.log4j:log4j-api:2.9.1'
     compile 'org.apache.logging.log4j:log4j-core:2.9.1'
     runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
@@ -127,7 +141,6 @@ dependencies {
     }
     testCompile 'org.apache.logging.log4j:log4j-core:2.6.2:tests'
     testCompile 'org.apache.logging.log4j:log4j-api:2.6.2:tests'
-    testCompile 'junit:junit:4.12'
     testCompile 'net.javacrumbs.json-unit:json-unit:1.9.0'
     testCompile 'org.elasticsearch:securemock:1.2'
     testCompile 'org.assertj:assertj-core:3.8.0'
