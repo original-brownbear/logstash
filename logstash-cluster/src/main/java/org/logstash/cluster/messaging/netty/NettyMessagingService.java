@@ -93,59 +93,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Netty based MessagingService.
  */
 public class NettyMessagingService implements ManagedMessagingService {
-    private static final String DEFAULT_NAME = "atomix";
     public static final int DEFAULT_PORT = 5679;
-
-    /**
-     * Returns a new Netty messaging service builder.
-     * @return a new Netty messaging service builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * Netty messaging service builder.
-     */
-    public static class Builder extends MessagingService.Builder {
-        private String name = DEFAULT_NAME;
-        private Endpoint endpoint;
-
-        /**
-         * Sets the cluster name.
-         * @param name the cluster name
-         * @return the Netty messaging service builder
-         * @throws NullPointerException if the name is null
-         */
-        public Builder withName(String name) {
-            this.name = checkNotNull(name);
-            return this;
-        }
-
-        /**
-         * Sets the messaging endpoint.
-         * @param endpoint the messaging endpoint
-         * @return the Netty messaging service builder
-         * @throws NullPointerException if the endpoint is null
-         */
-        public Builder withEndpoint(Endpoint endpoint) {
-            this.endpoint = checkNotNull(endpoint);
-            return this;
-        }
-
-        @Override
-        public ManagedMessagingService build() {
-            if (endpoint == null) {
-                try {
-                    endpoint = new Endpoint(InetAddress.getByName("127.0.0.1"), DEFAULT_PORT);
-                } catch (UnknownHostException e) {
-                    throw new IllegalStateException("Failed to instantiate address", e);
-                }
-            }
-            return new NettyMessagingService(name.hashCode(), endpoint);
-        }
-    }
-
+    protected static final boolean TLS_ENABLED = true;
+    protected static final boolean TLS_DISABLED = false;
+    private static final String DEFAULT_NAME = "atomix";
     private static final long DEFAULT_TIMEOUT_MILLIS = 500;
     private static final long HISTORY_EXPIRE_MILLIS = Duration.ofMinutes(1).toMillis();
     private static final long MIN_TIMEOUT_MILLIS = 250;
@@ -156,18 +107,14 @@ public class NettyMessagingService implements ManagedMessagingService {
     private static final int CHANNEL_POOL_SIZE = 8;
 
     private static final byte[] EMPTY_PAYLOAD = new byte[0];
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    private final ClientConnection localClientConnection = new LocalClientConnection();
-    private final ServerConnection localServerConnection = new LocalServerConnection(null);
-
     //TODO CONFIG_DIR is duplicated from ConfigFileBasedClusterMetadataProvider
     private static final String CONFIG_DIR = "../config";
     private static final String KS_FILE_NAME = "atomix.jks";
     private static final File DEFAULT_KS_FILE = new File(CONFIG_DIR, KS_FILE_NAME);
     private static final String DEFAULT_KS_PASSWORD = "changeit";
-
+    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final ClientConnection localClientConnection = new LocalClientConnection();
+    private final ServerConnection localServerConnection = new LocalServerConnection(null);
     private final Endpoint localEndpoint;
     private final int preamble;
     private final AtomicBoolean started = new AtomicBoolean(false);
@@ -175,27 +122,28 @@ public class NettyMessagingService implements ManagedMessagingService {
     private final Map<Channel, RemoteClientConnection> clientConnections = Maps.newConcurrentMap();
     private final Map<Channel, RemoteServerConnection> serverConnections = Maps.newConcurrentMap();
     private final AtomicLong messageIdGenerator = new AtomicLong(0);
-
-    private ScheduledFuture<?> timeoutFuture;
-
     private final Map<Endpoint, List<CompletableFuture<Channel>>> channels = Maps.newConcurrentMap();
-
+    protected boolean enableNettyTls = TLS_ENABLED;
+    protected TrustManagerFactory trustManager;
+    protected KeyManagerFactory keyManager;
+    private ScheduledFuture<?> timeoutFuture;
     private EventLoopGroup serverGroup;
     private EventLoopGroup clientGroup;
     private Class<? extends ServerChannel> serverChannelClass;
     private Class<? extends Channel> clientChannelClass;
     private ScheduledExecutorService timeoutExecutor;
 
-    protected static final boolean TLS_ENABLED = true;
-    protected static final boolean TLS_DISABLED = false;
-    protected boolean enableNettyTls = TLS_ENABLED;
-
-    protected TrustManagerFactory trustManager;
-    protected KeyManagerFactory keyManager;
-
     protected NettyMessagingService(int preamble, Endpoint endpoint) {
         this.preamble = preamble;
         this.localEndpoint = endpoint;
+    }
+
+    /**
+     * Returns a new Netty messaging service builder.
+     * @return a new Netty messaging service builder
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -224,16 +172,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         if (enableNettyTls) {
             enableNettyTls = loadKeyStores();
         }
-    }
-
-    @Override
-    public boolean isOpen() {
-        return started.get();
-    }
-
-    @Override
-    public boolean isClosed() {
-        return !isOpen();
     }
 
     private boolean loadKeyStores() {
@@ -302,6 +240,29 @@ public class NettyMessagingService implements ManagedMessagingService {
         }
     }
 
+    @Override
+    public boolean isOpen() {
+        return started.get();
+    }
+
+    @Override
+    public CompletableFuture<Void> close() {
+        if (started.get()) {
+            serverGroup.shutdownGracefully();
+            clientGroup.shutdownGracefully();
+            timeoutFuture.cancel(false);
+            timeoutExecutor.shutdown();
+            started.set(false);
+        }
+        log.info("Stopped");
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !isOpen();
+    }
+
     private void initEventLoopGroup() {
         // try Epoll first and if that does work, use nio.
         try {
@@ -318,6 +279,39 @@ public class NettyMessagingService implements ManagedMessagingService {
         serverGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-server-%d", log));
         serverChannelClass = NioServerSocketChannel.class;
         clientChannelClass = NioSocketChannel.class;
+    }
+
+    private CompletableFuture<Void> startAcceptingConnections() {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        ServerBootstrap b = new ServerBootstrap();
+        b.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
+            new WriteBufferWaterMark(8 * 1024, 32 * 1024));
+        b.option(ChannelOption.SO_RCVBUF, 1048576);
+        b.option(ChannelOption.TCP_NODELAY, true);
+        b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
+        b.group(serverGroup, clientGroup);
+        b.channel(serverChannelClass);
+        if (enableNettyTls) {
+            b.childHandler(new SslServerCommunicationChannelInitializer());
+        } else {
+            b.childHandler(new BasicChannelInitializer());
+        }
+        b.option(ChannelOption.SO_BACKLOG, 128);
+        b.childOption(ChannelOption.SO_KEEPALIVE, true);
+
+        // Bind and start to accept incoming connections.
+        b.bind(localEndpoint.port()).addListener(f -> {
+            if (f.isSuccess()) {
+                log.info("{} accepting incoming connections on port {}",
+                    localEndpoint.host(), localEndpoint.port());
+                future.complete(null);
+            } else {
+                log.warn("{} failed to bind to port {} due to {}",
+                    localEndpoint.host(), localEndpoint.port(), f.cause());
+                future.completeExceptionally(f.cause());
+            }
+        });
+        return future;
     }
 
     /**
@@ -354,6 +348,48 @@ public class NettyMessagingService implements ManagedMessagingService {
             type,
             payload);
         return executeOnPooledConnection(ep, type, c -> c.sendAndReceive(message), executor);
+    }
+
+    @Override
+    public void registerHandler(String type, BiConsumer<Endpoint, byte[]> handler, Executor executor) {
+        handlers.put(type, (message, connection) -> executor.execute(() ->
+            handler.accept(message.sender(), message.payload())));
+    }
+
+    @Override
+    public void registerHandler(String type, BiFunction<Endpoint, byte[], byte[]> handler, Executor executor) {
+        handlers.put(type, (message, connection) -> executor.execute(() -> {
+            byte[] responsePayload = null;
+            InternalReply.Status status = InternalReply.Status.OK;
+            try {
+                responsePayload = handler.apply(message.sender(), message.payload());
+            } catch (Exception e) {
+                log.debug("An error occurred in a message handler: {}", e);
+                status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
+            }
+            connection.reply(message, status, Optional.ofNullable(responsePayload));
+        }));
+    }
+
+    @Override
+    public void registerHandler(String type, BiFunction<Endpoint, byte[], CompletableFuture<byte[]>> handler) {
+        handlers.put(type, (message, connection) -> {
+            handler.apply(message.sender(), message.payload()).whenComplete((result, error) -> {
+                InternalReply.Status status;
+                if (error == null) {
+                    status = InternalReply.Status.OK;
+                } else {
+                    log.debug("An error occurred in a message handler: {}", error);
+                    status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
+                }
+                connection.reply(message, status, Optional.ofNullable(result));
+            });
+        });
+    }
+
+    @Override
+    public void unregisterHandler(String type) {
+        handlers.remove(type);
     }
 
     private List<CompletableFuture<Channel>> getChannelPool(Endpoint endpoint) {
@@ -464,48 +500,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         });
     }
 
-    @Override
-    public void registerHandler(String type, BiConsumer<Endpoint, byte[]> handler, Executor executor) {
-        handlers.put(type, (message, connection) -> executor.execute(() ->
-            handler.accept(message.sender(), message.payload())));
-    }
-
-    @Override
-    public void registerHandler(String type, BiFunction<Endpoint, byte[], byte[]> handler, Executor executor) {
-        handlers.put(type, (message, connection) -> executor.execute(() -> {
-            byte[] responsePayload = null;
-            InternalReply.Status status = InternalReply.Status.OK;
-            try {
-                responsePayload = handler.apply(message.sender(), message.payload());
-            } catch (Exception e) {
-                log.debug("An error occurred in a message handler: {}", e);
-                status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
-            }
-            connection.reply(message, status, Optional.ofNullable(responsePayload));
-        }));
-    }
-
-    @Override
-    public void registerHandler(String type, BiFunction<Endpoint, byte[], CompletableFuture<byte[]>> handler) {
-        handlers.put(type, (message, connection) -> {
-            handler.apply(message.sender(), message.payload()).whenComplete((result, error) -> {
-                InternalReply.Status status;
-                if (error == null) {
-                    status = InternalReply.Status.OK;
-                } else {
-                    log.debug("An error occurred in a message handler: {}", error);
-                    status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
-                }
-                connection.reply(message, status, Optional.ofNullable(result));
-            });
-        });
-    }
-
-    @Override
-    public void unregisterHandler(String type) {
-        handlers.remove(type);
-    }
-
     private Bootstrap bootstrapClient(Endpoint endpoint) {
         Bootstrap bootstrap = new Bootstrap();
         bootstrap.option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
@@ -527,39 +521,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         return bootstrap;
     }
 
-    private CompletableFuture<Void> startAcceptingConnections() {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        ServerBootstrap b = new ServerBootstrap();
-        b.childOption(ChannelOption.WRITE_BUFFER_WATER_MARK,
-            new WriteBufferWaterMark(8 * 1024, 32 * 1024));
-        b.option(ChannelOption.SO_RCVBUF, 1048576);
-        b.option(ChannelOption.TCP_NODELAY, true);
-        b.childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT);
-        b.group(serverGroup, clientGroup);
-        b.channel(serverChannelClass);
-        if (enableNettyTls) {
-            b.childHandler(new SslServerCommunicationChannelInitializer());
-        } else {
-            b.childHandler(new BasicChannelInitializer());
-        }
-        b.option(ChannelOption.SO_BACKLOG, 128);
-        b.childOption(ChannelOption.SO_KEEPALIVE, true);
-
-        // Bind and start to accept incoming connections.
-        b.bind(localEndpoint.port()).addListener(f -> {
-            if (f.isSuccess()) {
-                log.info("{} accepting incoming connections on port {}",
-                    localEndpoint.host(), localEndpoint.port());
-                future.complete(null);
-            } else {
-                log.warn("{} failed to bind to port {} due to {}",
-                    localEndpoint.host(), localEndpoint.port(), f.cause());
-                future.completeExceptionally(f.cause());
-            }
-        });
-        return future;
-    }
-
     private CompletableFuture<Channel> openChannel(Endpoint ep) {
         Bootstrap bootstrap = bootstrapClient(ep);
         CompletableFuture<Channel> retFuture = new CompletableFuture<>();
@@ -576,17 +537,121 @@ public class NettyMessagingService implements ManagedMessagingService {
         return retFuture;
     }
 
-    @Override
-    public CompletableFuture<Void> close() {
-        if (started.get()) {
-            serverGroup.shutdownGracefully();
-            clientGroup.shutdownGracefully();
-            timeoutFuture.cancel(false);
-            timeoutExecutor.shutdown();
-            started.set(false);
+    /**
+     * Represents the client side of a connection to a local or remote server.
+     */
+    private interface ClientConnection {
+
+        /**
+         * Sends a message to the other side of the connection.
+         * @param message the message to send
+         * @return a completable future to be completed once the message has been sent
+         */
+        CompletableFuture<Void> sendAsync(InternalRequest message);
+
+        /**
+         * Sends a message to the other side of the connection, awaiting a reply.
+         * @param message the message to send
+         * @return a completable future to be completed once a reply is received or the request times out
+         */
+        CompletableFuture<byte[]> sendAndReceive(InternalRequest message);
+
+        /**
+         * Closes the connection.
+         */
+        default void close() {
         }
-        log.info("Stopped");
-        return CompletableFuture.completedFuture(null);
+    }
+
+    /**
+     * Represents the server side of a connection.
+     */
+    private interface ServerConnection {
+
+        /**
+         * Sends a reply to the other side of the connection.
+         * @param message the message to which to reply
+         * @param status the reply status
+         * @param payload the response payload
+         */
+        void reply(InternalRequest message, InternalReply.Status status, Optional<byte[]> payload);
+
+        /**
+         * Closes the connection.
+         */
+        default void close() {
+        }
+    }
+
+    /**
+     * Netty messaging service builder.
+     */
+    public static class Builder extends MessagingService.Builder {
+        private String name = DEFAULT_NAME;
+        private Endpoint endpoint;
+
+        /**
+         * Sets the cluster name.
+         * @param name the cluster name
+         * @return the Netty messaging service builder
+         * @throws NullPointerException if the name is null
+         */
+        public Builder withName(String name) {
+            this.name = checkNotNull(name);
+            return this;
+        }
+
+        /**
+         * Sets the messaging endpoint.
+         * @param endpoint the messaging endpoint
+         * @return the Netty messaging service builder
+         * @throws NullPointerException if the endpoint is null
+         */
+        public Builder withEndpoint(Endpoint endpoint) {
+            this.endpoint = checkNotNull(endpoint);
+            return this;
+        }
+
+        @Override
+        public ManagedMessagingService build() {
+            if (endpoint == null) {
+                try {
+                    endpoint = new Endpoint(InetAddress.getByName("127.0.0.1"), DEFAULT_PORT);
+                } catch (UnknownHostException e) {
+                    throw new IllegalStateException("Failed to instantiate address", e);
+                }
+            }
+            return new NettyMessagingService(name.hashCode(), endpoint);
+        }
+    }
+
+    /**
+     * Request-reply timeout history tracker.
+     */
+    private static final class TimeoutHistory {
+        private final DescriptiveStatistics timeoutHistory = new SynchronizedDescriptiveStatistics(WINDOW_SIZE);
+        private final AtomicLong maxReplyTime = new AtomicLong();
+        private volatile long currentTimeout = DEFAULT_TIMEOUT_MILLIS;
+
+        /**
+         * Adds a reply time to the history.
+         * @param replyTime the reply time to add to the history
+         */
+        void addReplyTime(long replyTime) {
+            maxReplyTime.getAndAccumulate(replyTime, Math::max);
+        }
+
+        /**
+         * Computes the current timeout.
+         */
+        private void recomputeTimeoutMillis() {
+            double nextTimeout = maxReplyTime.getAndSet(0) * TIMEOUT_MULTIPLIER;
+            timeoutHistory.addValue(
+                Math.min(Math.max(nextTimeout, MIN_TIMEOUT_MILLIS), MAX_TIMEOUT_MILLIS));
+            if (timeoutHistory.getN() == WINDOW_SIZE) {
+                this.currentTimeout = (long) timeoutHistory.getMax();
+            }
+        }
     }
 
     /**
@@ -664,24 +729,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         // had to specify <Object> to avoid Class Loader not being able to find some classes.
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Object rawMessage) throws Exception {
-            InternalMessage message = (InternalMessage) rawMessage;
-            try {
-                if (message.isRequest()) {
-                    RemoteServerConnection connection =
-                        serverConnections.computeIfAbsent(ctx.channel(), RemoteServerConnection::new);
-                    connection.dispatch((InternalRequest) message);
-                } else {
-                    RemoteClientConnection connection =
-                        clientConnections.computeIfAbsent(ctx.channel(), RemoteClientConnection::new);
-                    connection.dispatch((InternalReply) message);
-                }
-            } catch (RejectedExecutionException e) {
-                log.warn("Unable to dispatch message due to {}", e.getMessage());
-            }
-        }
-
-        @Override
         public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
             log.error("Exception inside channel handling pipeline.", cause);
 
@@ -707,6 +754,24 @@ public class NettyMessagingService implements ManagedMessagingService {
         public final boolean acceptInboundMessage(Object msg) {
             return msg instanceof InternalMessage;
         }
+
+        @Override
+        protected void channelRead0(ChannelHandlerContext ctx, Object rawMessage) throws Exception {
+            InternalMessage message = (InternalMessage) rawMessage;
+            try {
+                if (message.isRequest()) {
+                    RemoteServerConnection connection =
+                        serverConnections.computeIfAbsent(ctx.channel(), RemoteServerConnection::new);
+                    connection.dispatch((InternalRequest) message);
+                } else {
+                    RemoteClientConnection connection =
+                        clientConnections.computeIfAbsent(ctx.channel(), RemoteClientConnection::new);
+                    connection.dispatch((InternalReply) message);
+                }
+            } catch (RejectedExecutionException e) {
+                log.warn("Unable to dispatch message due to {}", e.getMessage());
+            }
+        }
     }
 
     /**
@@ -728,52 +793,6 @@ public class NettyMessagingService implements ManagedMessagingService {
 
         public void completeExceptionally(Throwable error) {
             future.completeExceptionally(error);
-        }
-    }
-
-    /**
-     * Represents the client side of a connection to a local or remote server.
-     */
-    private interface ClientConnection {
-
-        /**
-         * Sends a message to the other side of the connection.
-         * @param message the message to send
-         * @return a completable future to be completed once the message has been sent
-         */
-        CompletableFuture<Void> sendAsync(InternalRequest message);
-
-        /**
-         * Sends a message to the other side of the connection, awaiting a reply.
-         * @param message the message to send
-         * @return a completable future to be completed once a reply is received or the request times out
-         */
-        CompletableFuture<byte[]> sendAndReceive(InternalRequest message);
-
-        /**
-         * Closes the connection.
-         */
-        default void close() {
-        }
-    }
-
-    /**
-     * Represents the server side of a connection.
-     */
-    private interface ServerConnection {
-
-        /**
-         * Sends a reply to the other side of the connection.
-         * @param message the message to which to reply
-         * @param status the reply status
-         * @param payload the response payload
-         */
-        void reply(InternalRequest message, InternalReply.Status status, Optional<byte[]> payload);
-
-        /**
-         * Closes the connection.
-         */
-        default void close() {
         }
     }
 
@@ -881,33 +900,6 @@ public class NettyMessagingService implements ManagedMessagingService {
             }
         }
 
-        @Override
-        public CompletableFuture<Void> sendAsync(InternalRequest message) {
-            CompletableFuture<Void> future = new CompletableFuture<>();
-            channel.writeAndFlush(message).addListener(channelFuture -> {
-                if (!channelFuture.isSuccess()) {
-                    future.completeExceptionally(channelFuture.cause());
-                } else {
-                    future.complete(null);
-                }
-            });
-            return future;
-        }
-
-        @Override
-        public CompletableFuture<byte[]> sendAndReceive(InternalRequest message) {
-            CompletableFuture<byte[]> future = new CompletableFuture<>();
-            Callback callback = new Callback(message.subject(), future);
-            futures.put(message.id(), callback);
-            channel.writeAndFlush(message).addListener(channelFuture -> {
-                if (!channelFuture.isSuccess()) {
-                    futures.remove(message.id());
-                    callback.completeExceptionally(channelFuture.cause());
-                }
-            });
-            return future;
-        }
-
         /**
          * Dispatches a message to a local handler.
          * @param message the message to dispatch
@@ -941,7 +933,34 @@ public class NettyMessagingService implements ManagedMessagingService {
                     + "but was unable to locate the"
                     + " request handle", message.id());
             }
+        }        @Override
+        public CompletableFuture<Void> sendAsync(InternalRequest message) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            channel.writeAndFlush(message).addListener(channelFuture -> {
+                if (!channelFuture.isSuccess()) {
+                    future.completeExceptionally(channelFuture.cause());
+                } else {
+                    future.complete(null);
+                }
+            });
+            return future;
         }
+
+        @Override
+        public CompletableFuture<byte[]> sendAndReceive(InternalRequest message) {
+            CompletableFuture<byte[]> future = new CompletableFuture<>();
+            Callback callback = new Callback(message.subject(), future);
+            futures.put(message.id(), callback);
+            channel.writeAndFlush(message).addListener(channelFuture -> {
+                if (!channelFuture.isSuccess()) {
+                    futures.remove(message.id());
+                    callback.completeExceptionally(channelFuture.cause());
+                }
+            });
+            return future;
+        }
+
+
 
         @Override
         public void close() {
@@ -991,35 +1010,6 @@ public class NettyMessagingService implements ManagedMessagingService {
                 payload.orElse(EMPTY_PAYLOAD),
                 status);
             channel.writeAndFlush(response);
-        }
-    }
-
-    /**
-     * Request-reply timeout history tracker.
-     */
-    private static final class TimeoutHistory {
-        private final DescriptiveStatistics timeoutHistory = new SynchronizedDescriptiveStatistics(WINDOW_SIZE);
-        private final AtomicLong maxReplyTime = new AtomicLong();
-        private volatile long currentTimeout = DEFAULT_TIMEOUT_MILLIS;
-
-        /**
-         * Adds a reply time to the history.
-         * @param replyTime the reply time to add to the history
-         */
-        void addReplyTime(long replyTime) {
-            maxReplyTime.getAndAccumulate(replyTime, Math::max);
-        }
-
-        /**
-         * Computes the current timeout.
-         */
-        private void recomputeTimeoutMillis() {
-            double nextTimeout = maxReplyTime.getAndSet(0) * TIMEOUT_MULTIPLIER;
-            timeoutHistory.addValue(
-                Math.min(Math.max(nextTimeout, MIN_TIMEOUT_MILLIS), MAX_TIMEOUT_MILLIS));
-            if (timeoutHistory.getN() == WINDOW_SIZE) {
-                this.currentTimeout = (long) timeoutHistory.getMax();
-            }
         }
     }
 }

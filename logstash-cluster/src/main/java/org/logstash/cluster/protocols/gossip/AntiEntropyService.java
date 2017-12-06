@@ -57,26 +57,24 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
     private static final int WINDOW_SIZE = 5;
     private static final int HIGH_LOAD_THRESHOLD = 2;
     private static final int LOAD_WINDOW = 2;
-
+    private static final int DEFAULT_MAX_EVENTS = 1000;
+    private static final int DEFAULT_MAX_IDLE_MS = 10;
+    private static final int DEFAULT_MAX_BATCH_MS = 50;
+    private static final Timer TIMER = new Timer("onos-ecm-sender-events");
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AntiEntropyProtocol<Identifier> protocol;
     private final Supplier<Collection<Identifier>> peerProvider;
     private final Executor eventExecutor;
     private final Executor communicationExecutor;
-
     private final boolean tombstonesDisabled;
-
     private final ScheduledFuture<?> updateFuture;
     private final ScheduledFuture<?> purgeFuture;
-
     private final Map<K, GossipUpdate<K, V>> updates = Maps.newLinkedHashMap();
     private final LogicalClock logicalClock = new LogicalClock();
     private final Map<Identifier, UpdateAccumulator> pendingUpdates = Maps.newConcurrentMap();
     private final Map<Identifier, Long> peerUpdateTimes = Maps.newConcurrentMap();
-
-    private volatile boolean open = true;
-
     private final SlidingWindowCounter counter;
+    private volatile boolean open = true;
 
     public AntiEntropyService(
         AntiEntropyProtocol<Identifier> protocol,
@@ -95,11 +93,6 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
         protocol.registerGossipListener(this::update);
         updateFuture = communicationExecutor.scheduleAtFixedRate(this::performAntiEntropy, 0, antiEntropyInterval.toMillis(), TimeUnit.MILLISECONDS);
         purgeFuture = !tombstonesDisabled ? communicationExecutor.scheduleAtFixedRate(this::purgeTombstones, 0, purgeInterval.toMillis(), TimeUnit.MILLISECONDS) : null;
-    }
-
-    @Override
-    protected void post(GossipEvent<K, V> event) {
-        eventExecutor.execute(() -> super.post(event));
     }
 
     @Override
@@ -123,6 +116,50 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
             notifyPeers(update);
         }
         post(event);
+    }
+
+    @Override
+    protected void post(GossipEvent<K, V> event) {
+        eventExecutor.execute(() -> super.post(event));
+    }
+
+    /**
+     * Notifies peers of an update.
+     * @param event the event to send to peers
+     */
+    private void notifyPeers(GossipUpdate<K, V> event) {
+        notifyPeers(event, peerProvider.get());
+    }
+
+    /**
+     * Notifies peers of an update.
+     * @param event the event to send to the given peers
+     * @param peers the peers to which to send the event
+     */
+    private void notifyPeers(GossipUpdate<K, V> event, Collection<Identifier> peers) {
+        queueUpdate(event, peers);
+    }
+
+    /**
+     * Queues an update to be sent to the given peers.
+     * @param event the event to send to the given peers
+     * @param peers the peers to which to send the event
+     */
+    private void queueUpdate(GossipUpdate<K, V> event, Collection<Identifier> peers) {
+        if (peers != null) {
+            for (Identifier peer : peers) {
+                getAccumulator(peer).add(event);
+            }
+        }
+    }
+
+    /**
+     * Returns the update accumulator for the given peer.
+     * @param peer the peer for which to return the accumulator
+     * @return the update accumulator for the given peer
+     */
+    private UpdateAccumulator getAccumulator(Identifier peer) {
+        return pendingUpdates.computeIfAbsent(peer, UpdateAccumulator::new);
     }
 
     /**
@@ -154,23 +191,6 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
     }
 
     /**
-     * Returns the update accumulator for the given peer.
-     * @param peer the peer for which to return the accumulator
-     * @return the update accumulator for the given peer
-     */
-    private UpdateAccumulator getAccumulator(Identifier peer) {
-        return pendingUpdates.computeIfAbsent(peer, UpdateAccumulator::new);
-    }
-
-    /**
-     * Returns a boolean indicating whether the service is under high load.
-     * @return indicates whether the service is under high load
-     */
-    private boolean underHighLoad() {
-        return counter.get(LOAD_WINDOW) > HIGH_LOAD_THRESHOLD;
-    }
-
-    /**
      * Sends an anti-entropy advertisement to a random peer.
      */
     private void performAntiEntropy() {
@@ -183,6 +203,14 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
             // Catch all exceptions to avoid scheduled task being suppressed.
             log.error("Exception thrown while sending advertisement", e);
         }
+    }
+
+    /**
+     * Returns a boolean indicating whether the service is under high load.
+     * @return indicates whether the service is under high load
+     */
+    private boolean underHighLoad() {
+        return counter.get(LOAD_WINDOW) > HIGH_LOAD_THRESHOLD;
     }
 
     /**
@@ -222,36 +250,6 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
     }
 
     /**
-     * Notifies peers of an update.
-     * @param event the event to send to peers
-     */
-    private void notifyPeers(GossipUpdate<K, V> event) {
-        notifyPeers(event, peerProvider.get());
-    }
-
-    /**
-     * Notifies peers of an update.
-     * @param event the event to send to the given peers
-     * @param peers the peers to which to send the event
-     */
-    private void notifyPeers(GossipUpdate<K, V> event, Collection<Identifier> peers) {
-        queueUpdate(event, peers);
-    }
-
-    /**
-     * Queues an update to be sent to the given peers.
-     * @param event the event to send to the given peers
-     * @param peers the peers to which to send the event
-     */
-    private void queueUpdate(GossipUpdate<K, V> event, Collection<Identifier> peers) {
-        if (peers != null) {
-            for (Identifier peer : peers) {
-                getAccumulator(peer).add(event);
-            }
-        }
-    }
-
-    /**
      * Purges tombstones from updates.
      */
     private synchronized void purgeTombstones() {
@@ -283,37 +281,6 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
         return toStringHelper(this)
             .add("protocol", protocol)
             .toString();
-    }
-
-    private static final int DEFAULT_MAX_EVENTS = 1000;
-    private static final int DEFAULT_MAX_IDLE_MS = 10;
-    private static final int DEFAULT_MAX_BATCH_MS = 50;
-    private static final Timer TIMER = new Timer("onos-ecm-sender-events");
-
-    /**
-     * Accumulator for dispatching updates to a peer.
-     */
-    private final class UpdateAccumulator extends AbstractAccumulator<GossipUpdate<K, V>> {
-        private final Identifier peer;
-
-        private UpdateAccumulator(Identifier peer) {
-            super(TIMER, DEFAULT_MAX_EVENTS, DEFAULT_MAX_BATCH_MS, DEFAULT_MAX_IDLE_MS);
-            this.peer = peer;
-        }
-
-        @Override
-        public void processItems(List<GossipUpdate<K, V>> items) {
-            Map<K, GossipUpdate<K, V>> map = Maps.newHashMap();
-            items.forEach(item -> map.compute(item.subject(), (key, existing) ->
-                item.timestamp().isNewerThan(existing.timestamp()) ? item : existing));
-            communicationExecutor.execute(() -> {
-                try {
-                    protocol.gossip(peer, new GossipMessage<>(logicalClock.increment(), map.values()));
-                } catch (Exception e) {
-                    log.warn("Failed to send to {}", peer, e);
-                }
-            });
-        }
     }
 
     /**
@@ -409,6 +376,32 @@ public class AntiEntropyService<K, V> extends AbstractListenerManager<GossipEven
         @Override
         public GossipService<K, V> build() {
             return new AntiEntropyService<>(protocol, peerProvider, eventExecutor, communicationExecutor, antiEntropyInterval, tombstonesDisabled, purgeInterval);
+        }
+    }
+
+    /**
+     * Accumulator for dispatching updates to a peer.
+     */
+    private final class UpdateAccumulator extends AbstractAccumulator<GossipUpdate<K, V>> {
+        private final Identifier peer;
+
+        private UpdateAccumulator(Identifier peer) {
+            super(TIMER, DEFAULT_MAX_EVENTS, DEFAULT_MAX_BATCH_MS, DEFAULT_MAX_IDLE_MS);
+            this.peer = peer;
+        }
+
+        @Override
+        public void processItems(List<GossipUpdate<K, V>> items) {
+            Map<K, GossipUpdate<K, V>> map = Maps.newHashMap();
+            items.forEach(item -> map.compute(item.subject(), (key, existing) ->
+                item.timestamp().isNewerThan(existing.timestamp()) ? item : existing));
+            communicationExecutor.execute(() -> {
+                try {
+                    protocol.gossip(peer, new GossipMessage<>(logicalClock.increment(), map.values()));
+                } catch (Exception e) {
+                    log.warn("Failed to send to {}", peer, e);
+                }
+            });
         }
     }
 }

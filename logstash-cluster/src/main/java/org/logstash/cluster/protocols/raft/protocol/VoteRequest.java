@@ -31,24 +31,23 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class VoteRequest extends AbstractRaftRequest {
 
+    private final long term;
+    private final String candidate;
+    private final long lastLogIndex;
+    private final long lastLogTerm;
+    public VoteRequest(long term, String candidate, long lastLogIndex, long lastLogTerm) {
+        this.term = term;
+        this.candidate = candidate;
+        this.lastLogIndex = lastLogIndex;
+        this.lastLogTerm = lastLogTerm;
+    }
+
     /**
      * Returns a new vote request builder.
      * @return A new vote request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long term;
-    private final String candidate;
-    private final long lastLogIndex;
-    private final long lastLogTerm;
-
-    public VoteRequest(long term, String candidate, long lastLogIndex, long lastLogTerm) {
-        this.term = term;
-        this.candidate = candidate;
-        this.lastLogIndex = lastLogIndex;
-        this.lastLogTerm = lastLogTerm;
     }
 
     /**
@@ -167,18 +166,18 @@ public class VoteRequest extends AbstractRaftRequest {
         }
 
         @Override
+        public VoteRequest build() {
+            validate();
+            return new VoteRequest(term, candidate, lastLogIndex, lastLogTerm);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             checkArgument(term >= 0, "term must be positive");
             checkNotNull(candidate, "candidate cannot be null");
             checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
             checkArgument(lastLogTerm >= 0, "lastLogTerm must be positive");
-        }
-
-        @Override
-        public VoteRequest build() {
-            validate();
-            return new VoteRequest(term, candidate, lastLogIndex, lastLogTerm);
         }
     }
 }

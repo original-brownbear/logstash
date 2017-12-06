@@ -45,11 +45,6 @@ public abstract class DelegatingDistributedPrimitive implements AsyncPrimitive {
     }
 
     @Override
-    public CompletableFuture<Void> destroy() {
-        return primitive.destroy();
-    }
-
-    @Override
     public void addStatusChangeListener(Consumer<Status> listener) {
         primitive.addStatusChangeListener(listener);
     }
@@ -65,15 +60,13 @@ public abstract class DelegatingDistributedPrimitive implements AsyncPrimitive {
     }
 
     @Override
-    public CompletableFuture<Void> close() {
-        return primitive.close();
+    public CompletableFuture<Void> destroy() {
+        return primitive.destroy();
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(getClass())
-            .add("delegate", primitive)
-            .toString();
+    public CompletableFuture<Void> close() {
+        return primitive.close();
     }
 
     @Override
@@ -85,5 +78,12 @@ public abstract class DelegatingDistributedPrimitive implements AsyncPrimitive {
     public boolean equals(Object other) {
         return other instanceof DelegatingDistributedPrimitive
             && primitive.equals(((DelegatingDistributedPrimitive) other).primitive);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("delegate", primitive)
+            .toString();
     }
 }

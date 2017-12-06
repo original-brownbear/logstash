@@ -43,24 +43,24 @@ public class RaftAtomicValue extends AbstractRaftPrimitive implements AsyncAtomi
     }
 
     @Override
-    public CompletableFuture<byte[]> get() {
-        return proxy.invoke(RaftAtomicValueOperations.GET, SERIALIZER::decode);
-    }
-
-    @Override
-    public CompletableFuture<Void> set(byte[] value) {
-        return proxy.invoke(RaftAtomicValueOperations.SET, SERIALIZER::encode, new RaftAtomicValueOperations.Set(value));
-    }
-
-    @Override
     public CompletableFuture<Boolean> compareAndSet(byte[] expect, byte[] update) {
         return proxy.invoke(RaftAtomicValueOperations.COMPARE_AND_SET, SERIALIZER::encode,
             new RaftAtomicValueOperations.CompareAndSet(expect, update), SERIALIZER::decode);
     }
 
     @Override
+    public CompletableFuture<byte[]> get() {
+        return proxy.invoke(RaftAtomicValueOperations.GET, SERIALIZER::decode);
+    }
+
+    @Override
     public CompletableFuture<byte[]> getAndSet(byte[] value) {
         return proxy.invoke(RaftAtomicValueOperations.GET_AND_SET, SERIALIZER::encode, new RaftAtomicValueOperations.GetAndSet(value), SERIALIZER::decode);
+    }
+
+    @Override
+    public CompletableFuture<Void> set(byte[] value) {
+        return proxy.invoke(RaftAtomicValueOperations.SET, SERIALIZER::encode, new RaftAtomicValueOperations.Set(value));
     }
 
     @Override

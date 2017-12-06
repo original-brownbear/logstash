@@ -117,15 +117,48 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         executor.register(GET_LEADERSHIP, this::getLeadership, SERIALIZER::encode);
     }
 
-    private void notifyLeadershipChange(Leadership<byte[]> previousLeadership, Leadership<byte[]> newLeadership) {
-        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<byte[]>(Type.CHANGE, previousLeadership, newLeadership)));
+    @Override
+    public void onExpire(RaftSession session) {
+        onSessionEnd(session);
     }
 
-    private void notifyLeadershipChanges(List<LeadershipEvent> changes) {
-        if (changes.isEmpty()) {
-            return;
+    private void onSessionEnd(RaftSession session) {
+        listeners.remove(session.sessionId().id());
+        Leadership<byte[]> oldLeadership = leadership();
+        cleanup(session);
+        Leadership<byte[]> newLeadership = leadership();
+        if (!Objects.equal(oldLeadership, newLeadership)) {
+            notifyLeadershipChange(oldLeadership, newLeadership);
         }
-        listeners.values().forEach(session -> session.publish(CHANGE, SERIALIZER::encode, changes));
+    }
+
+    protected void cleanup(RaftSession session) {
+        Optional<Registration> registration =
+            registrations.stream().filter(r -> r.sessionId() == session.sessionId().id()).findFirst();
+        if (registration.isPresent()) {
+            List<Registration> updatedRegistrations =
+                registrations.stream()
+                    .filter(r -> r.sessionId() != session.sessionId().id())
+                    .collect(Collectors.toList());
+            if (leader.sessionId() == session.sessionId().id()) {
+                if (!updatedRegistrations.isEmpty()) {
+                    this.registrations = updatedRegistrations;
+                    this.leader = updatedRegistrations.get(0);
+                    this.term = termCounter.incrementAndGet();
+                    this.termStartTime = context().wallClock().getTime().unixTimestamp();
+                } else {
+                    this.registrations = updatedRegistrations;
+                    this.leader = null;
+                }
+            } else {
+                this.registrations = updatedRegistrations;
+            }
+        }
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        onSessionEnd(session);
     }
 
     /**
@@ -166,6 +199,48 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         }
     }
 
+    private void notifyLeadershipChange(Leadership<byte[]> previousLeadership, Leadership<byte[]> newLeadership) {
+        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<byte[]>(Type.CHANGE, previousLeadership, newLeadership)));
+    }
+
+    private void notifyLeadershipChanges(List<LeadershipEvent> changes) {
+        if (changes.isEmpty()) {
+            return;
+        }
+        listeners.values().forEach(session -> session.publish(CHANGE, SERIALIZER::encode, changes));
+    }
+
+    private Leadership<byte[]> leadership() {
+        return new Leadership<>(leader(), candidates());
+    }
+
+    protected Leader<byte[]> leader() {
+        if (leader == null) {
+            return null;
+        } else {
+            byte[] leaderId = leader.id();
+            return new Leader<>(leaderId, term, termStartTime);
+        }
+    }
+
+    protected List<byte[]> candidates() {
+        return registrations.stream().map(registration -> registration.id()).collect(Collectors.toList());
+    }
+
+    protected void addRegistration(Registration registration) {
+        if (registrations.stream().noneMatch(r -> Arrays.equals(registration.id(), r.id()))) {
+            List<Registration> updatedRegistrations = new LinkedList<>(registrations);
+            updatedRegistrations.add(registration);
+            boolean newLeader = leader == null;
+            this.registrations = updatedRegistrations;
+            if (newLeader) {
+                this.leader = registration;
+                this.term = termCounter.incrementAndGet();
+                this.termStartTime = context().wallClock().getTime().unixTimestamp();
+            }
+        }
+    }
+
     /**
      * Applies a withdraw commit.
      */
@@ -180,6 +255,30 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         } catch (Exception e) {
             logger().error("State machine operation failed", e);
             throw Throwables.propagate(e);
+        }
+    }
+
+    protected void cleanup(byte[] id) {
+        Optional<Registration> registration =
+            registrations.stream().filter(r -> Arrays.equals(r.id(), id)).findFirst();
+        if (registration.isPresent()) {
+            List<Registration> updatedRegistrations =
+                registrations.stream()
+                    .filter(r -> !Arrays.equals(r.id(), id))
+                    .collect(Collectors.toList());
+            if (Arrays.equals(leader.id(), id)) {
+                if (!updatedRegistrations.isEmpty()) {
+                    this.registrations = updatedRegistrations;
+                    this.leader = updatedRegistrations.get(0);
+                    this.term = termCounter.incrementAndGet();
+                    this.termStartTime = context().wallClock().getTime().unixTimestamp();
+                } else {
+                    this.registrations = updatedRegistrations;
+                    this.leader = null;
+                }
+            } else {
+                this.registrations = updatedRegistrations;
+            }
         }
     }
 
@@ -303,20 +402,6 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         }
     }
 
-    private Leadership<byte[]> leadership() {
-        return new Leadership<>(leader(), candidates());
-    }
-
-    private void onSessionEnd(RaftSession session) {
-        listeners.remove(session.sessionId().id());
-        Leadership<byte[]> oldLeadership = leadership();
-        cleanup(session);
-        Leadership<byte[]> newLeadership = leadership();
-        if (!Objects.equal(oldLeadership, newLeadership)) {
-            notifyLeadershipChange(oldLeadership, newLeadership);
-        }
-    }
-
     private static class Registration {
         private final byte[] id;
         private final long sessionId;
@@ -341,90 +426,5 @@ public class RaftLeaderElectorService extends AbstractRaftService {
                 .add("sessionId", sessionId)
                 .toString();
         }
-    }
-
-    protected void cleanup(byte[] id) {
-        Optional<Registration> registration =
-            registrations.stream().filter(r -> Arrays.equals(r.id(), id)).findFirst();
-        if (registration.isPresent()) {
-            List<Registration> updatedRegistrations =
-                registrations.stream()
-                    .filter(r -> !Arrays.equals(r.id(), id))
-                    .collect(Collectors.toList());
-            if (Arrays.equals(leader.id(), id)) {
-                if (!updatedRegistrations.isEmpty()) {
-                    this.registrations = updatedRegistrations;
-                    this.leader = updatedRegistrations.get(0);
-                    this.term = termCounter.incrementAndGet();
-                    this.termStartTime = context().wallClock().getTime().unixTimestamp();
-                } else {
-                    this.registrations = updatedRegistrations;
-                    this.leader = null;
-                }
-            } else {
-                this.registrations = updatedRegistrations;
-            }
-        }
-    }
-
-    protected void cleanup(RaftSession session) {
-        Optional<Registration> registration =
-            registrations.stream().filter(r -> r.sessionId() == session.sessionId().id()).findFirst();
-        if (registration.isPresent()) {
-            List<Registration> updatedRegistrations =
-                registrations.stream()
-                    .filter(r -> r.sessionId() != session.sessionId().id())
-                    .collect(Collectors.toList());
-            if (leader.sessionId() == session.sessionId().id()) {
-                if (!updatedRegistrations.isEmpty()) {
-                    this.registrations = updatedRegistrations;
-                    this.leader = updatedRegistrations.get(0);
-                    this.term = termCounter.incrementAndGet();
-                    this.termStartTime = context().wallClock().getTime().unixTimestamp();
-                } else {
-                    this.registrations = updatedRegistrations;
-                    this.leader = null;
-                }
-            } else {
-                this.registrations = updatedRegistrations;
-            }
-        }
-    }
-
-    protected Leader<byte[]> leader() {
-        if (leader == null) {
-            return null;
-        } else {
-            byte[] leaderId = leader.id();
-            return new Leader<>(leaderId, term, termStartTime);
-        }
-    }
-
-    protected List<byte[]> candidates() {
-        return registrations.stream().map(registration -> registration.id()).collect(Collectors.toList());
-    }
-
-    protected void addRegistration(Registration registration) {
-        if (registrations.stream().noneMatch(r -> Arrays.equals(registration.id(), r.id()))) {
-            List<Registration> updatedRegistrations = new LinkedList<>(registrations);
-            updatedRegistrations.add(registration);
-            boolean newLeader = leader == null;
-            this.registrations = updatedRegistrations;
-            if (newLeader) {
-                this.leader = registration;
-                this.term = termCounter.incrementAndGet();
-                this.termStartTime = context().wallClock().getTime().unixTimestamp();
-            }
-        }
-    }
-
-    @Override
-    public void onExpire(RaftSession session) {
-        onSessionEnd(session);
-    }
-
-    @Override
-    public void onClose(RaftSession session) {
-        onSessionEnd(session);
     }
 }

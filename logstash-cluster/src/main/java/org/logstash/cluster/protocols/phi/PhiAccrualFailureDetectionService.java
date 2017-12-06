@@ -44,16 +44,6 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
     extends AbstractListenerManager<FailureDetectionEvent<T>, FailureDetectionEventListener<T>>
     implements FailureDetectionService<T> {
 
-    /**
-     * Returns a new phi accrual failure detection service builder.
-     * @param <T> the node type
-     * @return a new phi accrual failure detection service builder
-     */
-    public static <T extends Identifier> Builder<T> builder() {
-        return new Builder<>();
-    }
-
-    private Logger log = LoggerFactory.getLogger(getClass());
     private final T localNode;
     private final FailureDetectionProtocol<T> protocol;
     private final Supplier<Collection<T>> peerProvider;
@@ -62,8 +52,8 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
     private final int minSamples;
     private final double phiFactor;
     private final Map<T, PhiAccrualFailureDetector> nodes = Maps.newConcurrentMap();
-
     private final Map<T, FailureDetectionEvent.State> nodeStates = Maps.newConcurrentMap();
+    private Logger log = LoggerFactory.getLogger(getClass());
 
     public PhiAccrualFailureDetectionService(
         FailureDetectionProtocol<T> protocol,
@@ -86,12 +76,13 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
         protocol.registerHeartbeatListener(new HeartbeatMessageHandler());
     }
 
-    private void updateState(T peer, FailureDetectionEvent.State newState) {
-        FailureDetectionEvent.State currentState = nodeStates.get(peer);
-        if (!Objects.equals(currentState, newState)) {
-            nodeStates.put(peer, newState);
-            post(new FailureDetectionEvent<T>(FailureDetectionEvent.Type.STATE_CHANGE, peer, currentState, newState));
-        }
+    /**
+     * Returns a new phi accrual failure detection service builder.
+     * @param <T> the node type
+     * @return a new phi accrual failure detection service builder
+     */
+    public static <T extends Identifier> Builder<T> builder() {
+        return new Builder<>();
     }
 
     private void heartbeat() {
@@ -121,20 +112,20 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
         }
     }
 
+    private void updateState(T peer, FailureDetectionEvent.State newState) {
+        FailureDetectionEvent.State currentState = nodeStates.get(peer);
+        if (!Objects.equals(currentState, newState)) {
+            nodeStates.put(peer, newState);
+            post(new FailureDetectionEvent<T>(FailureDetectionEvent.Type.STATE_CHANGE, peer, currentState, newState));
+        }
+    }
+
     private void heartbeatToPeer(HeartbeatMessage<T> heartbeat, T peer) {
         protocol.heartbeat(peer, heartbeat).whenComplete((result, error) -> {
             if (error != null) {
                 log.trace("Sending heartbeat to {} failed", peer, error);
             }
         });
-    }
-
-    private class HeartbeatMessageHandler implements Consumer<HeartbeatMessage<T>> {
-        @Override
-        public void accept(HeartbeatMessage<T> heartbeat) {
-            nodes.computeIfAbsent(heartbeat.source(), n -> new PhiAccrualFailureDetector(minSamples, phiFactor)).report();
-            updateState(heartbeat.source(), heartbeat.state());
-        }
     }
 
     @Override
@@ -264,6 +255,14 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
                 phiFailureThreshold,
                 minSamples,
                 phiFactor);
+        }
+    }
+
+    private class HeartbeatMessageHandler implements Consumer<HeartbeatMessage<T>> {
+        @Override
+        public void accept(HeartbeatMessage<T> heartbeat) {
+            nodes.computeIfAbsent(heartbeat.source(), n -> new PhiAccrualFailureDetector(minSamples, phiFactor)).report();
+            updateState(heartbeat.source(), heartbeat.state());
         }
     }
 }

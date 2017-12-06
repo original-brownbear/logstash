@@ -45,17 +45,17 @@ public class DefaultNode extends Node {
         return type;
     }
 
+    @Override
+    public State state() {
+        return state;
+    }
+
     /**
      * Updates the node state.
      * @param state the node state
      */
     void setState(State state) {
         this.state = state;
-    }
-
-    @Override
-    public State state() {
-        return state;
     }
 
     /**

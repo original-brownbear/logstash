@@ -16,8 +16,8 @@
 package org.logstash.cluster.time;
 
 import com.google.common.collect.ComparisonChain;
-import org.logstash.cluster.utils.TimestampPrinter;
 import java.util.Objects;
+import org.logstash.cluster.utils.TimestampPrinter;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
@@ -27,15 +27,6 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class WallClockTimestamp implements Timestamp {
 
-    /**
-     * Returns a new wall clock timestamp for the given unix timestamp.
-     * @param unixTimestamp the unix timestamp for which to create a new wall clock timestamp
-     * @return the wall clock timestamp
-     */
-    public static WallClockTimestamp from(long unixTimestamp) {
-        return new WallClockTimestamp(unixTimestamp);
-    }
-
     private final long unixTimestamp;
 
     public WallClockTimestamp() {
@@ -44,6 +35,15 @@ public class WallClockTimestamp implements Timestamp {
 
     public WallClockTimestamp(long timestamp) {
         unixTimestamp = timestamp;
+    }
+
+    /**
+     * Returns a new wall clock timestamp for the given unix timestamp.
+     * @param unixTimestamp the unix timestamp for which to create a new wall clock timestamp
+     * @return the wall clock timestamp
+     */
+    public static WallClockTimestamp from(long unixTimestamp) {
+        return new WallClockTimestamp(unixTimestamp);
     }
 
     @Override

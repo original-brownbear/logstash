@@ -88,153 +88,6 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
     private final String friendlyName;
 
     /**
-     * KryoNamespace builder.
-     */
-    //@NotThreadSafe
-    public static final class Builder {
-        private int blockHeadId = INITIAL_ID;
-        private List<Pair<Class<?>[], Serializer<?>>> types = new ArrayList<>();
-        private List<RegistrationBlock> blocks = new ArrayList<>();
-        private boolean registrationRequired = true;
-        private boolean compatible = false;
-
-        /**
-         * Builds a {@link KryoNamespace} instance.
-         * @return KryoNamespace
-         */
-        public KryoNamespace build() {
-            return build(NO_NAME);
-        }
-
-        /**
-         * Builds a {@link KryoNamespace} instance.
-         * @param friendlyName friendly name for the namespace
-         * @return KryoNamespace
-         */
-        public KryoNamespace build(String friendlyName) {
-            if (!types.isEmpty()) {
-                blocks.add(new RegistrationBlock(this.blockHeadId, types));
-            }
-            return new KryoNamespace(blocks, registrationRequired, compatible, friendlyName).populate(1);
-        }
-
-        /**
-         * Sets the next Kryo registration Id for following register entries.
-         * @param id Kryo registration Id
-         * @return this
-         * @see Kryo#register(Class, Serializer, int)
-         */
-        public Builder nextId(final int id) {
-            if (!types.isEmpty()) {
-                if (id != FLOATING_ID && id < blockHeadId + types.size()) {
-
-                    if (log.isWarnEnabled()) {
-                        log.warn("requested nextId {} could potentially overlap " +
-                                "with existing registrations {}+{} ",
-                            id, blockHeadId, types.size(), new RuntimeException());
-                    }
-                }
-                blocks.add(new RegistrationBlock(this.blockHeadId, types));
-                types = new ArrayList<>();
-            }
-            this.blockHeadId = id;
-            return this;
-        }
-
-        /**
-         * Registers classes to be serialized using Kryo default serializer.
-         * @param expectedTypes list of classes
-         * @return this
-         */
-        public Builder register(final Class<?>... expectedTypes) {
-            for (Class<?> clazz : expectedTypes) {
-                types.add(Pair.of(new Class<?>[]{clazz}, null));
-            }
-            return this;
-        }
-
-        /**
-         * Registers serializer for the given set of classes.
-         * <p>
-         * When multiple classes are registered with an explicitly provided serializer, the namespace guarantees
-         * all instances will be serialized with the same type ID.
-         * @param classes list of classes to register
-         * @param serializer serializer to use for the class
-         * @return this
-         */
-        public Builder register(Serializer<?> serializer, final Class<?>... classes) {
-            types.add(Pair.of(classes, checkNotNull(serializer)));
-            return this;
-        }
-
-        private Builder register(RegistrationBlock block) {
-            if (block.begin() != FLOATING_ID) {
-                // flush pending types
-                nextId(block.begin());
-                blocks.add(block);
-                nextId(block.begin() + block.types().size());
-            } else {
-                // flush pending types
-                final int addedBlockBegin = blockHeadId + types.size();
-                nextId(addedBlockBegin);
-                blocks.add(new RegistrationBlock(addedBlockBegin, block.types()));
-                nextId(addedBlockBegin + block.types().size());
-            }
-            return this;
-        }
-
-        /**
-         * Registers all the class registered to given KryoNamespace.
-         * @param ns KryoNamespace
-         * @return this
-         */
-        public Builder register(final KryoNamespace ns) {
-
-            if (blocks.containsAll(ns.registeredBlocks)) {
-                // Everything was already registered.
-                log.debug("Ignoring {}, already registered.", ns);
-                return this;
-            }
-            for (RegistrationBlock block : ns.registeredBlocks) {
-                this.register(block);
-            }
-            return this;
-        }
-
-        /**
-         * Sets whether backwards/forwards compatible versioned serialization is enabled.
-         * <p>
-         * When compatible serialization is enabled, the {@link CompatibleFieldSerializer} will be set as the
-         * default serializer for types that do not otherwise explicitly specify a serializer.
-         * @param compatible whether versioned serialization is enabled
-         * @return this
-         */
-        public Builder setCompatible(boolean compatible) {
-            this.compatible = compatible;
-            return this;
-        }
-
-        /**
-         * Sets the registrationRequired flag.
-         * @param registrationRequired Kryo's registrationRequired flag
-         * @return this
-         * @see Kryo#setRegistrationRequired(boolean)
-         */
-        public Builder setRegistrationRequired(boolean registrationRequired) {
-            this.registrationRequired = registrationRequired;
-            return this;
-        }
-    }
-
-    /**
-     * Creates a new {@link KryoNamespace} builder.
-     * @return builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * Creates a Kryo instance pool.
      * @param registeredTypes types to register
      * @param registrationRequired whether registration is required
@@ -252,6 +105,14 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
     }
 
     /**
+     * Creates a new {@link KryoNamespace} builder.
+     * @return builder
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Populates the Kryo pool.
      * @param instances to add to the pool
      * @return this
@@ -262,6 +123,87 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
             release(create());
         }
         return this;
+    }
+
+    /**
+     * Creates a Kryo instance.
+     * @return Kryo instance
+     */
+    @Override
+    public Kryo create() {
+        log.trace("Creating Kryo instance for {}", this);
+        Kryo kryo = new Kryo();
+        kryo.setRegistrationRequired(registrationRequired);
+
+        // If compatible serialization is enabled, override the default serializer.
+        if (compatible) {
+            kryo.setDefaultSerializer(CompatibleFieldSerializer::new);
+        }
+
+        // TODO rethink whether we want to use StdInstantiatorStrategy
+        kryo.setInstantiatorStrategy(
+            new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+
+        for (RegistrationBlock block : registeredBlocks) {
+            int id = block.begin();
+            if (id == FLOATING_ID) {
+                id = kryo.getNextRegistrationId();
+            }
+            for (Pair<Class<?>[], Serializer<?>> entry : block.types()) {
+                register(kryo, entry.getLeft(), entry.getRight(), id++);
+            }
+        }
+        return kryo;
+    }
+
+    /**
+     * Register {@code type} and {@code serializer} to {@code kryo} instance.
+     * @param kryo Kryo instance
+     * @param types types to register
+     * @param serializer Specific serializer to register or null to use default.
+     * @param id type registration id to use
+     */
+    private void register(Kryo kryo, Class<?>[] types, Serializer<?> serializer, int id) {
+        Registration existing = kryo.getRegistration(id);
+        if (existing != null) {
+            boolean matches = false;
+            for (Class<?> type : types) {
+                if (existing.getType() == type) {
+                    matches = true;
+                    break;
+                }
+            }
+
+            if (!matches) {
+                log.error("{}: Failed to register {} as {}, {} was already registered.",
+                    friendlyName(), types, id, existing.getType());
+
+                throw new IllegalStateException(String.format(
+                    "Failed to register %s as %s, %s was already registered.",
+                    Arrays.toString(types), id, existing.getType()));
+            }
+            // falling through to register call for now.
+            // Consider skipping, if there's reasonable
+            // way to compare serializer equivalence.
+        }
+
+        for (Class<?> type : types) {
+            Registration r;
+            if (serializer == null) {
+                r = kryo.register(type, id);
+            } else {
+                r = kryo.register(type, serializer, id);
+            }
+            if (r.getId() != id) {
+                log.debug("{}: {} already registered as {}. Skipping {}.",
+                    friendlyName(), r.getType(), r.getId(), id);
+            }
+            log.trace("{} registered as {}", r.getType(), r.getId());
+        }
+    }
+
+    private String friendlyName() {
+        return friendlyName;
     }
 
     /**
@@ -398,97 +340,6 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
         }
     }
 
-    private String friendlyName() {
-        return friendlyName;
-    }
-
-    /**
-     * Gets the number of classes registered in this Kryo namespace.
-     * @return size of namespace
-     */
-    public int size() {
-        return (int) registeredBlocks.stream()
-            .flatMap(block -> block.types().stream())
-            .count();
-    }
-
-    /**
-     * Creates a Kryo instance.
-     * @return Kryo instance
-     */
-    @Override
-    public Kryo create() {
-        log.trace("Creating Kryo instance for {}", this);
-        Kryo kryo = new Kryo();
-        kryo.setRegistrationRequired(registrationRequired);
-
-        // If compatible serialization is enabled, override the default serializer.
-        if (compatible) {
-            kryo.setDefaultSerializer(CompatibleFieldSerializer::new);
-        }
-
-        // TODO rethink whether we want to use StdInstantiatorStrategy
-        kryo.setInstantiatorStrategy(
-            new Kryo.DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
-
-        for (RegistrationBlock block : registeredBlocks) {
-            int id = block.begin();
-            if (id == FLOATING_ID) {
-                id = kryo.getNextRegistrationId();
-            }
-            for (Pair<Class<?>[], Serializer<?>> entry : block.types()) {
-                register(kryo, entry.getLeft(), entry.getRight(), id++);
-            }
-        }
-        return kryo;
-    }
-
-    /**
-     * Register {@code type} and {@code serializer} to {@code kryo} instance.
-     * @param kryo Kryo instance
-     * @param types types to register
-     * @param serializer Specific serializer to register or null to use default.
-     * @param id type registration id to use
-     */
-    private void register(Kryo kryo, Class<?>[] types, Serializer<?> serializer, int id) {
-        Registration existing = kryo.getRegistration(id);
-        if (existing != null) {
-            boolean matches = false;
-            for (Class<?> type : types) {
-                if (existing.getType() == type) {
-                    matches = true;
-                    break;
-                }
-            }
-
-            if (!matches) {
-                log.error("{}: Failed to register {} as {}, {} was already registered.",
-                    friendlyName(), types, id, existing.getType());
-
-                throw new IllegalStateException(String.format(
-                    "Failed to register %s as %s, %s was already registered.",
-                    Arrays.toString(types), id, existing.getType()));
-            }
-            // falling through to register call for now.
-            // Consider skipping, if there's reasonable
-            // way to compare serializer equivalence.
-        }
-
-        for (Class<?> type : types) {
-            Registration r;
-            if (serializer == null) {
-                r = kryo.register(type, id);
-            } else {
-                r = kryo.register(type, serializer, id);
-            }
-            if (r.getId() != id) {
-                log.debug("{}: {} already registered as {}. Skipping {}.",
-                    friendlyName(), r.getType(), r.getId(), id);
-            }
-            log.trace("{} registered as {}", r.getType(), r.getId());
-        }
-    }
-
     @Override
     public Kryo borrow() {
         return pool.borrow();
@@ -504,18 +355,153 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
         return pool.run(callback);
     }
 
-    @Override
-    public String toString() {
-        if (friendlyName != NO_NAME) {
-            return MoreObjects.toStringHelper(getClass())
-                .omitNullValues()
-                .add("friendlyName", friendlyName)
-                // omit lengthy detail, when there's a name
-                .toString();
+    /**
+     * Gets the number of classes registered in this Kryo namespace.
+     * @return size of namespace
+     */
+    public int size() {
+        return (int) registeredBlocks.stream()
+            .flatMap(block -> block.types().stream())
+            .count();
+    }
+
+    /**
+     * KryoNamespace builder.
+     */
+    //@NotThreadSafe
+    public static final class Builder {
+        private int blockHeadId = INITIAL_ID;
+        private List<Pair<Class<?>[], Serializer<?>>> types = new ArrayList<>();
+        private List<RegistrationBlock> blocks = new ArrayList<>();
+        private boolean registrationRequired = true;
+        private boolean compatible = false;
+
+        /**
+         * Builds a {@link KryoNamespace} instance.
+         * @return KryoNamespace
+         */
+        public KryoNamespace build() {
+            return build(NO_NAME);
         }
-        return MoreObjects.toStringHelper(getClass())
-            .add("registeredBlocks", registeredBlocks)
-            .toString();
+
+        /**
+         * Builds a {@link KryoNamespace} instance.
+         * @param friendlyName friendly name for the namespace
+         * @return KryoNamespace
+         */
+        public KryoNamespace build(String friendlyName) {
+            if (!types.isEmpty()) {
+                blocks.add(new RegistrationBlock(this.blockHeadId, types));
+            }
+            return new KryoNamespace(blocks, registrationRequired, compatible, friendlyName).populate(1);
+        }
+
+        /**
+         * Registers classes to be serialized using Kryo default serializer.
+         * @param expectedTypes list of classes
+         * @return this
+         */
+        public Builder register(final Class<?>... expectedTypes) {
+            for (Class<?> clazz : expectedTypes) {
+                types.add(Pair.of(new Class<?>[]{clazz}, null));
+            }
+            return this;
+        }
+
+        /**
+         * Registers serializer for the given set of classes.
+         * <p>
+         * When multiple classes are registered with an explicitly provided serializer, the namespace guarantees
+         * all instances will be serialized with the same type ID.
+         * @param classes list of classes to register
+         * @param serializer serializer to use for the class
+         * @return this
+         */
+        public Builder register(Serializer<?> serializer, final Class<?>... classes) {
+            types.add(Pair.of(classes, checkNotNull(serializer)));
+            return this;
+        }
+
+        /**
+         * Registers all the class registered to given KryoNamespace.
+         * @param ns KryoNamespace
+         * @return this
+         */
+        public Builder register(final KryoNamespace ns) {
+
+            if (blocks.containsAll(ns.registeredBlocks)) {
+                // Everything was already registered.
+                log.debug("Ignoring {}, already registered.", ns);
+                return this;
+            }
+            for (RegistrationBlock block : ns.registeredBlocks) {
+                this.register(block);
+            }
+            return this;
+        }
+
+        private Builder register(RegistrationBlock block) {
+            if (block.begin() != FLOATING_ID) {
+                // flush pending types
+                nextId(block.begin());
+                blocks.add(block);
+                nextId(block.begin() + block.types().size());
+            } else {
+                // flush pending types
+                final int addedBlockBegin = blockHeadId + types.size();
+                nextId(addedBlockBegin);
+                blocks.add(new RegistrationBlock(addedBlockBegin, block.types()));
+                nextId(addedBlockBegin + block.types().size());
+            }
+            return this;
+        }
+
+        /**
+         * Sets the next Kryo registration Id for following register entries.
+         * @param id Kryo registration Id
+         * @return this
+         * @see Kryo#register(Class, Serializer, int)
+         */
+        public Builder nextId(final int id) {
+            if (!types.isEmpty()) {
+                if (id != FLOATING_ID && id < blockHeadId + types.size()) {
+
+                    if (log.isWarnEnabled()) {
+                        log.warn("requested nextId {} could potentially overlap " +
+                                "with existing registrations {}+{} ",
+                            id, blockHeadId, types.size(), new RuntimeException());
+                    }
+                }
+                blocks.add(new RegistrationBlock(this.blockHeadId, types));
+                types = new ArrayList<>();
+            }
+            this.blockHeadId = id;
+            return this;
+        }
+
+        /**
+         * Sets whether backwards/forwards compatible versioned serialization is enabled.
+         * <p>
+         * When compatible serialization is enabled, the {@link CompatibleFieldSerializer} will be set as the
+         * default serializer for types that do not otherwise explicitly specify a serializer.
+         * @param compatible whether versioned serialization is enabled
+         * @return this
+         */
+        public Builder setCompatible(boolean compatible) {
+            this.compatible = compatible;
+            return this;
+        }
+
+        /**
+         * Sets the registrationRequired flag.
+         * @param registrationRequired Kryo's registrationRequired flag
+         * @return this
+         * @see Kryo#setRegistrationRequired(boolean)
+         */
+        public Builder setRegistrationRequired(boolean registrationRequired) {
+            this.registrationRequired = registrationRequired;
+            return this;
+        }
     }
 
     static final class RegistrationBlock {
@@ -536,16 +522,14 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
         }
 
         @Override
+        public int hashCode() {
+            return types.hashCode();
+        }        @Override
         public String toString() {
             return MoreObjects.toStringHelper(getClass())
                 .add("begin", begin)
                 .add("types", types)
                 .toString();
-        }
-
-        @Override
-        public int hashCode() {
-            return types.hashCode();
         }
 
         // Only the registered types are used for equality.
@@ -561,5 +545,21 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
             }
             return false;
         }
+
+
+    }    @Override
+    public String toString() {
+        if (friendlyName != NO_NAME) {
+            return MoreObjects.toStringHelper(getClass())
+                .omitNullValues()
+                .add("friendlyName", friendlyName)
+                // omit lengthy detail, when there's a name
+                .toString();
+        }
+        return MoreObjects.toStringHelper(getClass())
+            .add("registeredBlocks", registeredBlocks)
+            .toString();
     }
+
+
 }

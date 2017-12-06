@@ -40,12 +40,10 @@ import static org.slf4j.LoggerFactory.getLogger;
  */
 public class RaftPartitionServer implements Managed<RaftPartitionServer> {
 
-    private final Logger log = getLogger(getClass());
-
     private static final int MAX_SEGMENT_SIZE = 1024 * 1024 * 64;
     private static final long ELECTION_TIMEOUT_MILLIS = 2500;
     private static final long HEARTBEAT_INTERVAL_MILLIS = 250;
-
+    private final Logger log = getLogger(getClass());
     private final MemberId localMemberId;
     private final RaftPartition partition;
     private final ClusterCommunicationService clusterCommunicator;
@@ -84,9 +82,39 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
         }).thenApply(v -> this);
     }
 
+    private RaftServer buildServer() {
+        RaftServer.Builder builder = RaftServer.builder(localMemberId)
+            .withName(partition.name())
+            .withProtocol(new RaftServerCommunicator(
+                partition.name(),
+                Serializer.using(RaftNamespaces.RAFT_PROTOCOL),
+                clusterCommunicator))
+            .withElectionTimeout(Duration.ofMillis(ELECTION_TIMEOUT_MILLIS))
+            .withHeartbeatInterval(Duration.ofMillis(HEARTBEAT_INTERVAL_MILLIS))
+            .withStorage(RaftStorage.builder()
+                .withPrefix(String.format("partition-%s", partition.id()))
+                .withStorageLevel(StorageLevel.MAPPED)
+                .withSerializer(Serializer.using(RaftNamespaces.RAFT_STORAGE))
+                .withDirectory(partition.getDataDir())
+                .withMaxSegmentSize(MAX_SEGMENT_SIZE)
+                .build());
+        RaftPartition.RAFT_SERVICES.forEach(builder::addService);
+        return builder.build();
+    }
+
+    @Override
+    public boolean isOpen() {
+        return server.isRunning();
+    }
+
     @Override
     public CompletableFuture<Void> close() {
         return server.shutdown();
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !isOpen();
     }
 
     /**
@@ -120,26 +148,6 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
         }
     }
 
-    private RaftServer buildServer() {
-        RaftServer.Builder builder = RaftServer.builder(localMemberId)
-            .withName(partition.name())
-            .withProtocol(new RaftServerCommunicator(
-                partition.name(),
-                Serializer.using(RaftNamespaces.RAFT_PROTOCOL),
-                clusterCommunicator))
-            .withElectionTimeout(Duration.ofMillis(ELECTION_TIMEOUT_MILLIS))
-            .withHeartbeatInterval(Duration.ofMillis(HEARTBEAT_INTERVAL_MILLIS))
-            .withStorage(RaftStorage.builder()
-                .withPrefix(String.format("partition-%s", partition.id()))
-                .withStorageLevel(StorageLevel.MAPPED)
-                .withSerializer(Serializer.using(RaftNamespaces.RAFT_STORAGE))
-                .withDirectory(partition.getDataDir())
-                .withMaxSegmentSize(MAX_SEGMENT_SIZE)
-                .build());
-        RaftPartition.RAFT_SERVICES.forEach(builder::addService);
-        return builder.build();
-    }
-
     public CompletableFuture<Void> join(Collection<MemberId> otherMembers) {
         log.info("Joining partition {} ({})", partition.id(), partition.name());
         server = buildServer();
@@ -150,15 +158,5 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
                 log.info("Failed to join partition {} ({})", partition.id(), partition.name(), e);
             }
         }).thenApply(v -> null);
-    }
-
-    @Override
-    public boolean isOpen() {
-        return server.isRunning();
-    }
-
-    @Override
-    public boolean isClosed() {
-        return !isOpen();
     }
 }

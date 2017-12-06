@@ -24,6 +24,10 @@ import org.logstash.cluster.utils.memory.HeapMemory;
 public class HeapBytes extends ByteBufferBytes {
     public static final byte[] EMPTY = new byte[0];
 
+    protected HeapBytes(ByteBuffer buffer) {
+        super(buffer);
+    }
+
     /**
      * Allocates a new heap byte array.
      * @param size The count of the buffer to allocate (in bytes).
@@ -47,10 +51,6 @@ public class HeapBytes extends ByteBufferBytes {
      */
     public static HeapBytes wrap(byte[] bytes) {
         return new HeapBytes(ByteBuffer.wrap(bytes));
-    }
-
-    protected HeapBytes(ByteBuffer buffer) {
-        super(buffer);
     }
 
     @Override

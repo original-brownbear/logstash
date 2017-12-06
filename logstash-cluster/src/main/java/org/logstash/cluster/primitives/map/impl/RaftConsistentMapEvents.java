@@ -26,6 +26,12 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 public enum RaftConsistentMapEvents implements EventType {
     CHANGE("change");
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
+        .register(MapEvent.class)
+        .register(MapEvent.Type.class)
+        .register(byte[].class)
+        .build(RaftConsistentMapEvents.class.getSimpleName());
     private final String id;
 
     RaftConsistentMapEvents(String id) {
@@ -36,12 +42,5 @@ public enum RaftConsistentMapEvents implements EventType {
     public String id() {
         return id;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
-        .register(MapEvent.class)
-        .register(MapEvent.Type.class)
-        .register(byte[].class)
-        .build(RaftConsistentMapEvents.class.getSimpleName());
 
 }

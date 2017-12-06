@@ -47,6 +47,25 @@ public class ClusterMessage {
     }
 
     /**
+     * Decodes a new ClusterMessage from raw bytes.
+     * @param bytes raw bytes
+     * @return cluster message
+     */
+    public static ClusterMessage fromBytes(byte[] bytes) {
+        ByteBuffer buffer = ByteBuffer.wrap(bytes);
+        byte[] senderBytes = new byte[buffer.getInt()];
+        buffer.get(senderBytes);
+        byte[] subjectBytes = new byte[buffer.getInt()];
+        buffer.get(subjectBytes);
+        byte[] payloadBytes = new byte[buffer.getInt()];
+        buffer.get(payloadBytes);
+
+        return new ClusterMessage(new NodeId(new String(senderBytes, Charsets.UTF_8)),
+            new MessageSubject(new String(subjectBytes, Charsets.UTF_8)),
+            payloadBytes);
+    }
+
+    /**
      * Returns the id of the controller sending this message.
      * @return message sender id.
      */
@@ -86,28 +105,6 @@ public class ClusterMessage {
         return response;
     }
 
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(getClass())
-            .add("sender", sender)
-            .add("subject", subject)
-            .add("payload", ArraySizeHashPrinter.of(payload))
-            .toString();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (!(o instanceof ClusterMessage)) {
-            return false;
-        }
-
-        ClusterMessage that = (ClusterMessage) o;
-
-        return Objects.equals(this.sender, that.sender) &&
-            Objects.equals(this.subject, that.subject) &&
-            Arrays.equals(this.payload, that.payload);
-    }
-
     /**
      * Serializes this instance.
      * @return bytes
@@ -126,27 +123,30 @@ public class ClusterMessage {
         return buffer.array();
     }
 
-    /**
-     * Decodes a new ClusterMessage from raw bytes.
-     * @param bytes raw bytes
-     * @return cluster message
-     */
-    public static ClusterMessage fromBytes(byte[] bytes) {
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        byte[] senderBytes = new byte[buffer.getInt()];
-        buffer.get(senderBytes);
-        byte[] subjectBytes = new byte[buffer.getInt()];
-        buffer.get(subjectBytes);
-        byte[] payloadBytes = new byte[buffer.getInt()];
-        buffer.get(payloadBytes);
-
-        return new ClusterMessage(new NodeId(new String(senderBytes, Charsets.UTF_8)),
-            new MessageSubject(new String(subjectBytes, Charsets.UTF_8)),
-            payloadBytes);
-    }
-
     @Override
     public int hashCode() {
         return Objects.hash(sender, subject, payload);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (!(o instanceof ClusterMessage)) {
+            return false;
+        }
+
+        ClusterMessage that = (ClusterMessage) o;
+
+        return Objects.equals(this.sender, that.sender) &&
+            Objects.equals(this.subject, that.subject) &&
+            Arrays.equals(this.payload, that.payload);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("sender", sender)
+            .add("subject", subject)
+            .add("payload", ArraySizeHashPrinter.of(payload))
+            .toString();
     }
 }

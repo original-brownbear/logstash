@@ -85,8 +85,8 @@ public final class LeaderRole extends ActiveRole {
     private static final int MAX_APPEND_ATTEMPTS = 5;
 
     private final LeaderAppender appender;
-    private Scheduled appendTimer;
     private final Map<MemberId, Scheduled> heartbeatTimers = new HashMap<>();
+    private Scheduled appendTimer;
     private long configuring;
     private boolean transferring;
 
@@ -115,6 +115,580 @@ public final class LeaderRole extends ActiveRole {
             .thenRun(this::startAppendTimer)
             .thenRun(this::startHeartbeatTimer)
             .thenApply(v -> this);
+    }
+
+    @Override
+    public CompletableFuture<QueryResponse> onQuery(final QueryRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        // If this server has not yet applied entries up to the client's session ID, forward the
+        // query to the leader. This ensures that a follower does not tell the client its session
+        // doesn't exist if the follower hasn't had a chance to see the session's registration entry.
+        if (raft.getLastApplied() < request.session()) {
+            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.UNKNOWN_SESSION, "Session has not yet been created. You're seeing into the future!")
+                .build()));
+        }
+
+        // Look up the client's session.
+        RaftSessionContext session = raft.getSessions().getSession(request.session());
+        if (session == null) {
+            log.warn("Unknown session {}", request.session());
+            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.UNKNOWN_SESSION)
+                .build()));
+        }
+
+        final Indexed<QueryEntry> entry = new Indexed<>(
+            request.index(),
+            new QueryEntry(
+                raft.getTerm(),
+                System.currentTimeMillis(),
+                request.session(),
+                request.sequenceNumber(),
+                request.operation()), 0);
+
+        final CompletableFuture<QueryResponse> future;
+        switch (session.readConsistency()) {
+            case SEQUENTIAL:
+                future = queryLocal(entry);
+                break;
+            case LINEARIZABLE_LEASE:
+                future = queryBoundedLinearizable(entry);
+                break;
+            case LINEARIZABLE:
+                future = queryLinearizable(entry);
+                break;
+            default:
+                future = Futures.exceptionalFuture(new IllegalStateException("Unknown consistency level: " + session.readConsistency()));
+                break;
+        }
+        return future.thenApply(this::logResponse);
+    }
+
+    @Override
+    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (transferring) {
+            return CompletableFuture.completedFuture(logResponse(MetadataResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
+                .build()));
+        }
+
+        CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
+        Indexed<MetadataEntry> entry = new Indexed<>(
+            raft.getLastApplied(),
+            new MetadataEntry(raft.getTerm(), System.currentTimeMillis(), request.session()), 0);
+        raft.getStateMachine().<MetadataResult>apply(entry).whenComplete((result, error) -> {
+            if (error == null) {
+                future.complete(logResponse(MetadataResponse.builder()
+                    .withStatus(RaftResponse.Status.OK)
+                    .withSessions(result.sessions())
+                    .build()));
+            } else {
+                future.complete(logResponse(MetadataResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.PROTOCOL_ERROR)
+                    .build()));
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<CommandResponse> onCommand(final CommandRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (transferring) {
+            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
+                .build()));
+        }
+
+        // Get the client's server session. If the session doesn't exist, return an unknown session error.
+        RaftSessionContext session = raft.getSessions().getSession(request.session());
+        if (session == null) {
+            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.UNKNOWN_SESSION)
+                .build()));
+        }
+
+        final long sequenceNumber = request.sequenceNumber();
+
+        final CompletableFuture<CommandResponse> future = new CompletableFuture<>();
+
+        // If the session's current sequence number is less then one prior to the request sequence number, reject
+        // the command to force it to be resent in the correct order. Note that it's possible for the session
+        // sequence number to be greater than the request sequence number. In that case, it's likely that the
+        // command was submitted more than once to the cluster, and the command will be deduplicated once
+        // applied to the state machine.
+        if (sequenceNumber > session.nextRequestSequence()) {
+            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.COMMAND_FAILURE)
+                .withLastSequence(session.getRequestSequence())
+                .build()));
+        }
+
+        // If the command has already been applied to the state machine then return a cached result if possible, otherwise
+        // return null.
+        if (sequenceNumber <= session.getCommandSequence()) {
+            OperationResult result = session.getResult(sequenceNumber);
+            if (result != null) {
+                completeOperation(result, CommandResponse.builder(), null, future);
+            } else {
+                future.complete(CommandResponse.builder()
+                    .withStatus(RaftResponse.Status.OK)
+                    .withIndex(session.getLastApplied())
+                    .withEventIndex(0)
+                    .withResult(new byte[0])
+                    .build());
+            }
+        }
+        // Otherwise, commit the command and update the request sequence number.
+        else {
+            commitCommand(request, future);
+            session.setRequestSequence(sequenceNumber);
+        }
+
+        return future.thenApply(this::logResponse);
+    }
+
+    @Override
+    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
+        final long term = raft.getTerm();
+        final long timestamp = System.currentTimeMillis();
+
+        raft.checkThread();
+        logRequest(request);
+
+        CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
+        appendAndCompact(new KeepAliveEntry(term, timestamp, request.sessionIds(), request.commandSequenceNumbers(), request.eventIndexes()))
+            .whenCompleteAsync((entry, error) -> {
+                if (error != null) {
+                    future.complete(logResponse(KeepAliveResponse.builder()
+                        .withStatus(RaftResponse.Status.ERROR)
+                        .withLeader(raft.getCluster().getMember().memberId())
+                        .withError(RaftError.Type.PROTOCOL_ERROR)
+                        .build()));
+                    return;
+                }
+
+                log.trace("Appended {}", entry);
+
+                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
+                    raft.checkThread();
+                    if (isOpen()) {
+                        if (commitError == null) {
+                            raft.getStateMachine().<long[]>apply(entry.index()).whenCompleteAsync((sessionResult, sessionError) -> {
+                                if (sessionError == null) {
+                                    future.complete(logResponse(KeepAliveResponse.builder()
+                                        .withStatus(RaftResponse.Status.OK)
+                                        .withLeader(raft.getCluster().getMember().memberId())
+                                        .withMembers(raft.getCluster().getMembers().stream()
+                                            .map(RaftMember::memberId)
+                                            .filter(m -> m != null)
+                                            .collect(Collectors.toList()))
+                                        .withSessionIds(sessionResult)
+                                        .build()));
+                                } else if (sessionError instanceof CompletionException && sessionError.getCause() instanceof RaftException) {
+                                    future.complete(logResponse(KeepAliveResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withLeader(raft.getCluster().getMember().memberId())
+                                        .withError(((RaftException) sessionError.getCause()).getType(), sessionError.getMessage())
+                                        .build()));
+                                } else if (sessionError instanceof RaftException) {
+                                    future.complete(logResponse(KeepAliveResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withLeader(raft.getCluster().getMember().memberId())
+                                        .withError(((RaftException) sessionError).getType(), sessionError.getMessage())
+                                        .build()));
+                                } else {
+                                    future.complete(logResponse(KeepAliveResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withLeader(raft.getCluster().getMember().memberId())
+                                        .withError(RaftError.Type.PROTOCOL_ERROR, sessionError.getMessage())
+                                        .build()));
+                                }
+                            }, raft.getThreadContext());
+                        } else {
+                            future.complete(logResponse(KeepAliveResponse.builder()
+                                .withStatus(RaftResponse.Status.ERROR)
+                                .withLeader(raft.getCluster().getMember().memberId())
+                                .withError(RaftError.Type.PROTOCOL_ERROR)
+                                .build()));
+                        }
+                    } else {
+                        RaftMember leader = raft.getLeader();
+                        future.complete(logResponse(KeepAliveResponse.builder()
+                            .withStatus(RaftResponse.Status.ERROR)
+                            .withLeader(leader != null ? leader.memberId() : null)
+                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
+                            .build()));
+                    }
+                });
+            }, raft.getThreadContext());
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
+        final long term = raft.getTerm();
+        final long timestamp = System.currentTimeMillis();
+        final long minTimeout = request.minTimeout();
+
+        // If the client submitted a session timeout, use the client's timeout, otherwise use the configured
+        // default server session timeout.
+        final long maxTimeout;
+        if (request.maxTimeout() != 0) {
+            maxTimeout = request.maxTimeout();
+        } else {
+            maxTimeout = raft.getSessionTimeout().toMillis();
+        }
+
+        raft.checkThread();
+        logRequest(request);
+
+        CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
+        appendAndCompact(new OpenSessionEntry(term, timestamp, request.member(), request.serviceName(), request.serviceType(), request.readConsistency(), minTimeout, maxTimeout))
+            .whenCompleteAsync((entry, error) -> {
+                if (error != null) {
+                    future.complete(logResponse(OpenSessionResponse.builder()
+                        .withStatus(RaftResponse.Status.ERROR)
+                        .withError(RaftError.Type.PROTOCOL_ERROR)
+                        .build()));
+                    return;
+                }
+
+                log.trace("Appended {}", entry);
+
+                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
+                    raft.checkThread();
+                    if (isOpen()) {
+                        if (commitError == null) {
+                            raft.getStateMachine().<Long>apply(entry.index()).whenComplete((sessionId, sessionError) -> {
+                                if (sessionError == null) {
+                                    resetHeartbeatTimer(MemberId.from(request.member()));
+                                    future.complete(logResponse(OpenSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.OK)
+                                        .withSession(sessionId)
+                                        .withTimeout(maxTimeout)
+                                        .build()));
+                                } else if (sessionError instanceof CompletionException && sessionError.getCause() instanceof RaftException) {
+                                    future.complete(logResponse(OpenSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(((RaftException) sessionError.getCause()).getType(), sessionError.getMessage())
+                                        .build()));
+                                } else if (sessionError instanceof RaftException) {
+                                    future.complete(logResponse(OpenSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(((RaftException) sessionError).getType(), sessionError.getMessage())
+                                        .build()));
+                                } else {
+                                    future.complete(logResponse(OpenSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(RaftError.Type.PROTOCOL_ERROR, sessionError.getMessage())
+                                        .build()));
+                                }
+                            });
+                        } else {
+                            future.complete(logResponse(OpenSessionResponse.builder()
+                                .withStatus(RaftResponse.Status.ERROR)
+                                .withError(RaftError.Type.PROTOCOL_ERROR)
+                                .build()));
+                        }
+                    } else {
+                        future.complete(logResponse(OpenSessionResponse.builder()
+                            .withStatus(RaftResponse.Status.ERROR)
+                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
+                            .build()));
+                    }
+                });
+            }, raft.getThreadContext());
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
+        final long term = raft.getTerm();
+        final long timestamp = System.currentTimeMillis();
+
+        raft.checkThread();
+        logRequest(request);
+
+        CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
+        appendAndCompact(new CloseSessionEntry(term, timestamp, request.session(), false))
+            .whenCompleteAsync((entry, error) -> {
+                if (error != null) {
+                    future.complete(logResponse(CloseSessionResponse.builder()
+                        .withStatus(RaftResponse.Status.ERROR)
+                        .withError(RaftError.Type.PROTOCOL_ERROR)
+                        .build()));
+                    return;
+                }
+
+                log.trace("Appended {}", entry);
+
+                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
+                    raft.checkThread();
+                    if (isOpen()) {
+                        if (commitError == null) {
+                            raft.getStateMachine().<Long>apply(entry.index()).whenComplete((closeResult, closeError) -> {
+                                if (closeError == null) {
+                                    future.complete(logResponse(CloseSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.OK)
+                                        .build()));
+                                } else if (closeError instanceof CompletionException && closeError.getCause() instanceof RaftException) {
+                                    future.complete(logResponse(CloseSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(((RaftException) closeError.getCause()).getType(), closeError.getMessage())
+                                        .build()));
+                                } else if (closeError instanceof RaftException) {
+                                    future.complete(logResponse(CloseSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(((RaftException) closeError).getType(), closeError.getMessage())
+                                        .build()));
+                                } else {
+                                    future.complete(logResponse(CloseSessionResponse.builder()
+                                        .withStatus(RaftResponse.Status.ERROR)
+                                        .withError(RaftError.Type.PROTOCOL_ERROR, closeError.getMessage())
+                                        .build()));
+                                }
+                            });
+                        } else {
+                            future.complete(logResponse(CloseSessionResponse.builder()
+                                .withStatus(RaftResponse.Status.ERROR)
+                                .withError(RaftError.Type.PROTOCOL_ERROR)
+                                .build()));
+                        }
+                    } else {
+                        future.complete(logResponse(CloseSessionResponse.builder()
+                            .withStatus(RaftResponse.Status.ERROR)
+                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
+                            .build()));
+                    }
+                });
+            }, raft.getThreadContext());
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<JoinResponse> onJoin(final JoinRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        // If another configuration change is already under way, reject the configuration.
+        // If the leader index is 0 or is greater than the commitIndex, reject the join requests.
+        // Configuration changes should not be allowed until the leader has committed a no-op entry.
+        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
+        if (configuring() || initializing()) {
+            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .build()));
+        }
+
+        // If the member is already a known member of the cluster, complete the join successfully.
+        if (raft.getCluster().getMember(request.member().memberId()) != null) {
+            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
+                .withStatus(RaftResponse.Status.OK)
+                .withIndex(raft.getCluster().getConfiguration().index())
+                .withTerm(raft.getCluster().getConfiguration().term())
+                .withTime(raft.getCluster().getConfiguration().time())
+                .withMembers(raft.getCluster().getMembers())
+                .build()));
+        }
+
+        RaftMember member = request.member();
+
+        // Add the joining member to the members list. If the joining member's type is ACTIVE, join the member in the
+        // PROMOTABLE state to allow it to get caught up without impacting the quorum size.
+        Collection<RaftMember> members = raft.getCluster().getMembers();
+        members.add(new DefaultRaftMember(member.memberId(), member.getType(), Instant.now()));
+
+        CompletableFuture<JoinResponse> future = new CompletableFuture<>();
+        configure(members).whenComplete((index, error) -> {
+            if (error == null) {
+                future.complete(logResponse(JoinResponse.builder()
+                    .withStatus(RaftResponse.Status.OK)
+                    .withIndex(index)
+                    .withTerm(raft.getCluster().getConfiguration().term())
+                    .withTime(raft.getCluster().getConfiguration().time())
+                    .withMembers(members)
+                    .build()));
+            } else {
+                future.complete(logResponse(JoinResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.PROTOCOL_ERROR)
+                    .build()));
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<ReconfigureResponse> onReconfigure(final ReconfigureRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        // If another configuration change is already under way, reject the configuration.
+        // If the leader index is 0 or is greater than the commitIndex, reject the promote requests.
+        // Configuration changes should not be allowed until the leader has committed a no-op entry.
+        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
+        if (configuring() || initializing()) {
+            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .build()));
+        }
+
+        // If the member is not a known member of the cluster, fail the promotion.
+        DefaultRaftMember existingMember = raft.getCluster().getMember(request.member().memberId());
+        if (existingMember == null) {
+            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.UNKNOWN_SESSION)
+                .build()));
+        }
+
+        // If the configuration request index is less than the last known configuration index for
+        // the leader, fail the request to ensure servers can't reconfigure an old configuration.
+        if (request.index() > 0 && request.index() < raft.getCluster().getConfiguration().index()
+            || request.term() != raft.getCluster().getConfiguration().term()) {
+            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.CONFIGURATION_ERROR)
+                .build()));
+        }
+
+        // If the member type has not changed, complete the configuration change successfully.
+        if (existingMember.getType() == request.member().getType()) {
+            Configuration configuration = raft.getCluster().getConfiguration();
+            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
+                .withStatus(RaftResponse.Status.OK)
+                .withIndex(configuration.index())
+                .withTerm(raft.getCluster().getConfiguration().term())
+                .withTime(raft.getCluster().getConfiguration().time())
+                .withMembers(configuration.members())
+                .build()));
+        }
+
+        // Update the member type.
+        existingMember.update(request.member().getType(), Instant.now());
+
+        Collection<RaftMember> members = raft.getCluster().getMembers();
+
+        CompletableFuture<ReconfigureResponse> future = new CompletableFuture<>();
+        configure(members).whenComplete((index, error) -> {
+            if (error == null) {
+                future.complete(logResponse(ReconfigureResponse.builder()
+                    .withStatus(RaftResponse.Status.OK)
+                    .withIndex(index)
+                    .withTerm(raft.getCluster().getConfiguration().term())
+                    .withTime(raft.getCluster().getConfiguration().time())
+                    .withMembers(members)
+                    .build()));
+            } else {
+                future.complete(logResponse(ReconfigureResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.PROTOCOL_ERROR)
+                    .build()));
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<LeaveResponse> onLeave(final LeaveRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        // If another configuration change is already under way, reject the configuration.
+        // If the leader index is 0 or is greater than the commitIndex, reject the join requests.
+        // Configuration changes should not be allowed until the leader has committed a no-op entry.
+        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
+        if (configuring() || initializing()) {
+            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .build()));
+        }
+
+        // If the leaving member is not a known member of the cluster, complete the leave successfully.
+        if (raft.getCluster().getMember(request.member().memberId()) == null) {
+            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
+                .withStatus(RaftResponse.Status.OK)
+                .withMembers(raft.getCluster().getMembers())
+                .build()));
+        }
+
+        RaftMember member = request.member();
+
+        Collection<RaftMember> members = raft.getCluster().getMembers();
+        members.remove(member);
+
+        CompletableFuture<LeaveResponse> future = new CompletableFuture<>();
+        configure(members).whenComplete((index, error) -> {
+            if (error == null) {
+                future.complete(logResponse(LeaveResponse.builder()
+                    .withStatus(RaftResponse.Status.OK)
+                    .withIndex(index)
+                    .withTerm(raft.getCluster().getConfiguration().term())
+                    .withTime(raft.getCluster().getConfiguration().time())
+                    .withMembers(members)
+                    .build()));
+            } else {
+                future.complete(logResponse(LeaveResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.PROTOCOL_ERROR)
+                    .build()));
+            }
+        });
+        return future;
+    }
+
+    @Override
+    public synchronized CompletableFuture<Void> close() {
+        return super.close()
+            .thenRun(appender::close)
+            .thenRun(this::cancelAppendTimer)
+            .thenRun(this::cancelHeartbeatTimers)
+            .thenRun(this::stepDown);
+    }
+
+    /**
+     * Executes a bounded linearizable query.
+     * <p>
+     * Bounded linearizable queries succeed as long as this server remains the leader. This is possible
+     * since the leader will step down in the event it fails to contact a majority of the cluster.
+     */
+    private CompletableFuture<QueryResponse> queryBoundedLinearizable(Indexed<QueryEntry> entry) {
+        return applyQuery(entry);
+    }
+
+    /**
+     * Executes a linearizable query.
+     * <p>
+     * Linearizable queries are first sequenced with commands and then applied to the state machine. Once
+     * applied, we verify the node's leadership prior to responding successfully to the query.
+     */
+    private CompletableFuture<QueryResponse> queryLinearizable(Indexed<QueryEntry> entry) {
+        return applyQuery(entry)
+            .thenComposeAsync(response -> appender.appendEntries()
+                .thenApply(index -> response)
+                .exceptionally(error -> QueryResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.QUERY_FAILURE, error.getMessage())
+                    .build()), raft.getThreadContext());
     }
 
     /**
@@ -333,178 +907,6 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
-    public CompletableFuture<JoinResponse> onJoin(final JoinRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        // If another configuration change is already under way, reject the configuration.
-        // If the leader index is 0 or is greater than the commitIndex, reject the join requests.
-        // Configuration changes should not be allowed until the leader has committed a no-op entry.
-        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
-        if (configuring() || initializing()) {
-            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .build()));
-        }
-
-        // If the member is already a known member of the cluster, complete the join successfully.
-        if (raft.getCluster().getMember(request.member().memberId()) != null) {
-            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
-                .withStatus(RaftResponse.Status.OK)
-                .withIndex(raft.getCluster().getConfiguration().index())
-                .withTerm(raft.getCluster().getConfiguration().term())
-                .withTime(raft.getCluster().getConfiguration().time())
-                .withMembers(raft.getCluster().getMembers())
-                .build()));
-        }
-
-        RaftMember member = request.member();
-
-        // Add the joining member to the members list. If the joining member's type is ACTIVE, join the member in the
-        // PROMOTABLE state to allow it to get caught up without impacting the quorum size.
-        Collection<RaftMember> members = raft.getCluster().getMembers();
-        members.add(new DefaultRaftMember(member.memberId(), member.getType(), Instant.now()));
-
-        CompletableFuture<JoinResponse> future = new CompletableFuture<>();
-        configure(members).whenComplete((index, error) -> {
-            if (error == null) {
-                future.complete(logResponse(JoinResponse.builder()
-                    .withStatus(RaftResponse.Status.OK)
-                    .withIndex(index)
-                    .withTerm(raft.getCluster().getConfiguration().term())
-                    .withTime(raft.getCluster().getConfiguration().time())
-                    .withMembers(members)
-                    .build()));
-            } else {
-                future.complete(logResponse(JoinResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.PROTOCOL_ERROR)
-                    .build()));
-            }
-        });
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<ReconfigureResponse> onReconfigure(final ReconfigureRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        // If another configuration change is already under way, reject the configuration.
-        // If the leader index is 0 or is greater than the commitIndex, reject the promote requests.
-        // Configuration changes should not be allowed until the leader has committed a no-op entry.
-        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
-        if (configuring() || initializing()) {
-            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .build()));
-        }
-
-        // If the member is not a known member of the cluster, fail the promotion.
-        DefaultRaftMember existingMember = raft.getCluster().getMember(request.member().memberId());
-        if (existingMember == null) {
-            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.UNKNOWN_SESSION)
-                .build()));
-        }
-
-        // If the configuration request index is less than the last known configuration index for
-        // the leader, fail the request to ensure servers can't reconfigure an old configuration.
-        if (request.index() > 0 && request.index() < raft.getCluster().getConfiguration().index()
-            || request.term() != raft.getCluster().getConfiguration().term()) {
-            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.CONFIGURATION_ERROR)
-                .build()));
-        }
-
-        // If the member type has not changed, complete the configuration change successfully.
-        if (existingMember.getType() == request.member().getType()) {
-            Configuration configuration = raft.getCluster().getConfiguration();
-            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
-                .withStatus(RaftResponse.Status.OK)
-                .withIndex(configuration.index())
-                .withTerm(raft.getCluster().getConfiguration().term())
-                .withTime(raft.getCluster().getConfiguration().time())
-                .withMembers(configuration.members())
-                .build()));
-        }
-
-        // Update the member type.
-        existingMember.update(request.member().getType(), Instant.now());
-
-        Collection<RaftMember> members = raft.getCluster().getMembers();
-
-        CompletableFuture<ReconfigureResponse> future = new CompletableFuture<>();
-        configure(members).whenComplete((index, error) -> {
-            if (error == null) {
-                future.complete(logResponse(ReconfigureResponse.builder()
-                    .withStatus(RaftResponse.Status.OK)
-                    .withIndex(index)
-                    .withTerm(raft.getCluster().getConfiguration().term())
-                    .withTime(raft.getCluster().getConfiguration().time())
-                    .withMembers(members)
-                    .build()));
-            } else {
-                future.complete(logResponse(ReconfigureResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.PROTOCOL_ERROR)
-                    .build()));
-            }
-        });
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<LeaveResponse> onLeave(final LeaveRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        // If another configuration change is already under way, reject the configuration.
-        // If the leader index is 0 or is greater than the commitIndex, reject the join requests.
-        // Configuration changes should not be allowed until the leader has committed a no-op entry.
-        // See https://groups.google.com/forum/#!topic/raft-dev/t4xj6dJTP6E
-        if (configuring() || initializing()) {
-            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .build()));
-        }
-
-        // If the leaving member is not a known member of the cluster, complete the leave successfully.
-        if (raft.getCluster().getMember(request.member().memberId()) == null) {
-            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
-                .withStatus(RaftResponse.Status.OK)
-                .withMembers(raft.getCluster().getMembers())
-                .build()));
-        }
-
-        RaftMember member = request.member();
-
-        Collection<RaftMember> members = raft.getCluster().getMembers();
-        members.remove(member);
-
-        CompletableFuture<LeaveResponse> future = new CompletableFuture<>();
-        configure(members).whenComplete((index, error) -> {
-            if (error == null) {
-                future.complete(logResponse(LeaveResponse.builder()
-                    .withStatus(RaftResponse.Status.OK)
-                    .withIndex(index)
-                    .withTerm(raft.getCluster().getConfiguration().term())
-                    .withTime(raft.getCluster().getConfiguration().time())
-                    .withMembers(members)
-                    .build()));
-            } else {
-                future.complete(logResponse(LeaveResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.PROTOCOL_ERROR)
-                    .build()));
-            }
-        });
-        return future;
-    }
-
-    @Override
     public CompletableFuture<TransferResponse> onTransfer(final TransferRequest request) {
         logRequest(request);
 
@@ -554,6 +956,28 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
+    public CompletableFuture<AppendResponse> onAppend(final AppendRequest request) {
+        raft.checkThread();
+        if (updateTermAndLeader(request.term(), request.leader())) {
+            CompletableFuture<AppendResponse> future = super.onAppend(request);
+            raft.transition(RaftServer.Role.FOLLOWER);
+            return future;
+        } else if (request.term() < raft.getTerm()) {
+            logRequest(request);
+            return CompletableFuture.completedFuture(logResponse(AppendResponse.builder()
+                .withStatus(RaftResponse.Status.OK)
+                .withTerm(raft.getTerm())
+                .withSucceeded(false)
+                .withLastLogIndex(raft.getLogWriter().getLastIndex())
+                .build()));
+        } else {
+            raft.setLeader(request.leader());
+            raft.transition(RaftServer.Role.FOLLOWER);
+            return super.onAppend(request);
+        }
+    }
+
+    @Override
     public CompletableFuture<PollResponse> onPoll(final PollRequest request) {
         logRequest(request);
 
@@ -586,122 +1010,6 @@ public final class LeaderRole extends ActiveRole {
                 .withVoted(false)
                 .build()));
         }
-    }
-
-    @Override
-    public CompletableFuture<AppendResponse> onAppend(final AppendRequest request) {
-        raft.checkThread();
-        if (updateTermAndLeader(request.term(), request.leader())) {
-            CompletableFuture<AppendResponse> future = super.onAppend(request);
-            raft.transition(RaftServer.Role.FOLLOWER);
-            return future;
-        } else if (request.term() < raft.getTerm()) {
-            logRequest(request);
-            return CompletableFuture.completedFuture(logResponse(AppendResponse.builder()
-                .withStatus(RaftResponse.Status.OK)
-                .withTerm(raft.getTerm())
-                .withSucceeded(false)
-                .withLastLogIndex(raft.getLogWriter().getLastIndex())
-                .build()));
-        } else {
-            raft.setLeader(request.leader());
-            raft.transition(RaftServer.Role.FOLLOWER);
-            return super.onAppend(request);
-        }
-    }
-
-    @Override
-    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (transferring) {
-            return CompletableFuture.completedFuture(logResponse(MetadataResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
-                .build()));
-        }
-
-        CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
-        Indexed<MetadataEntry> entry = new Indexed<>(
-            raft.getLastApplied(),
-            new MetadataEntry(raft.getTerm(), System.currentTimeMillis(), request.session()), 0);
-        raft.getStateMachine().<MetadataResult>apply(entry).whenComplete((result, error) -> {
-            if (error == null) {
-                future.complete(logResponse(MetadataResponse.builder()
-                    .withStatus(RaftResponse.Status.OK)
-                    .withSessions(result.sessions())
-                    .build()));
-            } else {
-                future.complete(logResponse(MetadataResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.PROTOCOL_ERROR)
-                    .build()));
-            }
-        });
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<CommandResponse> onCommand(final CommandRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (transferring) {
-            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
-                .build()));
-        }
-
-        // Get the client's server session. If the session doesn't exist, return an unknown session error.
-        RaftSessionContext session = raft.getSessions().getSession(request.session());
-        if (session == null) {
-            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.UNKNOWN_SESSION)
-                .build()));
-        }
-
-        final long sequenceNumber = request.sequenceNumber();
-
-        final CompletableFuture<CommandResponse> future = new CompletableFuture<>();
-
-        // If the session's current sequence number is less then one prior to the request sequence number, reject
-        // the command to force it to be resent in the correct order. Note that it's possible for the session
-        // sequence number to be greater than the request sequence number. In that case, it's likely that the
-        // command was submitted more than once to the cluster, and the command will be deduplicated once
-        // applied to the state machine.
-        if (sequenceNumber > session.nextRequestSequence()) {
-            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.COMMAND_FAILURE)
-                .withLastSequence(session.getRequestSequence())
-                .build()));
-        }
-
-        // If the command has already been applied to the state machine then return a cached result if possible, otherwise
-        // return null.
-        if (sequenceNumber <= session.getCommandSequence()) {
-            OperationResult result = session.getResult(sequenceNumber);
-            if (result != null) {
-                completeOperation(result, CommandResponse.builder(), null, future);
-            } else {
-                future.complete(CommandResponse.builder()
-                    .withStatus(RaftResponse.Status.OK)
-                    .withIndex(session.getLastApplied())
-                    .withEventIndex(0)
-                    .withResult(new byte[0])
-                    .build());
-            }
-        }
-        // Otherwise, commit the command and update the request sequence number.
-        else {
-            commitCommand(request, future);
-            session.setRequestSequence(sequenceNumber);
-        }
-
-        return future.thenApply(this::logResponse);
     }
 
     /**
@@ -748,305 +1056,6 @@ public final class LeaderRole extends ActiveRole {
                     }
                 });
             }, raft.getThreadContext());
-    }
-
-    @Override
-    public CompletableFuture<QueryResponse> onQuery(final QueryRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        // If this server has not yet applied entries up to the client's session ID, forward the
-        // query to the leader. This ensures that a follower does not tell the client its session
-        // doesn't exist if the follower hasn't had a chance to see the session's registration entry.
-        if (raft.getLastApplied() < request.session()) {
-            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.UNKNOWN_SESSION, "Session has not yet been created. You're seeing into the future!")
-                .build()));
-        }
-
-        // Look up the client's session.
-        RaftSessionContext session = raft.getSessions().getSession(request.session());
-        if (session == null) {
-            log.warn("Unknown session {}", request.session());
-            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.UNKNOWN_SESSION)
-                .build()));
-        }
-
-        final Indexed<QueryEntry> entry = new Indexed<>(
-            request.index(),
-            new QueryEntry(
-                raft.getTerm(),
-                System.currentTimeMillis(),
-                request.session(),
-                request.sequenceNumber(),
-                request.operation()), 0);
-
-        final CompletableFuture<QueryResponse> future;
-        switch (session.readConsistency()) {
-            case SEQUENTIAL:
-                future = queryLocal(entry);
-                break;
-            case LINEARIZABLE_LEASE:
-                future = queryBoundedLinearizable(entry);
-                break;
-            case LINEARIZABLE:
-                future = queryLinearizable(entry);
-                break;
-            default:
-                future = Futures.exceptionalFuture(new IllegalStateException("Unknown consistency level: " + session.readConsistency()));
-                break;
-        }
-        return future.thenApply(this::logResponse);
-    }
-
-    /**
-     * Executes a bounded linearizable query.
-     * <p>
-     * Bounded linearizable queries succeed as long as this server remains the leader. This is possible
-     * since the leader will step down in the event it fails to contact a majority of the cluster.
-     */
-    private CompletableFuture<QueryResponse> queryBoundedLinearizable(Indexed<QueryEntry> entry) {
-        return applyQuery(entry);
-    }
-
-    /**
-     * Executes a linearizable query.
-     * <p>
-     * Linearizable queries are first sequenced with commands and then applied to the state machine. Once
-     * applied, we verify the node's leadership prior to responding successfully to the query.
-     */
-    private CompletableFuture<QueryResponse> queryLinearizable(Indexed<QueryEntry> entry) {
-        return applyQuery(entry)
-            .thenComposeAsync(response -> appender.appendEntries()
-                .thenApply(index -> response)
-                .exceptionally(error -> QueryResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.QUERY_FAILURE, error.getMessage())
-                    .build()), raft.getThreadContext());
-    }
-
-    @Override
-    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
-        final long term = raft.getTerm();
-        final long timestamp = System.currentTimeMillis();
-        final long minTimeout = request.minTimeout();
-
-        // If the client submitted a session timeout, use the client's timeout, otherwise use the configured
-        // default server session timeout.
-        final long maxTimeout;
-        if (request.maxTimeout() != 0) {
-            maxTimeout = request.maxTimeout();
-        } else {
-            maxTimeout = raft.getSessionTimeout().toMillis();
-        }
-
-        raft.checkThread();
-        logRequest(request);
-
-        CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
-        appendAndCompact(new OpenSessionEntry(term, timestamp, request.member(), request.serviceName(), request.serviceType(), request.readConsistency(), minTimeout, maxTimeout))
-            .whenCompleteAsync((entry, error) -> {
-                if (error != null) {
-                    future.complete(logResponse(OpenSessionResponse.builder()
-                        .withStatus(RaftResponse.Status.ERROR)
-                        .withError(RaftError.Type.PROTOCOL_ERROR)
-                        .build()));
-                    return;
-                }
-
-                log.trace("Appended {}", entry);
-
-                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
-                    raft.checkThread();
-                    if (isOpen()) {
-                        if (commitError == null) {
-                            raft.getStateMachine().<Long>apply(entry.index()).whenComplete((sessionId, sessionError) -> {
-                                if (sessionError == null) {
-                                    resetHeartbeatTimer(MemberId.from(request.member()));
-                                    future.complete(logResponse(OpenSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.OK)
-                                        .withSession(sessionId)
-                                        .withTimeout(maxTimeout)
-                                        .build()));
-                                } else if (sessionError instanceof CompletionException && sessionError.getCause() instanceof RaftException) {
-                                    future.complete(logResponse(OpenSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(((RaftException) sessionError.getCause()).getType(), sessionError.getMessage())
-                                        .build()));
-                                } else if (sessionError instanceof RaftException) {
-                                    future.complete(logResponse(OpenSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(((RaftException) sessionError).getType(), sessionError.getMessage())
-                                        .build()));
-                                } else {
-                                    future.complete(logResponse(OpenSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(RaftError.Type.PROTOCOL_ERROR, sessionError.getMessage())
-                                        .build()));
-                                }
-                            });
-                        } else {
-                            future.complete(logResponse(OpenSessionResponse.builder()
-                                .withStatus(RaftResponse.Status.ERROR)
-                                .withError(RaftError.Type.PROTOCOL_ERROR)
-                                .build()));
-                        }
-                    } else {
-                        future.complete(logResponse(OpenSessionResponse.builder()
-                            .withStatus(RaftResponse.Status.ERROR)
-                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
-                            .build()));
-                    }
-                });
-            }, raft.getThreadContext());
-
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
-        final long term = raft.getTerm();
-        final long timestamp = System.currentTimeMillis();
-
-        raft.checkThread();
-        logRequest(request);
-
-        CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
-        appendAndCompact(new KeepAliveEntry(term, timestamp, request.sessionIds(), request.commandSequenceNumbers(), request.eventIndexes()))
-            .whenCompleteAsync((entry, error) -> {
-                if (error != null) {
-                    future.complete(logResponse(KeepAliveResponse.builder()
-                        .withStatus(RaftResponse.Status.ERROR)
-                        .withLeader(raft.getCluster().getMember().memberId())
-                        .withError(RaftError.Type.PROTOCOL_ERROR)
-                        .build()));
-                    return;
-                }
-
-                log.trace("Appended {}", entry);
-
-                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
-                    raft.checkThread();
-                    if (isOpen()) {
-                        if (commitError == null) {
-                            raft.getStateMachine().<long[]>apply(entry.index()).whenCompleteAsync((sessionResult, sessionError) -> {
-                                if (sessionError == null) {
-                                    future.complete(logResponse(KeepAliveResponse.builder()
-                                        .withStatus(RaftResponse.Status.OK)
-                                        .withLeader(raft.getCluster().getMember().memberId())
-                                        .withMembers(raft.getCluster().getMembers().stream()
-                                            .map(RaftMember::memberId)
-                                            .filter(m -> m != null)
-                                            .collect(Collectors.toList()))
-                                        .withSessionIds(sessionResult)
-                                        .build()));
-                                } else if (sessionError instanceof CompletionException && sessionError.getCause() instanceof RaftException) {
-                                    future.complete(logResponse(KeepAliveResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withLeader(raft.getCluster().getMember().memberId())
-                                        .withError(((RaftException) sessionError.getCause()).getType(), sessionError.getMessage())
-                                        .build()));
-                                } else if (sessionError instanceof RaftException) {
-                                    future.complete(logResponse(KeepAliveResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withLeader(raft.getCluster().getMember().memberId())
-                                        .withError(((RaftException) sessionError).getType(), sessionError.getMessage())
-                                        .build()));
-                                } else {
-                                    future.complete(logResponse(KeepAliveResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withLeader(raft.getCluster().getMember().memberId())
-                                        .withError(RaftError.Type.PROTOCOL_ERROR, sessionError.getMessage())
-                                        .build()));
-                                }
-                            }, raft.getThreadContext());
-                        } else {
-                            future.complete(logResponse(KeepAliveResponse.builder()
-                                .withStatus(RaftResponse.Status.ERROR)
-                                .withLeader(raft.getCluster().getMember().memberId())
-                                .withError(RaftError.Type.PROTOCOL_ERROR)
-                                .build()));
-                        }
-                    } else {
-                        RaftMember leader = raft.getLeader();
-                        future.complete(logResponse(KeepAliveResponse.builder()
-                            .withStatus(RaftResponse.Status.ERROR)
-                            .withLeader(leader != null ? leader.memberId() : null)
-                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
-                            .build()));
-                    }
-                });
-            }, raft.getThreadContext());
-
-        return future;
-    }
-
-    @Override
-    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
-        final long term = raft.getTerm();
-        final long timestamp = System.currentTimeMillis();
-
-        raft.checkThread();
-        logRequest(request);
-
-        CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
-        appendAndCompact(new CloseSessionEntry(term, timestamp, request.session(), false))
-            .whenCompleteAsync((entry, error) -> {
-                if (error != null) {
-                    future.complete(logResponse(CloseSessionResponse.builder()
-                        .withStatus(RaftResponse.Status.ERROR)
-                        .withError(RaftError.Type.PROTOCOL_ERROR)
-                        .build()));
-                    return;
-                }
-
-                log.trace("Appended {}", entry);
-
-                appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
-                    raft.checkThread();
-                    if (isOpen()) {
-                        if (commitError == null) {
-                            raft.getStateMachine().<Long>apply(entry.index()).whenComplete((closeResult, closeError) -> {
-                                if (closeError == null) {
-                                    future.complete(logResponse(CloseSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.OK)
-                                        .build()));
-                                } else if (closeError instanceof CompletionException && closeError.getCause() instanceof RaftException) {
-                                    future.complete(logResponse(CloseSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(((RaftException) closeError.getCause()).getType(), closeError.getMessage())
-                                        .build()));
-                                } else if (closeError instanceof RaftException) {
-                                    future.complete(logResponse(CloseSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(((RaftException) closeError).getType(), closeError.getMessage())
-                                        .build()));
-                                } else {
-                                    future.complete(logResponse(CloseSessionResponse.builder()
-                                        .withStatus(RaftResponse.Status.ERROR)
-                                        .withError(RaftError.Type.PROTOCOL_ERROR, closeError.getMessage())
-                                        .build()));
-                                }
-                            });
-                        } else {
-                            future.complete(logResponse(CloseSessionResponse.builder()
-                                .withStatus(RaftResponse.Status.ERROR)
-                                .withError(RaftError.Type.PROTOCOL_ERROR)
-                                .build()));
-                        }
-                    } else {
-                        future.complete(logResponse(CloseSessionResponse.builder()
-                            .withStatus(RaftResponse.Status.ERROR)
-                            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE)
-                            .build()));
-                    }
-                });
-            }, raft.getThreadContext());
-
-        return future;
     }
 
     /**
@@ -1103,15 +1112,6 @@ public final class LeaderRole extends ActiveRole {
         if (raft.getLeader() != null && raft.getLeader().equals(raft.getCluster().getMember())) {
             raft.setLeader(null);
         }
-    }
-
-    @Override
-    public synchronized CompletableFuture<Void> close() {
-        return super.close()
-            .thenRun(appender::close)
-            .thenRun(this::cancelAppendTimer)
-            .thenRun(this::cancelHeartbeatTimers)
-            .thenRun(this::stepDown);
     }
 
 }

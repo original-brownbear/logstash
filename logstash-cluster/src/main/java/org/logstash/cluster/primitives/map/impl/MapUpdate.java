@@ -31,38 +31,6 @@ import static com.google.common.base.Preconditions.checkState;
  */
 public final class MapUpdate<K, V> {
 
-    /**
-     * Type of database update operation.
-     */
-    public enum Type {
-
-        /**
-         * Acquires a read lock on a key.
-         * <p>
-         * This record type will check to ensure that the lock version matches the current version for the key
-         * in the map and acquire a read lock on the key for the duration of the transaction.
-         */
-        LOCK,
-
-        /**
-         * Checks the version of a key without locking the key.
-         * <p>
-         * This record type will perform a simple version check during the prepare phase of the two-phase commit
-         * protocol to ensure that the key has not changed during a transaction.
-         */
-        VERSION_MATCH,
-
-        /**
-         * Updates an entry if the current version matches specified version.
-         */
-        PUT_IF_VERSION_MATCH,
-
-        /**
-         * Removes an entry if the current version matches specified version.
-         */
-        REMOVE_IF_VERSION_MATCH,
-    }
-
     private Type type;
     private K key;
     private V value;
@@ -117,6 +85,16 @@ public final class MapUpdate<K, V> {
             .build();
     }
 
+    /**
+     * Creates a new builder instance.
+     * @param <K> key type
+     * @param <V> value type
+     * @return builder.
+     */
+    public static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(type, key, value, version);
@@ -145,13 +123,35 @@ public final class MapUpdate<K, V> {
     }
 
     /**
-     * Creates a new builder instance.
-     * @param <K> key type
-     * @param <V> value type
-     * @return builder.
+     * Type of database update operation.
      */
-    public static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
+    public enum Type {
+
+        /**
+         * Acquires a read lock on a key.
+         * <p>
+         * This record type will check to ensure that the lock version matches the current version for the key
+         * in the map and acquire a read lock on the key for the duration of the transaction.
+         */
+        LOCK,
+
+        /**
+         * Checks the version of a key without locking the key.
+         * <p>
+         * This record type will perform a simple version check during the prepare phase of the two-phase commit
+         * protocol to ensure that the key has not changed during a transaction.
+         */
+        VERSION_MATCH,
+
+        /**
+         * Updates an entry if the current version matches specified version.
+         */
+        PUT_IF_VERSION_MATCH,
+
+        /**
+         * Removes an entry if the current version matches specified version.
+         */
+        REMOVE_IF_VERSION_MATCH,
     }
 
     /**
@@ -166,26 +166,6 @@ public final class MapUpdate<K, V> {
         public MapUpdate<K, V> build() {
             validateInputs();
             return update;
-        }
-
-        public Builder<K, V> withType(Type type) {
-            update.type = checkNotNull(type, "type cannot be null");
-            return this;
-        }
-
-        public Builder<K, V> withKey(K key) {
-            update.key = checkNotNull(key, "key cannot be null");
-            return this;
-        }
-
-        public Builder<K, V> withValue(V value) {
-            update.value = value;
-            return this;
-        }
-
-        public Builder<K, V> withVersion(long version) {
-            update.version = version;
-            return this;
         }
 
         private void validateInputs() {
@@ -210,6 +190,26 @@ public final class MapUpdate<K, V> {
                     throw new IllegalStateException("Unknown operation type");
             }
 
+        }
+
+        public Builder<K, V> withType(Type type) {
+            update.type = checkNotNull(type, "type cannot be null");
+            return this;
+        }
+
+        public Builder<K, V> withKey(K key) {
+            update.key = checkNotNull(key, "key cannot be null");
+            return this;
+        }
+
+        public Builder<K, V> withValue(V value) {
+            update.value = value;
+            return this;
+        }
+
+        public Builder<K, V> withVersion(long version) {
+            update.version = version;
+            return this;
         }
     }
 }

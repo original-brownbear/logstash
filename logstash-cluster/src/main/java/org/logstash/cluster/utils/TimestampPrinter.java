@@ -23,26 +23,24 @@ import java.util.Date;
  */
 public class TimestampPrinter {
 
-  /**
-   * Returns a new timestamp printer.
-   *
-   * @param timestamp the timestamp to print
-   * @return the timestamp printer
-   */
-  public static TimestampPrinter of(long timestamp) {
-    return new TimestampPrinter(timestamp);
-  }
+    private static final SimpleDateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS");
+    private final long timestamp;
 
-  private static final SimpleDateFormat FORMAT = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss,SSS");
+    public TimestampPrinter(long timestamp) {
+        this.timestamp = timestamp;
+    }
 
-  private final long timestamp;
+    /**
+     * Returns a new timestamp printer.
+     * @param timestamp the timestamp to print
+     * @return the timestamp printer
+     */
+    public static TimestampPrinter of(long timestamp) {
+        return new TimestampPrinter(timestamp);
+    }
 
-  public TimestampPrinter(long timestamp) {
-    this.timestamp = timestamp;
-  }
-
-  @Override
-  public String toString() {
-    return FORMAT.format(new Date(timestamp));
-  }
+    @Override
+    public String toString() {
+        return FORMAT.format(new Date(timestamp));
+    }
 }

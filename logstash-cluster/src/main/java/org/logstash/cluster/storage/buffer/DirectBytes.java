@@ -23,6 +23,10 @@ import org.logstash.cluster.utils.memory.HeapMemory;
  */
 public class DirectBytes extends ByteBufferBytes {
 
+    protected DirectBytes(ByteBuffer buffer) {
+        super(buffer);
+    }
+
     /**
      * Allocates a new direct byte array.
      * @param size The count of the buffer to allocate (in bytes).
@@ -34,10 +38,6 @@ public class DirectBytes extends ByteBufferBytes {
         if (size > HeapMemory.MAX_SIZE)
             throw new IllegalArgumentException("size cannot for DirectBytes cannot be greater than " + HeapMemory.MAX_SIZE);
         return new DirectBytes(ByteBuffer.allocate((int) size));
-    }
-
-    protected DirectBytes(ByteBuffer buffer) {
-        super(buffer);
     }
 
     @Override

@@ -26,18 +26,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class TransferRequest extends AbstractRaftRequest {
 
+    protected final MemberId member;
+
+    protected TransferRequest(MemberId member) {
+        this.member = member;
+    }
+
     /**
      * Returns a new transfer request builder.
      * @return A new transfer request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    protected final MemberId member;
-
-    protected TransferRequest(MemberId member) {
-        this.member = member;
     }
 
     /**

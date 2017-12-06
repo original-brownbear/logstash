@@ -23,24 +23,22 @@ import org.logstash.cluster.utils.Identifier;
  */
 public interface GossipProtocol<T extends Identifier> {
 
-  /**
-   * Sends a gossip message to the given node.
-   *
-   * @param identifier the location to which to send the gossip message
-   * @param message the gossip message to send
-   */
-  <K, V> void gossip(T identifier, GossipMessage<K, V> message);
+    /**
+     * Sends a gossip message to the given node.
+     * @param identifier the location to which to send the gossip message
+     * @param message the gossip message to send
+     */
+    <K, V> void gossip(T identifier, GossipMessage<K, V> message);
 
-  /**
-   * Registers a gossip message listener.
-   *
-   * @param listener the gossip message listener to register
-   */
-  <K, V> void registerGossipListener(Consumer<GossipMessage<K, V>> listener);
+    /**
+     * Registers a gossip message listener.
+     * @param listener the gossip message listener to register
+     */
+    <K, V> void registerGossipListener(Consumer<GossipMessage<K, V>> listener);
 
-  /**
-   * Unregisters the gossip message listener.
-   */
-  void unregisterGossipListener();
+    /**
+     * Unregisters the gossip message listener.
+     */
+    void unregisterGossipListener();
 
 }

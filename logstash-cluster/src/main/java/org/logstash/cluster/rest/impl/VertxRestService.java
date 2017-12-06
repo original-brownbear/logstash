@@ -54,9 +54,9 @@ public class VertxRestService implements ManagedRestService {
     private final PrimitiveService primitiveService;
     private final PrimitiveCache primitiveCache;
     private final EventManager eventManager = new EventManager();
+    private final AtomicBoolean open = new AtomicBoolean();
     private HttpServer server;
     private VertxResteasyDeployment deployment;
-    private final AtomicBoolean open = new AtomicBoolean();
 
     public VertxRestService(
         String host,

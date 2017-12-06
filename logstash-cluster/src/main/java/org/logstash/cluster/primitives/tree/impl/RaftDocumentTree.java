@@ -16,6 +16,7 @@
 
 package org.logstash.cluster.primitives.tree.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.util.HashMap;
 import java.util.List;
@@ -39,11 +40,6 @@ import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
 import org.logstash.cluster.utils.concurrent.Futures;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.logstash.cluster.primitives.tree.impl.DocumentTreeResult.Status.ILLEGAL_MODIFICATION;
-import static org.logstash.cluster.primitives.tree.impl.DocumentTreeResult.Status.INVALID_PATH;
-import static org.logstash.cluster.primitives.tree.impl.DocumentTreeResult.Status.OK;
-
 /**
  * Distributed resource providing the {@link AsyncDocumentTree} primitive.
  */
@@ -54,7 +50,7 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
         .register(RaftDocumentTreeEvents.NAMESPACE)
         .build());
 
-    private final Map<DocumentTreeListener<byte[]>, InternalListener> eventListeners = new HashMap<>();
+    private final Map<DocumentTreeListener<byte[]>, RaftDocumentTree.InternalListener> eventListeners = new HashMap<>();
 
     public RaftDocumentTree(RaftProxy proxy) {
         super(proxy);
@@ -66,9 +62,13 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
         proxy.addEventListener(RaftDocumentTreeEvents.CHANGE, SERIALIZER::decode, this::processTreeUpdates);
     }
 
+    private boolean isListening() {
+        return !eventListeners.isEmpty();
+    }
+
     @Override
     public DistributedPrimitive.Type primitiveType() {
-        return Type.DOCUMENT_TREE;
+        return DistributedPrimitive.Type.DOCUMENT_TREE;
     }
 
     @Override
@@ -77,21 +77,16 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     }
 
     @Override
-    public DocumentPath root() {
-        return DocumentPath.ROOT;
-    }
-
-    @Override
     public CompletableFuture<Map<String, Versioned<byte[]>>> getChildren(DocumentPath path) {
         return proxy.<RaftDocumentTreeOperations.GetChildren, DocumentTreeResult<Map<String, Versioned<byte[]>>>>invoke(
             RaftDocumentTreeOperations.GET_CHILDREN,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.GetChildren(checkNotNull(path)),
+            new RaftDocumentTreeOperations.GetChildren(Preconditions.checkNotNull(path)),
             SERIALIZER::decode)
             .thenCompose(result -> {
-                if (result.status() == INVALID_PATH) {
+                if (result.status() == DocumentTreeResult.Status.INVALID_PATH) {
                     return Futures.exceptionalFuture(new NoSuchDocumentPathException());
-                } else if (result.status() == ILLEGAL_MODIFICATION) {
+                } else if (result.status() == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return Futures.exceptionalFuture(new IllegalDocumentModificationException());
                 } else {
                     return CompletableFuture.completedFuture(result);
@@ -101,19 +96,19 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
 
     @Override
     public CompletableFuture<Versioned<byte[]>> get(DocumentPath path) {
-        return proxy.invoke(RaftDocumentTreeOperations.GET, SERIALIZER::encode, new RaftDocumentTreeOperations.Get(checkNotNull(path)), SERIALIZER::decode);
+        return proxy.invoke(RaftDocumentTreeOperations.GET, SERIALIZER::encode, new RaftDocumentTreeOperations.Get(Preconditions.checkNotNull(path)), SERIALIZER::decode);
     }
 
     @Override
     public CompletableFuture<Versioned<byte[]>> set(DocumentPath path, byte[] value) {
         return proxy.<RaftDocumentTreeOperations.Update, DocumentTreeResult<Versioned<byte[]>>>invoke(RaftDocumentTreeOperations.UPDATE,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.Update(checkNotNull(path), Optional.ofNullable(value), Match.any(), Match.any()),
+            new RaftDocumentTreeOperations.Update(Preconditions.checkNotNull(path), Optional.ofNullable(value), Match.any(), Match.any()),
             SERIALIZER::decode)
             .thenCompose(result -> {
-                if (result.status() == INVALID_PATH) {
+                if (result.status() == DocumentTreeResult.Status.INVALID_PATH) {
                     return Futures.exceptionalFuture(new NoSuchDocumentPathException());
-                } else if (result.status() == ILLEGAL_MODIFICATION) {
+                } else if (result.status() == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return Futures.exceptionalFuture(new IllegalDocumentModificationException());
                 } else {
                     return CompletableFuture.completedFuture(result);
@@ -125,7 +120,7 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     public CompletableFuture<Boolean> create(DocumentPath path, byte[] value) {
         return createInternal(path, value)
             .thenCompose(status -> {
-                if (status == ILLEGAL_MODIFICATION) {
+                if (status == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return Futures.exceptionalFuture(new IllegalDocumentModificationException());
                 }
                 return CompletableFuture.completedFuture(true);
@@ -136,11 +131,11 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     public CompletableFuture<Boolean> createRecursive(DocumentPath path, byte[] value) {
         return createInternal(path, value)
             .thenCompose(status -> {
-                if (status == ILLEGAL_MODIFICATION) {
+                if (status == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return createRecursive(path.parent(), null)
                         .thenCompose(r -> createInternal(path, value).thenApply(v -> true));
                 }
-                return CompletableFuture.completedFuture(status == OK);
+                return CompletableFuture.completedFuture(status == DocumentTreeResult.Status.OK);
             });
     }
 
@@ -148,7 +143,7 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     public CompletableFuture<Boolean> replace(DocumentPath path, byte[] newValue, long version) {
         return proxy.<RaftDocumentTreeOperations.Update, DocumentTreeResult<byte[]>>invoke(RaftDocumentTreeOperations.UPDATE,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.Update(checkNotNull(path),
+            new RaftDocumentTreeOperations.Update(Preconditions.checkNotNull(path),
                 Optional.ofNullable(newValue),
                 Match.any(),
                 Match.ifValue(version)), SERIALIZER::decode)
@@ -159,15 +154,15 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     public CompletableFuture<Boolean> replace(DocumentPath path, byte[] newValue, byte[] currentValue) {
         return proxy.<RaftDocumentTreeOperations.Update, DocumentTreeResult<byte[]>>invoke(RaftDocumentTreeOperations.UPDATE,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.Update(checkNotNull(path),
+            new RaftDocumentTreeOperations.Update(Preconditions.checkNotNull(path),
                 Optional.ofNullable(newValue),
                 Match.ifValue(currentValue),
                 Match.any()),
             SERIALIZER::decode)
             .thenCompose(result -> {
-                if (result.status() == INVALID_PATH) {
+                if (result.status() == DocumentTreeResult.Status.INVALID_PATH) {
                     return Futures.exceptionalFuture(new NoSuchDocumentPathException());
-                } else if (result.status() == ILLEGAL_MODIFICATION) {
+                } else if (result.status() == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return Futures.exceptionalFuture(new IllegalDocumentModificationException());
                 } else {
                     return CompletableFuture.completedFuture(result);
@@ -182,12 +177,12 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
         }
         return proxy.<RaftDocumentTreeOperations.Update, DocumentTreeResult<Versioned<byte[]>>>invoke(RaftDocumentTreeOperations.UPDATE,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.Update(checkNotNull(path), null, Match.any(), Match.ifNotNull()),
+            new RaftDocumentTreeOperations.Update(Preconditions.checkNotNull(path), null, Match.any(), Match.ifNotNull()),
             SERIALIZER::decode)
             .thenCompose(result -> {
-                if (result.status() == INVALID_PATH) {
+                if (result.status() == DocumentTreeResult.Status.INVALID_PATH) {
                     return Futures.exceptionalFuture(new NoSuchDocumentPathException());
-                } else if (result.status() == ILLEGAL_MODIFICATION) {
+                } else if (result.status() == DocumentTreeResult.Status.ILLEGAL_MODIFICATION) {
                     return Futures.exceptionalFuture(new IllegalDocumentModificationException());
                 } else {
                     return CompletableFuture.completedFuture(result);
@@ -196,10 +191,26 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     }
 
     @Override
+    public CompletableFuture<Void> removeListener(DocumentTreeListener<byte[]> listener) {
+        Preconditions.checkNotNull(listener);
+        RaftDocumentTree.InternalListener internalListener = eventListeners.remove(listener);
+        if (internalListener != null && eventListeners.isEmpty()) {
+            return proxy.invoke(RaftDocumentTreeOperations.REMOVE_LISTENER, SERIALIZER::encode, new RaftDocumentTreeOperations.Unlisten(internalListener.path))
+                .thenApply(v -> null);
+        }
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public DocumentPath root() {
+        return DocumentPath.ROOT;
+    }
+
+    @Override
     public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<byte[]> listener) {
-        checkNotNull(path);
-        checkNotNull(listener);
-        InternalListener internalListener = new InternalListener(path, listener, MoreExecutors.directExecutor());
+        Preconditions.checkNotNull(path);
+        Preconditions.checkNotNull(listener);
+        RaftDocumentTree.InternalListener internalListener = new RaftDocumentTree.InternalListener(path, listener, MoreExecutors.directExecutor());
         // TODO: Support API that takes an executor
         if (!eventListeners.containsKey(listener)) {
             return proxy.invoke(RaftDocumentTreeOperations.ADD_LISTENER, SERIALIZER::encode, new RaftDocumentTreeOperations.Listen(path))
@@ -208,27 +219,12 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
         return CompletableFuture.completedFuture(null);
     }
 
-    @Override
-    public CompletableFuture<Void> removeListener(DocumentTreeListener<byte[]> listener) {
-        checkNotNull(listener);
-        InternalListener internalListener = eventListeners.remove(listener);
-        if (internalListener != null && eventListeners.isEmpty()) {
-            return proxy.invoke(RaftDocumentTreeOperations.REMOVE_LISTENER, SERIALIZER::encode, new RaftDocumentTreeOperations.Unlisten(internalListener.path))
-                .thenApply(v -> null);
-        }
-        return CompletableFuture.completedFuture(null);
-    }
-
     private CompletableFuture<DocumentTreeResult.Status> createInternal(DocumentPath path, byte[] value) {
         return proxy.<RaftDocumentTreeOperations.Update, DocumentTreeResult<byte[]>>invoke(RaftDocumentTreeOperations.UPDATE,
             SERIALIZER::encode,
-            new RaftDocumentTreeOperations.Update(checkNotNull(path), Optional.ofNullable(value), Match.any(), Match.ifNull()),
+            new RaftDocumentTreeOperations.Update(Preconditions.checkNotNull(path), Optional.ofNullable(value), Match.any(), Match.ifNull()),
             SERIALIZER::decode)
             .thenApply(result -> result.status());
-    }
-
-    private boolean isListening() {
-        return !eventListeners.isEmpty();
     }
 
     private void processTreeUpdates(List<DocumentTreeEvent<byte[]>> events) {

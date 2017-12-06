@@ -23,6 +23,12 @@ import org.logstash.cluster.utils.memory.HeapMemory;
  */
 public class UnsafeHeapBytes extends AbstractBytes {
 
+    protected HeapMemory memory;
+
+    protected UnsafeHeapBytes(HeapMemory memory) {
+        this.memory = memory;
+    }
+
     /**
      * Allocates a new heap byte array.
      * <p>
@@ -51,12 +57,6 @@ public class UnsafeHeapBytes extends AbstractBytes {
         return new UnsafeHeapBytes(HeapMemory.wrap(bytes));
     }
 
-    protected HeapMemory memory;
-
-    protected UnsafeHeapBytes(HeapMemory memory) {
-        this.memory = memory;
-    }
-
     /**
      * Copies the bytes to a new byte array.
      * @return A new {@link UnsafeHeapBytes} instance backed by a copy of this instance's array.
@@ -75,16 +75,6 @@ public class UnsafeHeapBytes extends AbstractBytes {
         return memory.array();
     }
 
-    /**
-     * Resets the heap byte array.
-     * @param array The internal byte array.
-     * @return The heap bytes.
-     */
-    public UnsafeHeapBytes reset(byte[] array) {
-        memory.reset(array);
-        return this;
-    }
-
     @Override
     public int size() {
         return memory.size();
@@ -93,6 +83,16 @@ public class UnsafeHeapBytes extends AbstractBytes {
     @Override
     public Bytes resize(int newSize) {
         this.memory = memory.allocator().reallocate(memory, newSize);
+        return this;
+    }
+
+    /**
+     * Resets the heap byte array.
+     * @param array The internal byte array.
+     * @return The heap bytes.
+     */
+    public UnsafeHeapBytes reset(byte[] array) {
+        memory.reset(array);
         return this;
     }
 
@@ -110,110 +110,6 @@ public class UnsafeHeapBytes extends AbstractBytes {
     public Bytes zero(int offset, int length) {
         memory.unsafe().setMemory(memory.array(), memory.address(offset), length, (byte) 0);
         return this;
-    }
-
-    @Override
-    public Bytes read(int position, Bytes bytes, int offset, int length) {
-        checkRead(position, length);
-        if (bytes instanceof UnsafeHeapBytes) {
-            memory.unsafe().copyMemory(memory.array(), memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
-        } else if (bytes instanceof NativeBytes) {
-            memory.unsafe().copyMemory(memory.array(), memory.address(position), null, ((NativeBytes) bytes).memory.address(offset), length);
-        } else {
-            for (int i = 0; i < length; i++) {
-                bytes.writeByte(offset + i, memory.getByte(position + i));
-            }
-        }
-        return this;
-    }
-
-    @Override
-    public Bytes read(int position, byte[] bytes, int offset, int length) {
-        checkRead(position, length);
-        memory.unsafe().copyMemory(memory.array(), memory.address(position), bytes, memory.address(offset), length);
-        return this;
-    }
-
-    @Override
-    public int readByte(int offset) {
-        checkRead(offset, BYTE);
-        return memory.getByte(offset);
-    }
-
-    @Override
-    public int readUnsignedByte(int offset) {
-        checkRead(offset, BYTE);
-        return memory.getByte(offset) & 0xFF;
-    }
-
-    @Override
-    public char readChar(int offset) {
-        checkRead(offset, CHARACTER);
-        return memory.getChar(offset);
-    }
-
-    @Override
-    public short readShort(int offset) {
-        checkRead(offset, SHORT);
-        return memory.getShort(offset);
-    }
-
-    @Override
-    public int readUnsignedShort(int offset) {
-        checkRead(offset, SHORT);
-        return memory.getShort(offset) & 0xFFFF;
-    }
-
-    @Override
-    public int readMedium(int offset) {
-        checkRead(offset, MEDIUM);
-        return (memory.getByte(offset)) << 16
-            | (memory.getByte(offset + 1) & 0xff) << 8
-            | (memory.getByte(offset + 2) & 0xff);
-    }
-
-    @Override
-    public int readUnsignedMedium(int offset) {
-        checkRead(offset, MEDIUM);
-        return (memory.getByte(offset) & 0xff) << 16
-            | (memory.getByte(offset + 1) & 0xff) << 8
-            | (memory.getByte(offset + 2) & 0xff);
-    }
-
-    @Override
-    public int readInt(int offset) {
-        checkRead(offset, INTEGER);
-        return memory.getInt(offset);
-    }
-
-    @Override
-    public long readUnsignedInt(int offset) {
-        checkRead(offset, INTEGER);
-        return memory.getInt(offset) & 0xFFFFFFFFL;
-    }
-
-    @Override
-    public long readLong(int offset) {
-        checkRead(offset, LONG);
-        return memory.getLong(offset);
-    }
-
-    @Override
-    public float readFloat(int offset) {
-        checkRead(offset, FLOAT);
-        return memory.getFloat(offset);
-    }
-
-    @Override
-    public double readDouble(int offset) {
-        checkRead(offset, DOUBLE);
-        return memory.getDouble(offset);
-    }
-
-    @Override
-    public boolean readBoolean(int offset) {
-        checkRead(offset, BOOLEAN);
-        return memory.getByte(offset) == (byte) 1;
     }
 
     @Override
@@ -251,13 +147,6 @@ public class UnsafeHeapBytes extends AbstractBytes {
     }
 
     @Override
-    public Bytes writeUnsignedByte(int offset, int b) {
-        checkWrite(offset, BYTE);
-        memory.putByte(offset, (byte) b);
-        return this;
-    }
-
-    @Override
     public Bytes writeChar(int offset, char c) {
         checkWrite(offset, CHARACTER);
         memory.putChar(offset, c);
@@ -268,6 +157,145 @@ public class UnsafeHeapBytes extends AbstractBytes {
     public Bytes writeShort(int offset, short s) {
         checkWrite(offset, SHORT);
         memory.putShort(offset, s);
+        return this;
+    }
+
+    @Override
+    public Bytes writeInt(int offset, int i) {
+        checkWrite(offset, INTEGER);
+        memory.putInt(offset, i);
+        return this;
+    }
+
+    @Override
+    public Bytes writeLong(int offset, long l) {
+        checkWrite(offset, LONG);
+        memory.putLong(offset, l);
+        return this;
+    }
+
+    @Override
+    public Bytes writeFloat(int offset, float f) {
+        checkWrite(offset, FLOAT);
+        memory.putFloat(offset, f);
+        return this;
+    }
+
+    @Override
+    public Bytes writeDouble(int offset, double d) {
+        checkWrite(offset, DOUBLE);
+        memory.putDouble(offset, d);
+        return this;
+    }
+
+    @Override
+    public Bytes read(int position, Bytes bytes, int offset, int length) {
+        checkRead(position, length);
+        if (bytes instanceof UnsafeHeapBytes) {
+            memory.unsafe().copyMemory(memory.array(), memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
+        } else if (bytes instanceof NativeBytes) {
+            memory.unsafe().copyMemory(memory.array(), memory.address(position), null, ((NativeBytes) bytes).memory.address(offset), length);
+        } else {
+            for (int i = 0; i < length; i++) {
+                bytes.writeByte(offset + i, memory.getByte(position + i));
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public Bytes read(int position, byte[] bytes, int offset, int length) {
+        checkRead(position, length);
+        memory.unsafe().copyMemory(memory.array(), memory.address(position), bytes, memory.address(offset), length);
+        return this;
+    }
+
+    @Override
+    public int readByte(int offset) {
+        checkRead(offset, BYTE);
+        return memory.getByte(offset);
+    }
+
+    @Override
+    public char readChar(int offset) {
+        checkRead(offset, CHARACTER);
+        return memory.getChar(offset);
+    }
+
+    @Override
+    public short readShort(int offset) {
+        checkRead(offset, SHORT);
+        return memory.getShort(offset);
+    }
+
+    @Override
+    public int readInt(int offset) {
+        checkRead(offset, INTEGER);
+        return memory.getInt(offset);
+    }
+
+    @Override
+    public long readLong(int offset) {
+        checkRead(offset, LONG);
+        return memory.getLong(offset);
+    }
+
+    @Override
+    public float readFloat(int offset) {
+        checkRead(offset, FLOAT);
+        return memory.getFloat(offset);
+    }
+
+    @Override
+    public double readDouble(int offset) {
+        checkRead(offset, DOUBLE);
+        return memory.getDouble(offset);
+    }
+
+    @Override
+    public int readUnsignedByte(int offset) {
+        checkRead(offset, BYTE);
+        return memory.getByte(offset) & 0xFF;
+    }
+
+    @Override
+    public int readUnsignedShort(int offset) {
+        checkRead(offset, SHORT);
+        return memory.getShort(offset) & 0xFFFF;
+    }
+
+    @Override
+    public int readMedium(int offset) {
+        checkRead(offset, MEDIUM);
+        return (memory.getByte(offset)) << 16
+            | (memory.getByte(offset + 1) & 0xff) << 8
+            | (memory.getByte(offset + 2) & 0xff);
+    }
+
+    @Override
+    public int readUnsignedMedium(int offset) {
+        checkRead(offset, MEDIUM);
+        return (memory.getByte(offset) & 0xff) << 16
+            | (memory.getByte(offset + 1) & 0xff) << 8
+            | (memory.getByte(offset + 2) & 0xff);
+    }
+
+    @Override
+    public long readUnsignedInt(int offset) {
+        checkRead(offset, INTEGER);
+        return memory.getInt(offset) & 0xFFFFFFFFL;
+    }
+
+    @Override
+    public boolean readBoolean(int offset) {
+        checkRead(offset, BOOLEAN);
+        return memory.getByte(offset) == (byte) 1;
+    }
+
+    @Override
+    public Bytes writeUnsignedByte(int offset, int b) {
+        checkWrite(offset, BYTE);
+        memory.putByte(offset, (byte) b);
         return this;
     }
 
@@ -292,37 +320,9 @@ public class UnsafeHeapBytes extends AbstractBytes {
     }
 
     @Override
-    public Bytes writeInt(int offset, int i) {
-        checkWrite(offset, INTEGER);
-        memory.putInt(offset, i);
-        return this;
-    }
-
-    @Override
     public Bytes writeUnsignedInt(int offset, long i) {
         checkWrite(offset, INTEGER);
         memory.putInt(offset, (int) i);
-        return this;
-    }
-
-    @Override
-    public Bytes writeLong(int offset, long l) {
-        checkWrite(offset, LONG);
-        memory.putLong(offset, l);
-        return this;
-    }
-
-    @Override
-    public Bytes writeFloat(int offset, float f) {
-        checkWrite(offset, FLOAT);
-        memory.putFloat(offset, f);
-        return this;
-    }
-
-    @Override
-    public Bytes writeDouble(int offset, double d) {
-        checkWrite(offset, DOUBLE);
-        memory.putDouble(offset, d);
         return this;
     }
 

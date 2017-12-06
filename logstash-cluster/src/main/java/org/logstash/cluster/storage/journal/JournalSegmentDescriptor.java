@@ -75,6 +75,28 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
     private static final int MAX_SIZE_POSITION = INDEX_POSITION + INDEX_LENGTH;            // 20
     private static final int MAX_ENTRIES_POSITION = MAX_SIZE_POSITION + MAX_SIZE_LENGTH;   // 24
     private static final int UPDATED_POSITION = MAX_ENTRIES_POSITION + MAX_ENTRIES_LENGTH; // 28
+    private final int version;
+    private final long id;
+    private final long index;
+    private final int maxSegmentSize;
+    private final int maxEntries;
+    private volatile Buffer buffer;
+    private volatile long updated;
+    private volatile boolean locked;
+    /**
+     * @throws NullPointerException if {@code buffer} is null
+     */
+    public JournalSegmentDescriptor(Buffer buffer) {
+        this.buffer = checkNotNull(buffer, "buffer cannot be null");
+        this.version = buffer.readInt();
+        this.id = buffer.readLong();
+        this.index = buffer.readLong();
+        this.maxSegmentSize = buffer.readInt();
+        this.maxEntries = buffer.readInt();
+        this.updated = buffer.readLong();
+        this.locked = buffer.readBoolean();
+        buffer.skip(BYTES - buffer.position()); // 64 bytes reserved for the header
+    }
 
     /**
      * Returns a descriptor builder.
@@ -94,30 +116,6 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
      */
     public static Builder builder(Buffer buffer) {
         return new Builder(buffer);
-    }
-
-    private volatile Buffer buffer;
-    private final int version;
-    private final long id;
-    private final long index;
-    private final int maxSegmentSize;
-    private final int maxEntries;
-    private volatile long updated;
-    private volatile boolean locked;
-
-    /**
-     * @throws NullPointerException if {@code buffer} is null
-     */
-    public JournalSegmentDescriptor(Buffer buffer) {
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
-        this.version = buffer.readInt();
-        this.id = buffer.readLong();
-        this.index = buffer.readLong();
-        this.maxSegmentSize = buffer.readInt();
-        this.maxEntries = buffer.readInt();
-        this.updated = buffer.readLong();
-        this.locked = buffer.readBoolean();
-        buffer.skip(BYTES - buffer.position()); // 64 bytes reserved for the header
     }
 
     /**

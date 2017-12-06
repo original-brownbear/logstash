@@ -27,12 +27,15 @@ import org.logstash.cluster.storage.journal.SegmentedJournal;
  */
 public class RaftLog extends DelegatingJournal<RaftLogEntry> {
 
-    /**
-     * Returns a new Raft log builder.
-     * @return A new Raft log builder.
-     */
-    public static Builder builder() {
-        return new Builder();
+    private final SegmentedJournal<RaftLogEntry> journal;
+    private final boolean flushOnCommit;
+    private final RaftLogWriter writer;
+    private volatile long commitIndex;
+    protected RaftLog(SegmentedJournal<RaftLogEntry> journal, boolean flushOnCommit) {
+        super(journal);
+        this.journal = journal;
+        this.flushOnCommit = flushOnCommit;
+        this.writer = new RaftLogWriter(journal.writer(), this);
     }
 
     @Deprecated
@@ -40,16 +43,12 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
         return builder();
     }
 
-    private final SegmentedJournal<RaftLogEntry> journal;
-    private final boolean flushOnCommit;
-    private final RaftLogWriter writer;
-    private volatile long commitIndex;
-
-    protected RaftLog(SegmentedJournal<RaftLogEntry> journal, boolean flushOnCommit) {
-        super(journal);
-        this.journal = journal;
-        this.flushOnCommit = flushOnCommit;
-        this.writer = new RaftLogWriter(journal.writer(), this);
+    /**
+     * Returns a new Raft log builder.
+     * @return A new Raft log builder.
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -81,19 +80,19 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
     }
 
     /**
-     * Commits entries up to the given index.
-     * @param index The index up to which to commit entries.
-     */
-    void setCommitIndex(long index) {
-        this.commitIndex = index;
-    }
-
-    /**
      * Returns the Raft log commit index.
      * @return The Raft log commit index.
      */
     long getCommitIndex() {
         return commitIndex;
+    }
+
+    /**
+     * Commits entries up to the given index.
+     * @param index The index up to which to commit entries.
+     */
+    void setCommitIndex(long index) {
+        this.commitIndex = index;
     }
 
     /**

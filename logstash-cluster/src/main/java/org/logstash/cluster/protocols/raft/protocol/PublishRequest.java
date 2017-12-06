@@ -36,23 +36,22 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class PublishRequest extends SessionRequest {
 
+    private final long eventIndex;
+    private final long previousIndex;
+    private final List<RaftEvent> events;
+    public PublishRequest(long session, long eventIndex, long previousIndex, List<RaftEvent> events) {
+        super(session);
+        this.eventIndex = eventIndex;
+        this.previousIndex = previousIndex;
+        this.events = events;
+    }
+
     /**
      * Returns a new publish request builder.
      * @return A new publish request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long eventIndex;
-    private final long previousIndex;
-    private final List<RaftEvent> events;
-
-    public PublishRequest(long session, long eventIndex, long previousIndex, List<RaftEvent> events) {
-        super(session);
-        this.eventIndex = eventIndex;
-        this.previousIndex = previousIndex;
-        this.events = events;
     }
 
     /**
@@ -157,14 +156,6 @@ public class PublishRequest extends SessionRequest {
             return this;
         }
 
-        @Override
-        protected void validate() {
-            super.validate();
-            checkArgument(eventIndex > 0, "eventIndex must be positive");
-            checkArgument(previousIndex >= 0, "previousIndex must be positive");
-            checkNotNull(events, "events cannot be null");
-        }
-
         /**
          * @throws IllegalStateException if sequence is less than 1 or message is null
          */
@@ -172,6 +163,14 @@ public class PublishRequest extends SessionRequest {
         public PublishRequest build() {
             validate();
             return new PublishRequest(session, eventIndex, previousIndex, events);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            checkArgument(eventIndex > 0, "eventIndex must be positive");
+            checkArgument(previousIndex >= 0, "previousIndex must be positive");
+            checkNotNull(events, "events cannot be null");
         }
     }
 }

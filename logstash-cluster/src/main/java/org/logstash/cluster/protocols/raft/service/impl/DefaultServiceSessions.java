@@ -60,14 +60,6 @@ class DefaultServiceSessions implements RaftSessions {
         sessionManager.closeSession(session.sessionId());
     }
 
-    /**
-     * Returns the session contexts.
-     * @return The session contexts.
-     */
-    Collection<RaftSessionContext> getSessions() {
-        return sessionManager.getSessions(serviceId);
-    }
-
     @Override
     public RaftSession getSession(long sessionId) {
         return sessionManager.getSession(sessionId);
@@ -89,5 +81,13 @@ class DefaultServiceSessions implements RaftSessions {
     @SuppressWarnings("unchecked")
     public Iterator<RaftSession> iterator() {
         return (Iterator) getSessions().iterator();
+    }
+
+    /**
+     * Returns the session contexts.
+     * @return The session contexts.
+     */
+    Collection<RaftSessionContext> getSessions() {
+        return sessionManager.getSessions(serviceId);
     }
 }

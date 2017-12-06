@@ -81,6 +81,18 @@ public abstract class AbstractRole implements RaftRole {
         return open;
     }
 
+    @Override
+    public CompletableFuture<Void> close() {
+        raft.checkThread();
+        open = false;
+        return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !open;
+    }
+
     /**
      * Forwards the given request to the leader if possible.
      */
@@ -121,18 +133,6 @@ public abstract class AbstractRole implements RaftRole {
             raft.setLastHeartbeatTime();
         }
         return false;
-    }
-
-    @Override
-    public CompletableFuture<Void> close() {
-        raft.checkThread();
-        open = false;
-        return CompletableFuture.completedFuture(null);
-    }
-
-    @Override
-    public boolean isClosed() {
-        return !open;
     }
 
     @Override

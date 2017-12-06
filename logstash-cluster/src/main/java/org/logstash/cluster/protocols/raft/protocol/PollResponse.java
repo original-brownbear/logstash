@@ -30,21 +30,20 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class PollResponse extends AbstractRaftResponse {
 
+    private final long term;
+    private final boolean accepted;
+    public PollResponse(Status status, RaftError error, long term, boolean accepted) {
+        super(status, error);
+        this.term = term;
+        this.accepted = accepted;
+    }
+
     /**
      * Returns a new poll response builder.
      * @return A new poll response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long term;
-    private final boolean accepted;
-
-    public PollResponse(Status status, RaftError error, long term, boolean accepted) {
-        super(status, error);
-        this.term = term;
-        this.accepted = accepted;
     }
 
     /**
@@ -125,17 +124,17 @@ public class PollResponse extends AbstractRaftResponse {
         }
 
         @Override
+        public PollResponse build() {
+            validate();
+            return new PollResponse(status, error, term, accepted);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
                 checkArgument(term >= 0, "term must be positive");
             }
-        }
-
-        @Override
-        public PollResponse build() {
-            validate();
-            return new PollResponse(status, error, term, accepted);
         }
     }
 }

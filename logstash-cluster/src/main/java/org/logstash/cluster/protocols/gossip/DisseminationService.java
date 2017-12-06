@@ -46,16 +46,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class DisseminationService<K, V> extends AbstractListenerManager<GossipEvent<K, V>, GossipEventListener<K, V>> implements GossipService<K, V> {
 
-    /**
-     * Returns a new dissemination service builder.
-     * @param <K> the subject type
-     * @param <V> the gossip value type
-     * @return a new dissemination service builder
-     */
-    public static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
-    }
-
     private final GossipProtocol protocol;
     private final Supplier<Collection<Identifier>> peerProvider;
     private final Executor eventExecutor;
@@ -67,7 +57,6 @@ public class DisseminationService<K, V> extends AbstractListenerManager<GossipEv
     private final LogicalClock logicalClock = new LogicalClock();
     private final Map<Identifier, Long> peerUpdateTimes = Maps.newConcurrentMap();
     private final Map<Identifier, LogicalTimestamp> peerTimestamps = Maps.newHashMap();
-
     public DisseminationService(
         GossipProtocol<?> protocol,
         Supplier<Collection<Identifier>> peerProvider,
@@ -87,9 +76,14 @@ public class DisseminationService<K, V> extends AbstractListenerManager<GossipEv
         purgeFuture = !tombstonesDisabled ? communicationExecutor.scheduleAtFixedRate(this::purgeTombstones, 0, purgeInterval.toMillis(), TimeUnit.MILLISECONDS) : null;
     }
 
-    @Override
-    protected void post(GossipEvent<K, V> event) {
-        eventExecutor.execute(() -> super.post(event));
+    /**
+     * Returns a new dissemination service builder.
+     * @param <K> the subject type
+     * @param <V> the gossip value type
+     * @return a new dissemination service builder
+     */
+    public static <K, V> Builder<K, V> builder() {
+        return new Builder<>();
     }
 
     @Override
@@ -118,6 +112,46 @@ public class DisseminationService<K, V> extends AbstractListenerManager<GossipEv
             }
         }
         post(event);
+    }
+
+    @Override
+    protected void post(GossipEvent<K, V> event) {
+        eventExecutor.execute(() -> super.post(event));
+    }
+
+    /**
+     * Updates all peers.
+     */
+    private void updatePeers() {
+        for (Identifier peer : peerProvider.get()) {
+            updatePeer(peer);
+        }
+    }
+
+    /**
+     * Updates the given peer.
+     */
+    private synchronized void updatePeer(Identifier peer) {
+        // Increment the logical clock.
+        LogicalTimestamp updateTimestamp = logicalClock.increment();
+
+        // Store the update time.
+        long updateTime = System.currentTimeMillis();
+
+        // Look up the last update time for the peer.
+        LogicalTimestamp lastUpdate = peerTimestamps.computeIfAbsent(peer, n -> new LogicalTimestamp(0));
+
+        // Filter updates based on the peer's last update time from this node.
+        Collection<GossipUpdate<K, V>> filteredUpdates = updates.values().stream()
+            .filter(update -> update.timestamp().isNewerThan(lastUpdate))
+            .collect(Collectors.toList());
+
+        // Send the gossip message.
+        protocol.gossip(peer, new GossipMessage<>(updateTimestamp, filteredUpdates));
+
+        // Set the peer's update time.
+        peerTimestamps.put(peer, updateTimestamp);
+        peerUpdateTimes.put(peer, updateTime);
     }
 
     /**
@@ -158,41 +192,6 @@ public class DisseminationService<K, V> extends AbstractListenerManager<GossipEv
             Identifier peer = peers.get(0);
             updatePeer(peer);
         }
-    }
-
-    /**
-     * Updates all peers.
-     */
-    private void updatePeers() {
-        for (Identifier peer : peerProvider.get()) {
-            updatePeer(peer);
-        }
-    }
-
-    /**
-     * Updates the given peer.
-     */
-    private synchronized void updatePeer(Identifier peer) {
-        // Increment the logical clock.
-        LogicalTimestamp updateTimestamp = logicalClock.increment();
-
-        // Store the update time.
-        long updateTime = System.currentTimeMillis();
-
-        // Look up the last update time for the peer.
-        LogicalTimestamp lastUpdate = peerTimestamps.computeIfAbsent(peer, n -> new LogicalTimestamp(0));
-
-        // Filter updates based on the peer's last update time from this node.
-        Collection<GossipUpdate<K, V>> filteredUpdates = updates.values().stream()
-            .filter(update -> update.timestamp().isNewerThan(lastUpdate))
-            .collect(Collectors.toList());
-
-        // Send the gossip message.
-        protocol.gossip(peer, new GossipMessage<>(updateTimestamp, filteredUpdates));
-
-        // Set the peer's update time.
-        peerTimestamps.put(peer, updateTimestamp);
-        peerUpdateTimes.put(peer, updateTime);
     }
 
     /**

@@ -83,16 +83,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class Atomix implements PrimitiveService, Managed<Atomix> {
 
-    /**
-     * Returns a new Atomix builder.
-     * @return a new Atomix builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
     private static final Logger LOGGER = LoggerFactory.getLogger(Atomix.class);
-
     private final ManagedClusterService cluster;
     private final ManagedMessagingService messagingService;
     private final ManagedClusterCommunicationService clusterCommunicator;
@@ -102,7 +93,6 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
     private final PrimitiveService primitives;
     private final AtomicBoolean open = new AtomicBoolean();
     private final ThreadContext context = new SingleThreadContext("atomix-%d");
-
     protected Atomix(
         ManagedClusterService cluster,
         ManagedMessagingService messagingService,
@@ -118,6 +108,14 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         this.partitions = checkNotNull(partitions, "partitions cannot be null");
         this.restService = restService; // ManagedRestService can be null
         this.primitives = checkNotNull(primitives, "primitives cannot be null");
+    }
+
+    /**
+     * Returns a new Atomix builder.
+     * @return a new Atomix builder
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -150,14 +148,6 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
      */
     public MessagingService getMessagingService() {
         return messagingService;
-    }
-
-    /**
-     * Returns the partition service.
-     * @return the partition service
-     */
-    public PartitionService getPartitionService() {
-        return partitions;
     }
 
     /**
@@ -278,6 +268,14 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         return toStringHelper(this)
             .add("partitions", getPartitionService())
             .toString();
+    }
+
+    /**
+     * Returns the partition service.
+     * @return the partition service
+     */
+    public PartitionService getPartitionService() {
+        return partitions;
     }
 
     /**
@@ -471,26 +469,6 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
         }
 
         /**
-         * Builds a primitive service.
-         */
-        private PrimitiveService buildPrimitiveService(PartitionService partitionService) {
-            Map<Integer, DistributedPrimitiveCreator> members = new HashMap<>();
-            partitionService.getPartitions().forEach(p -> members.put(p.id().id(), partitionService.getPrimitiveCreator(p.id())));
-            return new FederatedPrimitiveService(members, numBuckets);
-        }
-
-        /**
-         * Builds a REST service.
-         */
-        private ManagedRestService buildRestService(
-            ClusterService clusterService,
-            ClusterCommunicationService communicationService,
-            ClusterEventService eventService,
-            PrimitiveService primitiveService) {
-            return httpPort > 0 ? new VertxRestService(localNode.endpoint().host().getHostAddress(), httpPort, clusterService, communicationService, eventService, primitiveService) : null;
-        }
-
-        /**
          * Builds the cluster partitions.
          */
         private Collection<PartitionMetadata> buildPartitions() {
@@ -518,6 +496,26 @@ public class Atomix implements PrimitiveService, Managed<Atomix> {
                 partitions.add(new PartitionMetadata(PartitionId.from((i + 1)), set));
             }
             return partitions;
+        }
+
+        /**
+         * Builds a primitive service.
+         */
+        private PrimitiveService buildPrimitiveService(PartitionService partitionService) {
+            Map<Integer, DistributedPrimitiveCreator> members = new HashMap<>();
+            partitionService.getPartitions().forEach(p -> members.put(p.id().id(), partitionService.getPrimitiveCreator(p.id())));
+            return new FederatedPrimitiveService(members, numBuckets);
+        }
+
+        /**
+         * Builds a REST service.
+         */
+        private ManagedRestService buildRestService(
+            ClusterService clusterService,
+            ClusterCommunicationService communicationService,
+            ClusterEventService eventService,
+            PrimitiveService primitiveService) {
+            return httpPort > 0 ? new VertxRestService(localNode.endpoint().host().getHostAddress(), httpPort, clusterService, communicationService, eventService, primitiveService) : null;
         }
     }
 }

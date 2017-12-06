@@ -31,6 +31,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class FileBuffer extends AbstractBuffer {
 
+    private final FileBytes bytes;
+
+    private FileBuffer(FileBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity, null);
+        this.bytes = bytes;
+    }
+
     /**
      * Allocates a file buffer of unlimited capacity.
      * <p>
@@ -44,6 +51,26 @@ public class FileBuffer extends AbstractBuffer {
      */
     public static FileBuffer allocate(File file) {
         return allocate(file, FileBytes.DEFAULT_MODE, DEFAULT_INITIAL_CAPACITY, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Allocates a file buffer.
+     * <p>
+     * The resulting buffer will be initialized with a capacity of {@code initialCapacity}. The underlying {@link FileBytes}
+     * will be initialized to the nearest power of {@code 2}. As bytes are written to the file the buffer's capacity will
+     * double up to {@code maxCapacity}.
+     * @param file The file to allocate.
+     * @param mode The mode in which to open the underlying {@link java.io.RandomAccessFile}.
+     * @param initialCapacity The initial capacity of the buffer.
+     * @param maxCapacity The maximum allowed capacity of the buffer.
+     * @return The allocated buffer.
+     * @see FileBuffer#allocate(File)
+     * @see FileBuffer#allocate(File, int)
+     * @see FileBuffer#allocate(File, int, int)
+     */
+    public static FileBuffer allocate(File file, String mode, int initialCapacity, int maxCapacity) {
+        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        return new FileBuffer(new FileBytes(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity)), 0, initialCapacity, maxCapacity);
     }
 
     /**
@@ -82,33 +109,6 @@ public class FileBuffer extends AbstractBuffer {
     }
 
     /**
-     * Allocates a file buffer.
-     * <p>
-     * The resulting buffer will be initialized with a capacity of {@code initialCapacity}. The underlying {@link FileBytes}
-     * will be initialized to the nearest power of {@code 2}. As bytes are written to the file the buffer's capacity will
-     * double up to {@code maxCapacity}.
-     * @param file The file to allocate.
-     * @param mode The mode in which to open the underlying {@link java.io.RandomAccessFile}.
-     * @param initialCapacity The initial capacity of the buffer.
-     * @param maxCapacity The maximum allowed capacity of the buffer.
-     * @return The allocated buffer.
-     * @see FileBuffer#allocate(File)
-     * @see FileBuffer#allocate(File, int)
-     * @see FileBuffer#allocate(File, int, int)
-     */
-    public static FileBuffer allocate(File file, String mode, int initialCapacity, int maxCapacity) {
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
-        return new FileBuffer(new FileBytes(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity)), 0, initialCapacity, maxCapacity);
-    }
-
-    private final FileBytes bytes;
-
-    private FileBuffer(FileBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity, null);
-        this.bytes = bytes;
-    }
-
-    /**
      * Returns the underlying file object.
      * @return The underlying file.
      */
@@ -126,6 +126,19 @@ public class FileBuffer extends AbstractBuffer {
      */
     public MappedBuffer map(int size) {
         return map(position(), size, FileChannel.MapMode.READ_WRITE);
+    }
+
+    /**
+     * Maps a portion of the underlying file into memory starting at the given {@code offset} up to the given {@code count}.
+     * @param offset The offset from which to map bytes into memory.
+     * @param size The count of the bytes to map into memory.
+     * @param mode The mode in which to map the bytes into memory.
+     * @return The mapped buffer.
+     * @throws IllegalArgumentException If {@code count} is greater than the maximum allowed
+     * {@link java.nio.MappedByteBuffer} count: {@link Integer#MAX_VALUE}
+     */
+    public MappedBuffer map(int offset, int size, FileChannel.MapMode mode) {
+        return new MappedBuffer(((FileBytes) bytes).map(offset, size, mode), 0, size, size);
     }
 
     /**
@@ -151,19 +164,6 @@ public class FileBuffer extends AbstractBuffer {
      */
     public MappedBuffer map(int offset, int size) {
         return map(offset, size, FileChannel.MapMode.READ_WRITE);
-    }
-
-    /**
-     * Maps a portion of the underlying file into memory starting at the given {@code offset} up to the given {@code count}.
-     * @param offset The offset from which to map bytes into memory.
-     * @param size The count of the bytes to map into memory.
-     * @param mode The mode in which to map the bytes into memory.
-     * @return The mapped buffer.
-     * @throws IllegalArgumentException If {@code count} is greater than the maximum allowed
-     * {@link java.nio.MappedByteBuffer} count: {@link Integer#MAX_VALUE}
-     */
-    public MappedBuffer map(int offset, int size, FileChannel.MapMode mode) {
-        return new MappedBuffer(((FileBytes) bytes).map(offset, size, mode), 0, size, size);
     }
 
     @Override

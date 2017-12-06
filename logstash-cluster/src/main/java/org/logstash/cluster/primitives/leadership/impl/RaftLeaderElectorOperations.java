@@ -38,6 +38,18 @@ public enum RaftLeaderElectorOperations implements OperationId {
     EVICT("evict", OperationType.COMMAND),
     GET_LEADERSHIP("getLeadership", OperationType.QUERY);
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
+        .register(NodeId.class)
+        .register(Leadership.class)
+        .register(Leader.class)
+        .register(Run.class)
+        .register(Withdraw.class)
+        .register(Anoint.class)
+        .register(Promote.class)
+        .register(Evict.class)
+        .build(RaftLeaderElectorOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
 
@@ -55,19 +67,6 @@ public enum RaftLeaderElectorOperations implements OperationId {
     public OperationType type() {
         return type;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .register(KryoNamespaces.BASIC)
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(NodeId.class)
-        .register(Leadership.class)
-        .register(Leader.class)
-        .register(Run.class)
-        .register(Withdraw.class)
-        .register(Anoint.class)
-        .register(Promote.class)
-        .register(Evict.class)
-        .build(RaftLeaderElectorOperations.class.getSimpleName());
 
     /**
      * Abstract election operation.

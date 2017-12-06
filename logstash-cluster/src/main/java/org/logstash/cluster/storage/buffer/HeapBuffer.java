@@ -26,6 +26,13 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class HeapBuffer extends ByteBufferBuffer {
 
+    private final HeapBytes bytes;
+
+    protected HeapBuffer(HeapBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity, null);
+        this.bytes = bytes;
+    }
+
     /**
      * Allocates a direct buffer with an initial capacity of {@code 4096} and a maximum capacity of {@link Long#MAX_VALUE}.
      * <p>
@@ -39,23 +46,6 @@ public class HeapBuffer extends ByteBufferBuffer {
      */
     public static HeapBuffer allocate() {
         return allocate(DEFAULT_INITIAL_CAPACITY, HeapMemory.MAX_SIZE);
-    }
-
-    /**
-     * Allocates a direct buffer with the given initial capacity.
-     * <p>
-     * When the buffer is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
-     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
-     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
-     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
-     * @return The direct buffer.
-     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
-     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
-     * @see HeapBuffer#allocate()
-     * @see HeapBuffer#allocate(int, int)
-     */
-    public static HeapBuffer allocate(int initialCapacity) {
-        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
     }
 
     /**
@@ -79,6 +69,23 @@ public class HeapBuffer extends ByteBufferBuffer {
     }
 
     /**
+     * Allocates a direct buffer with the given initial capacity.
+     * <p>
+     * When the buffer is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
+     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
+     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
+     * @return The direct buffer.
+     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
+     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
+     * @see HeapBuffer#allocate()
+     * @see HeapBuffer#allocate(int, int)
+     */
+    public static HeapBuffer allocate(int initialCapacity) {
+        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
+    }
+
+    /**
      * Wraps the given bytes in a heap buffer.
      * <p>
      * The buffer will be created with an initial capacity and maximum capacity equal to the byte array count.
@@ -87,13 +94,6 @@ public class HeapBuffer extends ByteBufferBuffer {
      */
     public static HeapBuffer wrap(byte[] bytes) {
         return new HeapBuffer(HeapBytes.wrap(bytes), 0, bytes.length, bytes.length);
-    }
-
-    private final HeapBytes bytes;
-
-    protected HeapBuffer(HeapBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity, null);
-        this.bytes = bytes;
     }
 
     @Override

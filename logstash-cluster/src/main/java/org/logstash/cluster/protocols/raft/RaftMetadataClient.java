@@ -27,72 +27,64 @@ import org.logstash.cluster.protocols.raft.session.RaftSessionMetadata;
  */
 public interface RaftMetadataClient {
 
-  /**
-   * Returns the current cluster leader.
-   *
-   * @return The current cluster leader.
-   */
-  MemberId getLeader();
+    /**
+     * Returns the current cluster leader.
+     * @return The current cluster leader.
+     */
+    MemberId getLeader();
 
-  /**
-   * Returns the set of known members in the cluster.
-   *
-   * @return The set of known members in the cluster.
-   */
-  default Collection<MemberId> getServers() {
-    return getMembers();
-  }
+    /**
+     * Returns the set of known members in the cluster.
+     * @return The set of known members in the cluster.
+     */
+    default Collection<MemberId> getServers() {
+        return getMembers();
+    }
 
-  /**
-   * Returns the set of known members in the cluster.
-   *
-   * @return The set of known members in the cluster.
-   */
-  Collection<MemberId> getMembers();
+    /**
+     * Returns the set of known members in the cluster.
+     * @return The set of known members in the cluster.
+     */
+    Collection<MemberId> getMembers();
 
-  /**
-   * Returns a list of open sessions.
-   *
-   * @return A completable future to be completed with a list of open sessions.
-   */
-  CompletableFuture<Set<RaftSessionMetadata>> getSessions();
+    /**
+     * Returns a list of open sessions.
+     * @return A completable future to be completed with a list of open sessions.
+     */
+    CompletableFuture<Set<RaftSessionMetadata>> getSessions();
 
-  /**
-   * Returns a list of open sessions of the given type.
-   *
-   * @param serviceType the service type for which to return sessions
-   * @return A completable future to be completed with a list of open sessions of the given type.
-   */
-  default CompletableFuture<Set<RaftSessionMetadata>> getSessions(String serviceType) {
-    return getSessions(ServiceType.from(serviceType));
-  }
+    /**
+     * Returns a list of open sessions of the given type.
+     * @param serviceType the service type for which to return sessions
+     * @return A completable future to be completed with a list of open sessions of the given type.
+     */
+    default CompletableFuture<Set<RaftSessionMetadata>> getSessions(String serviceType) {
+        return getSessions(ServiceType.from(serviceType));
+    }
 
-  /**
-   * Returns a list of open sessions of the given type.
-   *
-   * @param serviceType the service type for which to return sessions
-   * @return A completable future to be completed with a list of open sessions of the given type.
-   */
-  CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType);
+    /**
+     * Returns a list of open sessions of the given type.
+     * @param serviceType the service type for which to return sessions
+     * @return A completable future to be completed with a list of open sessions of the given type.
+     */
+    CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType);
 
-  /**
-   * Returns a list of open sessions for the given service.
-   *
-   * @param serviceType the service type for which to return sessions
-   * @param serviceName the service for which to return sessions
-   * @return A completable future to be completed with a list of open sessions of the given type.
-   */
-  default CompletableFuture<Set<RaftSessionMetadata>> getSessions(String serviceType, String serviceName) {
-    return getSessions(ServiceType.from(serviceType), serviceName);
-  }
+    /**
+     * Returns a list of open sessions for the given service.
+     * @param serviceType the service type for which to return sessions
+     * @param serviceName the service for which to return sessions
+     * @return A completable future to be completed with a list of open sessions of the given type.
+     */
+    default CompletableFuture<Set<RaftSessionMetadata>> getSessions(String serviceType, String serviceName) {
+        return getSessions(ServiceType.from(serviceType), serviceName);
+    }
 
-  /**
-   * Returns a list of open sessions for the given service.
-   *
-   * @param serviceType the service type for which to return sessions
-   * @param serviceName the service for which to return sessions
-   * @return A completable future to be completed with a list of open sessions of the given type.
-   */
-  CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType, String serviceName);
+    /**
+     * Returns a list of open sessions for the given service.
+     * @param serviceType the service type for which to return sessions
+     * @param serviceName the service for which to return sessions
+     * @return A completable future to be completed with a list of open sessions of the given type.
+     */
+    CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType, String serviceName);
 
 }

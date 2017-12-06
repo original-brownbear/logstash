@@ -24,7 +24,7 @@ package org.logstash.cluster.protocols.raft.storage.log.entry;
  * are always the first entry to be committed at the start of a leader's term.
  */
 public class InitializeEntry extends TimestampedEntry {
-  public InitializeEntry(long term, long timestamp) {
-    super(term, timestamp);
-  }
+    public InitializeEntry(long term, long timestamp) {
+        super(term, timestamp);
+    }
 }

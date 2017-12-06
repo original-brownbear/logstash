@@ -16,7 +16,6 @@
 
 /**
  * Generic utilities for managing object lifecycles.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 package org.logstash.cluster.utils.concurrent;

@@ -29,34 +29,10 @@ import org.logstash.cluster.time.Versioned;
  */
 public class MapEntryUpdateResult<K, V> {
 
-    public enum Status {
-
-        /**
-         * Indicates a successful update.
-         */
-        OK,
-
-        /**
-         * Indicates a noop i.e. existing and new value are both null.
-         */
-        NOOP,
-
-        /**
-         * Indicates a failed update due to a write lock.
-         */
-        WRITE_LOCK,
-
-        /**
-         * Indicates a failed update due to a precondition check failure.
-         */
-        PRECONDITION_FAILED
-    }
-
     private final Status status;
     private final long version;
     private final K key;
     private final Versioned<V> result;
-
     public MapEntryUpdateResult(Status status, long version, K key, Versioned<V> result) {
         this.status = status;
         this.version = version;
@@ -103,5 +79,28 @@ public class MapEntryUpdateResult<K, V> {
             .add("key", key)
             .add("result", result)
             .toString();
+    }
+
+    public enum Status {
+
+        /**
+         * Indicates a successful update.
+         */
+        OK,
+
+        /**
+         * Indicates a noop i.e. existing and new value are both null.
+         */
+        NOOP,
+
+        /**
+         * Indicates a failed update due to a write lock.
+         */
+        WRITE_LOCK,
+
+        /**
+         * Indicates a failed update due to a precondition check failure.
+         */
+        PRECONDITION_FAILED
     }
 }

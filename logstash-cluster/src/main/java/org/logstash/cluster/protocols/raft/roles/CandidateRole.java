@@ -49,13 +49,18 @@ public final class CandidateRole extends ActiveRole {
     }
 
     @Override
-    public RaftServer.Role role() {
-        return RaftServer.Role.CANDIDATE;
+    public synchronized CompletableFuture<RaftRole> open() {
+        return super.open().thenRun(this::startElection).thenApply(v -> this);
     }
 
     @Override
-    public synchronized CompletableFuture<RaftRole> open() {
-        return super.open().thenRun(this::startElection).thenApply(v -> this);
+    public synchronized CompletableFuture<Void> close() {
+        return super.close().thenRun(this::cancelElection);
+    }
+
+    @Override
+    public RaftServer.Role role() {
+        return RaftServer.Role.CANDIDATE;
     }
 
     /**
@@ -231,11 +236,6 @@ public final class CandidateRole extends ActiveRole {
             quorum.cancel();
             quorum = null;
         }
-    }
-
-    @Override
-    public synchronized CompletableFuture<Void> close() {
-        return super.close().thenRun(this::cancelElection);
     }
 
 }

@@ -23,46 +23,44 @@ import java.util.concurrent.ConcurrentLinkedQueue;
  * Event session.
  */
 class EventSession<T> {
-  private final Queue<T> events = new ConcurrentLinkedQueue<>();
-  private final Queue<CompletableFuture<T>> futures = new ConcurrentLinkedQueue<>();
+    private final Queue<T> events = new ConcurrentLinkedQueue<>();
+    private final Queue<CompletableFuture<T>> futures = new ConcurrentLinkedQueue<>();
 
-  /**
-   * Adds an event to the session.
-   *
-   * @param event the event to add
-   */
-  void addEvent(T event) {
-    CompletableFuture<T> future = futures.poll();
-    if (future != null) {
-      future.complete(event);
-    } else {
-      events.add(event);
-      if (events.size() > 100) {
-        events.remove();
-      }
+    /**
+     * Adds an event to the session.
+     * @param event the event to add
+     */
+    void addEvent(T event) {
+        CompletableFuture<T> future = futures.poll();
+        if (future != null) {
+            future.complete(event);
+        } else {
+            events.add(event);
+            if (events.size() > 100) {
+                events.remove();
+            }
+        }
     }
-  }
 
-  /**
-   * Completes the given response with the next event.
-   *
-   * @return a future to be completed with the next event
-   */
-  CompletableFuture<T> nextEvent() {
-    T event = events.poll();
-    if (event != null) {
-      return CompletableFuture.completedFuture(event);
-    } else {
-      CompletableFuture<T> future = new CompletableFuture<>();
-      futures.add(future);
-      return future;
+    /**
+     * Completes the given response with the next event.
+     * @return a future to be completed with the next event
+     */
+    CompletableFuture<T> nextEvent() {
+        T event = events.poll();
+        if (event != null) {
+            return CompletableFuture.completedFuture(event);
+        } else {
+            CompletableFuture<T> future = new CompletableFuture<>();
+            futures.add(future);
+            return future;
+        }
     }
-  }
 
-  /**
-   * Closes the session.
-   */
-  void close() {
-    futures.forEach(future -> future.completeExceptionally(new IllegalStateException("Closed session")));
-  }
+    /**
+     * Closes the session.
+     */
+    void close() {
+        futures.forEach(future -> future.completeExceptionally(new IllegalStateException("Closed session")));
+    }
 }

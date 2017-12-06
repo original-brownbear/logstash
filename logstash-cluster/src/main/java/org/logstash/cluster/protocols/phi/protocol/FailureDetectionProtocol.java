@@ -24,25 +24,23 @@ import org.logstash.cluster.utils.Identifier;
  */
 public interface FailureDetectionProtocol<T extends Identifier> {
 
-  /**
-   * Sends the given heartbeat message to the given [eer.
-   *
-   * @param peer the identifier of the peer to which to send the heartbeat
-   * @param message the heartbeat message to send
-   * @return a future to be completed once the heartbeat has been sent
-   */
-  CompletableFuture<Void> heartbeat(T peer, HeartbeatMessage<T> message);
+    /**
+     * Sends the given heartbeat message to the given [eer.
+     * @param peer the identifier of the peer to which to send the heartbeat
+     * @param message the heartbeat message to send
+     * @return a future to be completed once the heartbeat has been sent
+     */
+    CompletableFuture<Void> heartbeat(T peer, HeartbeatMessage<T> message);
 
-  /**
-   * Registers a heartbeat message listener.
-   *
-   * @param listener the heartbeat message listener
-   */
-  void registerHeartbeatListener(Consumer<HeartbeatMessage<T>> listener);
+    /**
+     * Registers a heartbeat message listener.
+     * @param listener the heartbeat message listener
+     */
+    void registerHeartbeatListener(Consumer<HeartbeatMessage<T>> listener);
 
-  /**
-   * Unregisters the heartbeat message listener.
-   */
-  void unregisterHeartbeatListener();
+    /**
+     * Unregisters the heartbeat message listener.
+     */
+    void unregisterHeartbeatListener();
 
 }

@@ -27,20 +27,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class HeartbeatRequest extends AbstractRaftRequest {
 
+    private final MemberId leader;
+    private final Collection<MemberId> members;
+    public HeartbeatRequest(MemberId leader, Collection<MemberId> members) {
+        this.leader = leader;
+        this.members = members;
+    }
+
     /**
      * Returns a new heartbeat request builder.
      * @return A new heartbeat request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final MemberId leader;
-    private final Collection<MemberId> members;
-
-    public HeartbeatRequest(MemberId leader, Collection<MemberId> members) {
-        this.leader = leader;
-        this.members = members;
     }
 
     /**
@@ -109,12 +108,6 @@ public class HeartbeatRequest extends AbstractRaftRequest {
             return this;
         }
 
-        @Override
-        protected void validate() {
-            super.validate();
-            checkNotNull(members, "members cannot be null");
-        }
-
         /**
          * @throws IllegalStateException if status is OK and members is null
          */
@@ -122,6 +115,12 @@ public class HeartbeatRequest extends AbstractRaftRequest {
         public HeartbeatRequest build() {
             validate();
             return new HeartbeatRequest(leader, members);
+        }
+
+        @Override
+        protected void validate() {
+            super.validate();
+            checkNotNull(members, "members cannot be null");
         }
     }
 }

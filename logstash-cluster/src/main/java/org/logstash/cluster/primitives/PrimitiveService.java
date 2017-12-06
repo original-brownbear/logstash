@@ -126,6 +126,13 @@ public interface PrimitiveService {
     }
 
     /**
+     * Returns a set of primitive names for the given primitive type.
+     * @param primitiveType the primitive type for which to return names
+     * @return a set of names of the given primitive type
+     */
+    Set<String> getPrimitiveNames(DistributedPrimitive.Type primitiveType);
+
+    /**
      * Returns a list of document tree names.
      * @return a list of document tree names
      */
@@ -212,12 +219,5 @@ public interface PrimitiveService {
     default Set<String> getWorkQueueNames() {
         return getPrimitiveNames(DistributedPrimitive.Type.WORK_QUEUE);
     }
-
-    /**
-     * Returns a set of primitive names for the given primitive type.
-     * @param primitiveType the primitive type for which to return names
-     * @return a set of names of the given primitive type
-     */
-    Set<String> getPrimitiveNames(DistributedPrimitive.Type primitiveType);
 
 }

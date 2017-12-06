@@ -35,6 +35,13 @@ import org.logstash.cluster.utils.memory.MappedMemoryAllocator;
  */
 public class UnsafeMappedBytes extends NativeBytes {
 
+    private final File file;
+
+    protected UnsafeMappedBytes(File file, MappedMemory memory) {
+        super(memory);
+        this.file = file;
+    }
+
     /**
      * Allocates a mapped buffer in {@link FileChannel.MapMode#READ_WRITE} mode.
      * <p>
@@ -74,13 +81,6 @@ public class UnsafeMappedBytes extends NativeBytes {
         return new UnsafeMappedBytes(file, MappedMemory.allocate(file, mode, size));
     }
 
-    private final File file;
-
-    protected UnsafeMappedBytes(File file, MappedMemory memory) {
-        super(memory);
-        this.file = file;
-    }
-
     /**
      * Copies the bytes to a new byte array.
      * @return A new {@link UnsafeMappedBytes} instance backed by a copy of this instance's memory.
@@ -95,6 +95,11 @@ public class UnsafeMappedBytes extends NativeBytes {
     }
 
     @Override
+    public void close() {
+        ((MappedMemory) memory).close();
+    }
+
+    @Override
     public boolean isFile() {
         return true;
     }
@@ -103,11 +108,6 @@ public class UnsafeMappedBytes extends NativeBytes {
     public Bytes flush() {
         ((MappedMemory) memory).flush();
         return this;
-    }
-
-    @Override
-    public void close() {
-        ((MappedMemory) memory).close();
     }
 
     /**

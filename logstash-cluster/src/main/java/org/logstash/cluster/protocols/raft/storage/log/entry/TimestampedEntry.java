@@ -23,27 +23,26 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  * Base class for timestamped entries.
  */
 public abstract class TimestampedEntry extends RaftLogEntry {
-  protected final long timestamp;
+    protected final long timestamp;
 
-  public TimestampedEntry(long term, long timestamp) {
-    super(term);
-    this.timestamp = timestamp;
-  }
+    public TimestampedEntry(long term, long timestamp) {
+        super(term);
+        this.timestamp = timestamp;
+    }
 
-  /**
-   * Returns the entry timestamp.
-   *
-   * @return The entry timestamp.
-   */
-  public long timestamp() {
-    return timestamp;
-  }
+    /**
+     * Returns the entry timestamp.
+     * @return The entry timestamp.
+     */
+    public long timestamp() {
+        return timestamp;
+    }
 
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("term", term)
-        .add("timestamp", new TimestampPrinter(timestamp))
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("term", term)
+            .add("timestamp", new TimestampPrinter(timestamp))
+            .toString();
+    }
 }

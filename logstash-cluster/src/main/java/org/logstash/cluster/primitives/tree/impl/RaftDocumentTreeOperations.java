@@ -48,24 +48,6 @@ public enum RaftDocumentTreeOperations implements OperationId {
     COMMIT("commit", OperationType.COMMAND),
     ROLLBACK("rollback", OperationType.COMMAND);
 
-    private final String id;
-    private final OperationType type;
-
-    RaftDocumentTreeOperations(String id, OperationType type) {
-        this.id = id;
-        this.type = type;
-    }
-
-    @Override
-    public String id() {
-        return id;
-    }
-
-    @Override
-    public OperationType type() {
-        return type;
-    }
-
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
@@ -88,6 +70,23 @@ public enum RaftDocumentTreeOperations implements OperationId {
         .register(DocumentTreeResult.class)
         .register(DocumentTreeResult.Status.class)
         .build(RaftDocumentTreeOperations.class.getSimpleName());
+    private final String id;
+    private final OperationType type;
+
+    RaftDocumentTreeOperations(String id, OperationType type) {
+        this.id = id;
+        this.type = type;
+    }
+
+    @Override
+    public String id() {
+        return id;
+    }
+
+    @Override
+    public OperationType type() {
+        return type;
+    }
 
     /**
      * Base class for document tree operations.

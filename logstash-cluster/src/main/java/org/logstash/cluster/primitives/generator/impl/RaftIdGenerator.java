@@ -29,9 +29,9 @@ public class RaftIdGenerator implements AsyncAtomicIdGenerator {
     private static final long DEFAULT_BATCH_SIZE = 1000;
     private final AsyncAtomicCounter counter;
     private final long batchSize;
+    private final AtomicLong delta = new AtomicLong();
     private CompletableFuture<Long> reserveFuture;
     private long base;
-    private final AtomicLong delta = new AtomicLong();
 
     public RaftIdGenerator(AsyncAtomicCounter counter) {
         this(counter, DEFAULT_BATCH_SIZE);
@@ -59,11 +59,6 @@ public class RaftIdGenerator implements AsyncAtomicIdGenerator {
         }
     }
 
-    @Override
-    public CompletableFuture<Void> close() {
-        return counter.close();
-    }
-
     private CompletableFuture<Long> reserve() {
         if (reserveFuture == null || reserveFuture.isDone()) {
             reserveFuture = counter.getAndAdd(batchSize);
@@ -75,5 +70,10 @@ public class RaftIdGenerator implements AsyncAtomicIdGenerator {
             return base;
         });
         return reserveFuture;
+    }
+
+    @Override
+    public CompletableFuture<Void> close() {
+        return counter.close();
     }
 }

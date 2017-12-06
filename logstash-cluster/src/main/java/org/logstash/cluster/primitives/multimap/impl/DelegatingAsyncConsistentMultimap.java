@@ -45,6 +45,11 @@ public class DelegatingAsyncConsistentMultimap<K, V>
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return delegateMap.clear();
+    }
+
+    @Override
     public CompletableFuture<Integer> size() {
         return delegateMap.size();
     }
@@ -104,11 +109,6 @@ public class DelegatingAsyncConsistentMultimap<K, V>
     }
 
     @Override
-    public CompletableFuture<Void> clear() {
-        return delegateMap.clear();
-    }
-
-    @Override
     public CompletableFuture<Versioned<Collection<? extends V>>> get(K key) {
         return delegateMap.get(key);
     }
@@ -144,12 +144,12 @@ public class DelegatingAsyncConsistentMultimap<K, V>
     }
 
     @Override
-    public CompletableFuture<Void> close() {
-        return delegateMap.close();
+    public CompletableFuture<Map<K, Collection<V>>> asMap() {
+        return delegateMap.asMap();
     }
 
     @Override
-    public CompletableFuture<Map<K, Collection<V>>> asMap() {
-        return delegateMap.asMap();
+    public CompletableFuture<Void> close() {
+        return delegateMap.close();
     }
 }

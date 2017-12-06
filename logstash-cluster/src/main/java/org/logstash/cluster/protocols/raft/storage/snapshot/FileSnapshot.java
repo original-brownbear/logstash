@@ -68,11 +68,6 @@ final class FileSnapshot extends Snapshot {
     }
 
     @Override
-    public boolean isPersisted() {
-        return true;
-    }
-
-    @Override
     public Snapshot complete() {
         Buffer buffer = FileBuffer.allocate(file.file(), SnapshotDescriptor.BYTES);
         try (SnapshotDescriptor descriptor = new SnapshotDescriptor(buffer)) {
@@ -80,6 +75,11 @@ final class FileSnapshot extends Snapshot {
             descriptor.lock();
         }
         return super.complete();
+    }
+
+    @Override
+    public boolean isPersisted() {
+        return true;
     }
 
     /**

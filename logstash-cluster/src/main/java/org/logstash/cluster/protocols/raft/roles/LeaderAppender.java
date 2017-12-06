@@ -48,9 +48,9 @@ final class LeaderAppender extends AbstractAppender {
     private final long leaderIndex;
     private final long electionTimeout;
     private final long heartbeatInterval;
-    private long heartbeatTime;
     private final Map<Long, CompletableFuture<Long>> appendFutures = new HashMap<>();
     private final List<TimestampedFuture<Long>> heartbeatFutures = new ArrayList<>();
+    private long heartbeatTime;
 
     LeaderAppender(LeaderRole leader) {
         super(leader.raft);
@@ -75,43 +75,6 @@ final class LeaderAppender extends AbstractAppender {
      */
     public long getIndex() {
         return leaderIndex;
-    }
-
-    /**
-     * Returns the current quorum index.
-     * @return The current quorum index.
-     */
-    private int getQuorumIndex() {
-        return raft.getCluster().getQuorum() - 2;
-    }
-
-    /**
-     * Triggers a heartbeat to a majority of the cluster.
-     * <p>
-     * For followers to which no AppendRequest is currently being sent, a new empty AppendRequest will be
-     * created and sent. For followers to which an AppendRequest is already being sent, the appendEntries()
-     * call will piggyback on the *next* AppendRequest. Thus, multiple calls to this method will only ever
-     * result in a single AppendRequest to each follower at any given time, and the returned future will be
-     * shared by all concurrent calls.
-     * @return A completable future to be completed the next time a heartbeat is received by a majority of the cluster.
-     */
-    public CompletableFuture<Long> appendEntries() {
-        raft.checkThread();
-
-        // If there are no other active members in the cluster, simply complete the append operation.
-        if (raft.getCluster().getRemoteMemberStates().isEmpty()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        // Create a heartbeat future and add it to the heartbeat futures list.
-        TimestampedFuture<Long> future = new TimestampedFuture<>();
-        heartbeatFutures.add(future);
-
-        // Iterate through members and append entries. Futures will be completed on responses from followers.
-        for (RaftMemberContext member : raft.getCluster().getRemoteMemberStates()) {
-            appendEntries(member);
-        }
-        return future;
     }
 
     /**
@@ -153,6 +116,35 @@ final class LeaderAppender extends AbstractAppender {
             }
             return new CompletableFuture<>();
         });
+    }
+
+    /**
+     * Triggers a heartbeat to a majority of the cluster.
+     * <p>
+     * For followers to which no AppendRequest is currently being sent, a new empty AppendRequest will be
+     * created and sent. For followers to which an AppendRequest is already being sent, the appendEntries()
+     * call will piggyback on the *next* AppendRequest. Thus, multiple calls to this method will only ever
+     * result in a single AppendRequest to each follower at any given time, and the returned future will be
+     * shared by all concurrent calls.
+     * @return A completable future to be completed the next time a heartbeat is received by a majority of the cluster.
+     */
+    public CompletableFuture<Long> appendEntries() {
+        raft.checkThread();
+
+        // If there are no other active members in the cluster, simply complete the append operation.
+        if (raft.getCluster().getRemoteMemberStates().isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // Create a heartbeat future and add it to the heartbeat futures list.
+        TimestampedFuture<Long> future = new TimestampedFuture<>();
+        heartbeatFutures.add(future);
+
+        // Iterate through members and append entries. Futures will be completed on responses from followers.
+        for (RaftMemberContext member : raft.getCluster().getRemoteMemberStates()) {
+            appendEntries(member);
+        }
+        return future;
     }
 
     @Override
@@ -215,24 +207,35 @@ final class LeaderAppender extends AbstractAppender {
     }
 
     @Override
-    protected boolean hasMoreEntries(RaftMemberContext member) {
-        // If the member's nextIndex is an entry in the local log then more entries can be sent.
-        return member.getLogReader().hasNext();
+    protected void handleAppendResponseFailure(RaftMemberContext member, AppendRequest request, Throwable error) {
+        failHeartbeat();
+        super.handleAppendResponseFailure(member, request, error);
     }
 
     /**
-     * Returns the last time a majority of the cluster was contacted.
-     * <p>
-     * This is calculated by sorting the list of active members and getting the last time the majority of
-     * the cluster was contacted based on the index of a majority of the members. So, in a list of 3 ACTIVE
-     * members, index 1 (the second member) will be used to determine the commit time in a sorted members list.
+     * Records a failed heartbeat.
      */
-    private long computeHeartbeatTime() {
-        int quorumIndex = getQuorumIndex();
-        if (quorumIndex >= 0) {
-            return raft.getCluster().getActiveMemberStates((m1, m2) -> Long.compare(m2.getHeartbeatTime(), m1.getHeartbeatTime())).get(quorumIndex).getHeartbeatTime();
+    private void failHeartbeat() {
+        raft.checkThread();
+
+        // Iterate through pending timestamped heartbeat futures and fail futures that have been pending longer
+        // than an election timeout.
+        long currentTimestamp = System.currentTimeMillis();
+        Iterator<TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
+        while (iterator.hasNext()) {
+            TimestampedFuture<Long> future = iterator.next();
+            if (currentTimestamp - future.timestamp > electionTimeout) {
+                future.completeExceptionally(new RaftException.ProtocolException("Failed to reach consensus"));
+                iterator.remove();
+            }
         }
-        return System.currentTimeMillis();
+    }
+
+    @Override
+    protected void handleAppendResponse(RaftMemberContext member, AppendRequest request, AppendResponse response, long timestamp) {
+        // Record a successful heartbeat to the member.
+        recordHeartbeat(member, timestamp);
+        super.handleAppendResponse(member, request, response, timestamp);
     }
 
     /**
@@ -277,22 +280,26 @@ final class LeaderAppender extends AbstractAppender {
     }
 
     /**
-     * Records a failed heartbeat.
+     * Returns the last time a majority of the cluster was contacted.
+     * <p>
+     * This is calculated by sorting the list of active members and getting the last time the majority of
+     * the cluster was contacted based on the index of a majority of the members. So, in a list of 3 ACTIVE
+     * members, index 1 (the second member) will be used to determine the commit time in a sorted members list.
      */
-    private void failHeartbeat() {
-        raft.checkThread();
-
-        // Iterate through pending timestamped heartbeat futures and fail futures that have been pending longer
-        // than an election timeout.
-        long currentTimestamp = System.currentTimeMillis();
-        Iterator<TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
-        while (iterator.hasNext()) {
-            TimestampedFuture<Long> future = iterator.next();
-            if (currentTimestamp - future.timestamp > electionTimeout) {
-                future.completeExceptionally(new RaftException.ProtocolException("Failed to reach consensus"));
-                iterator.remove();
-            }
+    private long computeHeartbeatTime() {
+        int quorumIndex = getQuorumIndex();
+        if (quorumIndex >= 0) {
+            return raft.getCluster().getActiveMemberStates((m1, m2) -> Long.compare(m2.getHeartbeatTime(), m1.getHeartbeatTime())).get(quorumIndex).getHeartbeatTime();
         }
+        return System.currentTimeMillis();
+    }
+
+    /**
+     * Returns the current quorum index.
+     * @return The current quorum index.
+     */
+    private int getQuorumIndex() {
+        return raft.getCluster().getQuorum() - 2;
     }
 
     /**
@@ -302,69 +309,6 @@ final class LeaderAppender extends AbstractAppender {
         for (RaftMemberContext member : raft.getCluster().getRemoteMemberStates()) {
             appendEntries(member);
         }
-    }
-
-    /**
-     * Checks whether any futures can be completed.
-     */
-    private void commitEntries() {
-        raft.checkThread();
-
-        // Sort the list of replicas, order by the last index that was replicated
-        // to the replica. This will allow us to determine the median index
-        // for all known replicated entries across all cluster members.
-        List<RaftMemberContext> members = raft.getCluster().getActiveMemberStates((m1, m2) ->
-            Long.compare(m2.getMatchIndex() != 0 ? m2.getMatchIndex() : 0L, m1.getMatchIndex() != 0 ? m1.getMatchIndex() : 0L));
-
-        // If the active members list is empty (a configuration change occurred between an append request/response)
-        // ensure all commit futures are completed and cleared.
-        if (members.isEmpty()) {
-            long commitIndex = raft.getLogWriter().getLastIndex();
-            long previousCommitIndex = raft.setCommitIndex(commitIndex);
-            if (commitIndex > previousCommitIndex) {
-                log.trace("Committed entries up to {}", commitIndex);
-                completeCommits(previousCommitIndex, commitIndex);
-            }
-            return;
-        }
-
-        // Calculate the current commit index as the median matchIndex.
-        long commitIndex = members.get(getQuorumIndex()).getMatchIndex();
-
-        // If the commit index has increased then update the commit index. Note that in order to ensure
-        // the leader completeness property holds, we verify that the commit index is greater than or equal to
-        // the index of the leader's no-op entry. Update the commit index and trigger commit futures.
-        long previousCommitIndex = raft.getCommitIndex();
-        if (commitIndex > 0 && commitIndex > previousCommitIndex && (leaderIndex > 0 && commitIndex >= leaderIndex)) {
-            log.trace("Committed entries up to {}", commitIndex);
-            raft.setCommitIndex(commitIndex);
-            completeCommits(previousCommitIndex, commitIndex);
-        }
-    }
-
-    /**
-     * Completes append entries attempts up to the given index.
-     */
-    private void completeCommits(long previousCommitIndex, long commitIndex) {
-        for (long i = previousCommitIndex + 1; i <= commitIndex; i++) {
-            CompletableFuture<Long> future = appendFutures.remove(i);
-            if (future != null) {
-                future.complete(i);
-            }
-        }
-    }
-
-    @Override
-    protected void handleAppendResponseFailure(RaftMemberContext member, AppendRequest request, Throwable error) {
-        failHeartbeat();
-        super.handleAppendResponseFailure(member, request, error);
-    }
-
-    @Override
-    protected void handleAppendResponse(RaftMemberContext member, AppendRequest request, AppendResponse response, long timestamp) {
-        // Record a successful heartbeat to the member.
-        recordHeartbeat(member, timestamp);
-        super.handleAppendResponse(member, request, response, timestamp);
     }
 
     @Override
@@ -408,6 +352,44 @@ final class LeaderAppender extends AbstractAppender {
     }
 
     /**
+     * Checks whether any futures can be completed.
+     */
+    private void commitEntries() {
+        raft.checkThread();
+
+        // Sort the list of replicas, order by the last index that was replicated
+        // to the replica. This will allow us to determine the median index
+        // for all known replicated entries across all cluster members.
+        List<RaftMemberContext> members = raft.getCluster().getActiveMemberStates((m1, m2) ->
+            Long.compare(m2.getMatchIndex() != 0 ? m2.getMatchIndex() : 0L, m1.getMatchIndex() != 0 ? m1.getMatchIndex() : 0L));
+
+        // If the active members list is empty (a configuration change occurred between an append request/response)
+        // ensure all commit futures are completed and cleared.
+        if (members.isEmpty()) {
+            long commitIndex = raft.getLogWriter().getLastIndex();
+            long previousCommitIndex = raft.setCommitIndex(commitIndex);
+            if (commitIndex > previousCommitIndex) {
+                log.trace("Committed entries up to {}", commitIndex);
+                completeCommits(previousCommitIndex, commitIndex);
+            }
+            return;
+        }
+
+        // Calculate the current commit index as the median matchIndex.
+        long commitIndex = members.get(getQuorumIndex()).getMatchIndex();
+
+        // If the commit index has increased then update the commit index. Note that in order to ensure
+        // the leader completeness property holds, we verify that the commit index is greater than or equal to
+        // the index of the leader's no-op entry. Update the commit index and trigger commit futures.
+        long previousCommitIndex = raft.getCommitIndex();
+        if (commitIndex > 0 && commitIndex > previousCommitIndex && (leaderIndex > 0 && commitIndex >= leaderIndex)) {
+            log.trace("Committed entries up to {}", commitIndex);
+            raft.setCommitIndex(commitIndex);
+            completeCommits(previousCommitIndex, commitIndex);
+        }
+    }
+
+    /**
      * Handles a {@link org.logstash.cluster.protocols.raft.protocol.RaftResponse.Status#ERROR} response.
      */
     protected void handleAppendResponseError(RaftMemberContext member, AppendRequest request, AppendResponse response) {
@@ -440,6 +422,12 @@ final class LeaderAppender extends AbstractAppender {
     }
 
     @Override
+    protected boolean hasMoreEntries(RaftMemberContext member) {
+        // If the member's nextIndex is an entry in the local log then more entries can be sent.
+        return member.getLogReader().hasNext();
+    }
+
+    @Override
     protected void handleConfigureResponse(RaftMemberContext member, ConfigureRequest request, ConfigureResponse response, long timestamp) {
         // Record a successful heartbeat to the member.
         recordHeartbeat(member, timestamp);
@@ -460,6 +448,18 @@ final class LeaderAppender extends AbstractAppender {
             future.completeExceptionally(new IllegalStateException("Inactive state")));
         heartbeatFutures.forEach(future ->
             future.completeExceptionally(new RaftException.ProtocolException("Failed to reach consensus")));
+    }
+
+    /**
+     * Completes append entries attempts up to the given index.
+     */
+    private void completeCommits(long previousCommitIndex, long commitIndex) {
+        for (long i = previousCommitIndex + 1; i <= commitIndex; i++) {
+            CompletableFuture<Long> future = appendFutures.remove(i);
+            if (future != null) {
+                future.complete(i);
+            }
+        }
     }
 
     /**

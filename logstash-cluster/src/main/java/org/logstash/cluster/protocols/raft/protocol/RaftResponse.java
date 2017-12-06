@@ -27,6 +27,18 @@ import org.logstash.cluster.protocols.raft.RaftError;
 public interface RaftResponse extends RaftMessage {
 
     /**
+     * Returns the response status.
+     * @return The response status.
+     */
+    Status status();
+
+    /**
+     * Returns the response error if the response status is {@code Status.ERROR}
+     * @return The response error.
+     */
+    RaftError error();
+
+    /**
      * Response status.
      */
     enum Status {
@@ -40,6 +52,12 @@ public interface RaftResponse extends RaftMessage {
          * Indicates a response containing an error.
          */
         ERROR(0);
+
+        private final byte id;
+
+        Status(int id) {
+            this.id = (byte) id;
+        }
 
         /**
          * Returns the status for the given identifier.
@@ -59,12 +77,6 @@ public interface RaftResponse extends RaftMessage {
             throw new IllegalArgumentException("invalid status identifier: " + id);
         }
 
-        private final byte id;
-
-        Status(int id) {
-            this.id = (byte) id;
-        }
-
         /**
          * Returns the status identifier.
          * @return The status identifier.
@@ -73,18 +85,6 @@ public interface RaftResponse extends RaftMessage {
             return id;
         }
     }
-
-    /**
-     * Returns the response status.
-     * @return The response status.
-     */
-    Status status();
-
-    /**
-     * Returns the response error if the response status is {@code Status.ERROR}
-     * @return The response error.
-     */
-    RaftError error();
 
     /**
      * Response builder.
@@ -113,6 +113,14 @@ public interface RaftResponse extends RaftMessage {
 
         /**
          * Sets the response error.
+         * @param error The response error.
+         * @return The response builder.
+         * @throws NullPointerException if {@code error} is null
+         */
+        T withError(RaftError error);
+
+        /**
+         * Sets the response error.
          * @param type The response error type.
          * @param message The response error message.
          * @return The response builder.
@@ -121,13 +129,5 @@ public interface RaftResponse extends RaftMessage {
         default T withError(RaftError.Type type, String message) {
             return withError(new RaftError(type, message));
         }
-
-        /**
-         * Sets the response error.
-         * @param error The response error.
-         * @return The response builder.
-         * @throws NullPointerException if {@code error} is null
-         */
-        T withError(RaftError error);
     }
 }

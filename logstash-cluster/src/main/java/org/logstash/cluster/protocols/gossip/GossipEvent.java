@@ -24,17 +24,9 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  */
 public class GossipEvent<K, V> implements Event<GossipEvent.Type, K> {
 
-    /**
-     * Gossip event type.
-     */
-    public enum Type {
-        UPDATE,
-    }
-
     private final long time;
     private final K subject;
     private final V value;
-
     public GossipEvent(K subject, V value) {
         this(System.currentTimeMillis(), subject, value);
     }
@@ -75,5 +67,12 @@ public class GossipEvent<K, V> implements Event<GossipEvent.Type, K> {
             .add("subject", subject)
             .add("value", value)
             .toString();
+    }
+
+    /**
+     * Gossip event type.
+     */
+    public enum Type {
+        UPDATE,
     }
 }

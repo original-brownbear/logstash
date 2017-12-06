@@ -54,6 +54,11 @@ public class BlockingConsistentTreeMap<K, V>
         this.operationTimeoutMillis = operationTimeoutMillis;
     }
 
+    @Override
+    public K firstKey() {
+        return complete(treeMap.firstKey());
+    }
+
     private <T> T complete(CompletableFuture<T> future) {
         try {
             return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -66,11 +71,6 @@ public class BlockingConsistentTreeMap<K, V>
         } catch (TimeoutException e) {
             throw new ConsistentMapException.Timeout();
         }
-    }
-
-    @Override
-    public K firstKey() {
-        return complete(treeMap.firstKey());
     }
 
     @Override
@@ -141,6 +141,12 @@ public class BlockingConsistentTreeMap<K, V>
     @Override
     public NavigableSet<K> navigableKeySet() {
         return complete(treeMap.navigableKeySet());
+    }
+
+    @Override
+    public NavigableMap<K, V> subMap(K upperKey, K lowerKey, boolean inclusiveUpper, boolean inclusiveLower) {
+        return complete(treeMap.subMap(upperKey, lowerKey,
+            inclusiveUpper, inclusiveLower));
     }
 
     @Override
@@ -278,11 +284,5 @@ public class BlockingConsistentTreeMap<K, V>
             }
         }
         return javaMap;
-    }
-
-    @Override
-    public NavigableMap<K, V> subMap(K upperKey, K lowerKey, boolean inclusiveUpper, boolean inclusiveLower) {
-        return complete(treeMap.subMap(upperKey, lowerKey,
-            inclusiveUpper, inclusiveLower));
     }
 }

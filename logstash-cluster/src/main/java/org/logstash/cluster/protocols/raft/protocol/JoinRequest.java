@@ -26,16 +26,16 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class JoinRequest extends ConfigurationRequest {
 
+    public JoinRequest(RaftMember member) {
+        super(member);
+    }
+
     /**
      * Returns a new join request builder.
      * @return A new join request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public JoinRequest(RaftMember member) {
-        super(member);
     }
 
     /**

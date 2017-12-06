@@ -27,6 +27,10 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class DirectBuffer extends ByteBufferBuffer {
 
+    protected DirectBuffer(DirectBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity, null);
+    }
+
     /**
      * Allocates a direct buffer with an initial capacity of {@code 4096} and a maximum capacity of {@link Long#MAX_VALUE}.
      * <p>
@@ -40,23 +44,6 @@ public class DirectBuffer extends ByteBufferBuffer {
      */
     public static DirectBuffer allocate() {
         return allocate(DEFAULT_INITIAL_CAPACITY, HeapMemory.MAX_SIZE);
-    }
-
-    /**
-     * Allocates a direct buffer with the given initial capacity.
-     * <p>
-     * When the buffer is constructed, {@link DirectMemoryAllocator} will be used to allocate
-     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
-     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
-     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
-     * @return The direct buffer.
-     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
-     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
-     * @see DirectBuffer#allocate()
-     * @see DirectBuffer#allocate(int, int)
-     */
-    public static DirectBuffer allocate(int initialCapacity) {
-        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
     }
 
     /**
@@ -79,8 +66,21 @@ public class DirectBuffer extends ByteBufferBuffer {
         return new DirectBuffer(DirectBytes.allocate((int) Math.min(Memory.Util.toPow2(initialCapacity), HeapMemory.MAX_SIZE)), 0, initialCapacity, maxCapacity);
     }
 
-    protected DirectBuffer(DirectBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity, null);
+    /**
+     * Allocates a direct buffer with the given initial capacity.
+     * <p>
+     * When the buffer is constructed, {@link DirectMemoryAllocator} will be used to allocate
+     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
+     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
+     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
+     * @return The direct buffer.
+     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
+     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
+     * @see DirectBuffer#allocate()
+     * @see DirectBuffer#allocate(int, int)
+     */
+    public static DirectBuffer allocate(int initialCapacity) {
+        return allocate(initialCapacity, HeapMemory.MAX_SIZE);
     }
 
     @Override

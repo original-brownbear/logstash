@@ -64,6 +64,11 @@ public class RaftSessionContext implements RaftSession {
     private final DefaultServiceContext context;
     private final RaftContext server;
     private final ThreadContext eventExecutor;
+    private final Map<Long, List<Runnable>> sequenceQueries = new HashMap<>();
+    private final Map<Long, List<Runnable>> indexQueries = new HashMap<>();
+    private final Map<Long, OperationResult> results = new HashMap<>();
+    private final Queue<EventHolder> events = new LinkedList<>();
+    private final Set<RaftSessionEventListener> eventListeners = new CopyOnWriteArraySet<>();
     private volatile State state = State.OPEN;
     private volatile long lastUpdated;
     private long lastHeartbeat;
@@ -74,12 +79,7 @@ public class RaftSessionContext implements RaftSession {
     private volatile long commandLowWaterMark;
     private volatile long eventIndex;
     private volatile long completeIndex;
-    private final Map<Long, List<Runnable>> sequenceQueries = new HashMap<>();
-    private final Map<Long, List<Runnable>> indexQueries = new HashMap<>();
-    private final Map<Long, OperationResult> results = new HashMap<>();
-    private final Queue<EventHolder> events = new LinkedList<>();
     private volatile EventHolder currentEventList;
-    private final Set<RaftSessionEventListener> eventListeners = new CopyOnWriteArraySet<>();
 
     public RaftSessionContext(
         SessionId sessionId,
@@ -114,6 +114,53 @@ public class RaftSessionContext implements RaftSession {
         protocol.registerResetListener(sessionId, request -> resendEvents(request.index()), context.executor());
     }
 
+    /**
+     * Resends events from the given sequence.
+     * @param index The index from which to resend events.
+     */
+    public void resendEvents(long index) {
+        clearEvents(index);
+        for (EventHolder event : events) {
+            sendEvents(event);
+        }
+    }
+
+    /**
+     * Clears events up to the given sequence.
+     * @param index The index to clear.
+     */
+    private void clearEvents(long index) {
+        if (index > completeIndex) {
+            EventHolder event = events.peek();
+            while (event != null && event.eventIndex <= index) {
+                events.remove();
+                completeIndex = event.eventIndex;
+                event = events.peek();
+            }
+            completeIndex = index;
+        }
+    }
+
+    /**
+     * Sends an event to the session.
+     */
+    private void sendEvents(EventHolder event) {
+        // Only send events to the client if this server is the leader.
+        if (server.isLeader()) {
+            eventExecutor.execute(() -> {
+                PublishRequest request = PublishRequest.builder()
+                    .withSession(sessionId().id())
+                    .withEventIndex(event.eventIndex)
+                    .withPreviousIndex(Math.max(event.previousIndex, completeIndex))
+                    .withEvents(event.events)
+                    .build();
+
+                log.trace("Sending {}", request);
+                protocol.publish(member, request);
+            });
+        }
+    }
+
     @Override
     public SessionId sessionId() {
         return sessionId;
@@ -140,21 +187,40 @@ public class RaftSessionContext implements RaftSession {
     }
 
     @Override
+    public long maxTimeout() {
+        return maxTimeout;
+    }
+
+    @Override
     public long minTimeout() {
         return minTimeout;
     }
 
     @Override
-    public long maxTimeout() {
-        return maxTimeout;
+    public State getState() {
+        return state;
     }
 
     /**
-     * Returns the state machine context associated with the session.
-     * @return The state machine context associated with the session.
+     * Updates the session state.
+     * @param state The session state.
      */
-    public DefaultServiceContext getService() {
-        return context;
+    private void setState(State state) {
+        if (this.state != state) {
+            this.state = state;
+            log.debug("State changed: {}", state);
+            switch (state) {
+                case OPEN:
+                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.OPEN, this, getLastUpdated())));
+                    break;
+                case EXPIRED:
+                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.EXPIRE, this, getLastUpdated())));
+                    break;
+                case CLOSED:
+                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.CLOSE, this, getLastUpdated())));
+                    break;
+            }
+        }
     }
 
     /**
@@ -171,6 +237,49 @@ public class RaftSessionContext implements RaftSession {
      */
     public void setLastUpdated(long lastUpdated) {
         this.lastUpdated = Math.max(this.lastUpdated, lastUpdated);
+    }
+
+    @Override
+    public void addListener(RaftSessionEventListener listener) {
+        eventListeners.add(listener);
+    }
+
+    @Override
+    public void removeListener(RaftSessionEventListener listener) {
+        eventListeners.remove(listener);
+    }
+
+    @Override
+    public void publish(RaftEvent event) {
+        // Store volatile state in a local variable.
+        State state = this.state;
+        checkState(state != State.EXPIRED, "session is expired");
+        checkState(state != State.CLOSED, "session is closed");
+        checkState(context.currentOperation() == OperationType.COMMAND, "session events can only be published during command execution");
+
+        // If the client acked an index greater than the current event sequence number since we know the
+        // client must have received it from another server.
+        if (completeIndex > context.currentIndex()) {
+            return;
+        }
+
+        // If no event has been published for this index yet, create a new event holder.
+        if (this.currentEventList == null || this.currentEventList.eventIndex != context.currentIndex()) {
+            long previousIndex = eventIndex;
+            eventIndex = context.currentIndex();
+            this.currentEventList = new EventHolder(eventIndex, previousIndex);
+        }
+
+        // Add the event to the event holder.
+        this.currentEventList.events.add(event);
+    }
+
+    /**
+     * Returns the state machine context associated with the session.
+     * @return The state machine context associated with the session.
+     */
+    public DefaultServiceContext getService() {
+        return context;
     }
 
     /**
@@ -217,43 +326,6 @@ public class RaftSessionContext implements RaftSession {
         return failureDetector.phi() >= threshold;
     }
 
-    @Override
-    public State getState() {
-        return state;
-    }
-
-    /**
-     * Updates the session state.
-     * @param state The session state.
-     */
-    private void setState(State state) {
-        if (this.state != state) {
-            this.state = state;
-            log.debug("State changed: {}", state);
-            switch (state) {
-                case OPEN:
-                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.OPEN, this, getLastUpdated())));
-                    break;
-                case EXPIRED:
-                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.EXPIRE, this, getLastUpdated())));
-                    break;
-                case CLOSED:
-                    eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.CLOSE, this, getLastUpdated())));
-                    break;
-            }
-        }
-    }
-
-    @Override
-    public void addListener(RaftSessionEventListener listener) {
-        eventListeners.add(listener);
-    }
-
-    @Override
-    public void removeListener(RaftSessionEventListener listener) {
-        eventListeners.remove(listener);
-    }
-
     /**
      * Returns the session request number.
      * @return The session request number.
@@ -263,19 +335,19 @@ public class RaftSessionContext implements RaftSession {
     }
 
     /**
-     * Returns the next request sequence number.
-     * @return the next request sequence number
-     */
-    public long nextRequestSequence() {
-        return this.requestSequence + 1;
-    }
-
-    /**
      * Sets the current request sequence number.
      * @param requestSequence the current request sequence number
      */
     public void setRequestSequence(long requestSequence) {
         this.requestSequence = Math.max(this.requestSequence, requestSequence);
+    }
+
+    /**
+     * Returns the next request sequence number.
+     * @return the next request sequence number
+     */
+    public long nextRequestSequence() {
+        return this.requestSequence + 1;
     }
 
     /**
@@ -300,14 +372,6 @@ public class RaftSessionContext implements RaftSession {
     }
 
     /**
-     * Returns the next operation sequence number.
-     * @return The next operation sequence number.
-     */
-    public long nextCommandSequence() {
-        return commandSequence + 1;
-    }
-
-    /**
      * Sets the session operation sequence number.
      * @param sequence The session operation sequence number.
      */
@@ -322,6 +386,14 @@ public class RaftSessionContext implements RaftSession {
                 }
             }
         }
+    }
+
+    /**
+     * Returns the next operation sequence number.
+     * @return The next operation sequence number.
+     */
+    public long nextCommandSequence() {
+        return commandSequence + 1;
     }
 
     /**
@@ -428,31 +500,6 @@ public class RaftSessionContext implements RaftSession {
         this.eventIndex = eventIndex;
     }
 
-    @Override
-    public void publish(RaftEvent event) {
-        // Store volatile state in a local variable.
-        State state = this.state;
-        checkState(state != State.EXPIRED, "session is expired");
-        checkState(state != State.CLOSED, "session is closed");
-        checkState(context.currentOperation() == OperationType.COMMAND, "session events can only be published during command execution");
-
-        // If the client acked an index greater than the current event sequence number since we know the
-        // client must have received it from another server.
-        if (completeIndex > context.currentIndex()) {
-            return;
-        }
-
-        // If no event has been published for this index yet, create a new event holder.
-        if (this.currentEventList == null || this.currentEventList.eventIndex != context.currentIndex()) {
-            long previousIndex = eventIndex;
-            eventIndex = context.currentIndex();
-            this.currentEventList = new EventHolder(eventIndex, previousIndex);
-        }
-
-        // Add the event to the event holder.
-        this.currentEventList.events.add(event);
-    }
-
     /**
      * Commits events for the given index.
      */
@@ -484,53 +531,6 @@ public class RaftSessionContext implements RaftSession {
      */
     public void setLastCompleted(long lastCompleted) {
         this.completeIndex = lastCompleted;
-    }
-
-    /**
-     * Clears events up to the given sequence.
-     * @param index The index to clear.
-     */
-    private void clearEvents(long index) {
-        if (index > completeIndex) {
-            EventHolder event = events.peek();
-            while (event != null && event.eventIndex <= index) {
-                events.remove();
-                completeIndex = event.eventIndex;
-                event = events.peek();
-            }
-            completeIndex = index;
-        }
-    }
-
-    /**
-     * Resends events from the given sequence.
-     * @param index The index from which to resend events.
-     */
-    public void resendEvents(long index) {
-        clearEvents(index);
-        for (EventHolder event : events) {
-            sendEvents(event);
-        }
-    }
-
-    /**
-     * Sends an event to the session.
-     */
-    private void sendEvents(EventHolder event) {
-        // Only send events to the client if this server is the leader.
-        if (server.isLeader()) {
-            eventExecutor.execute(() -> {
-                PublishRequest request = PublishRequest.builder()
-                    .withSession(sessionId().id())
-                    .withEventIndex(event.eventIndex)
-                    .withPreviousIndex(Math.max(event.previousIndex, completeIndex))
-                    .withEvents(event.events)
-                    .build();
-
-                log.trace("Sending {}", request);
-                protocol.publish(member, request);
-            });
-        }
     }
 
     /**

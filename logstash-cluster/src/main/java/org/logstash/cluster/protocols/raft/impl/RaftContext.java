@@ -71,11 +71,6 @@ import static com.google.common.base.Preconditions.checkState;
 public class RaftContext implements AutoCloseable {
     private static final int LOAD_WINDOW_SIZE = 5;
     private static final int HIGH_LOAD_THRESHOLD = 500;
-
-    private final Logger log;
-    private final Set<Consumer<RaftServer.Role>> roleChangeListeners = new CopyOnWriteArraySet<>();
-    private final Set<Consumer<State>> stateChangeListeners = new CopyOnWriteArraySet<>();
-    private final Set<Consumer<RaftMember>> electionListeners = new CopyOnWriteArraySet<>();
     protected final String name;
     protected final ThreadContext threadContext;
     protected final RaftServiceFactoryRegistry serviceFactories;
@@ -84,8 +79,11 @@ public class RaftContext implements AutoCloseable {
     protected final RaftStorage storage;
     protected final RaftServiceRegistry services = new RaftServiceRegistry();
     protected final RaftSessionRegistry sessions = new RaftSessionRegistry();
+    private final Logger log;
+    private final Set<Consumer<RaftServer.Role>> roleChangeListeners = new CopyOnWriteArraySet<>();
+    private final Set<Consumer<State>> stateChangeListeners = new CopyOnWriteArraySet<>();
+    private final Set<Consumer<RaftMember>> electionListeners = new CopyOnWriteArraySet<>();
     private final LoadMonitor loadMonitor;
-    private volatile State state = State.ACTIVE;
     private final MetaStore meta;
     private final RaftLog raftLog;
     private final RaftLogWriter logWriter;
@@ -97,6 +95,7 @@ public class RaftContext implements AutoCloseable {
     private final ThreadContext loadContext;
     private final ThreadContext compactionContext;
     protected RaftRole role = new InactiveRole(this);
+    private volatile State state = State.ACTIVE;
     private Duration electionTimeout = Duration.ofMillis(500);
     private Duration heartbeatInterval = Duration.ofMillis(150);
     private int electionThreshold = 3;
@@ -162,6 +161,41 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
+     * Registers server handlers on the configured protocol.
+     */
+    private void registerHandlers(RaftServerProtocol protocol) {
+        protocol.registerOpenSessionHandler(request -> runOnContext(() -> role.onOpenSession(request)));
+        protocol.registerCloseSessionHandler(request -> runOnContext(() -> role.onCloseSession(request)));
+        protocol.registerKeepAliveHandler(request -> runOnContext(() -> role.onKeepAlive(request)));
+        protocol.registerMetadataHandler(request -> runOnContext(() -> role.onMetadata(request)));
+        protocol.registerConfigureHandler(request -> runOnContext(() -> role.onConfigure(request)));
+        protocol.registerInstallHandler(request -> runOnContext(() -> role.onInstall(request)));
+        protocol.registerJoinHandler(request -> runOnContext(() -> role.onJoin(request)));
+        protocol.registerReconfigureHandler(request -> runOnContext(() -> role.onReconfigure(request)));
+        protocol.registerLeaveHandler(request -> runOnContext(() -> role.onLeave(request)));
+        protocol.registerTransferHandler(request -> runOnContext(() -> role.onTransfer(request)));
+        protocol.registerAppendHandler(request -> runOnContext(() -> role.onAppend(request)));
+        protocol.registerPollHandler(request -> runOnContext(() -> role.onPoll(request)));
+        protocol.registerVoteHandler(request -> runOnContext(() -> role.onVote(request)));
+        protocol.registerCommandHandler(request -> runOnContext(() -> role.onCommand(request)));
+        protocol.registerQueryHandler(request -> runOnContext(() -> role.onQuery(request)));
+    }
+
+    private <R extends RaftResponse> CompletableFuture<R> runOnContext(Supplier<CompletableFuture<R>> function) {
+        CompletableFuture<R> future = new CompletableFuture<>();
+        threadContext.execute(() -> {
+            function.get().whenComplete((response, error) -> {
+                if (error == null) {
+                    future.complete(response);
+                } else {
+                    future.completeExceptionally(error);
+                }
+            });
+        });
+        return future;
+    }
+
+    /**
      * Returns the server name.
      * @return The server name.
      */
@@ -186,22 +220,6 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Adds a state change listener.
-     * @param listener The state change listener.
-     */
-    public void addStateChangeListener(Consumer<State> listener) {
-        stateChangeListeners.add(listener);
-    }
-
-    /**
-     * Removes a state change listener.
-     * @param listener The state change listener.
-     */
-    public void removeStateChangeListener(Consumer<State> listener) {
-        stateChangeListeners.remove(listener);
-    }
-
-    /**
      * Awaits a state change.
      * @param state the state for which to wait
      * @param listener the listener to call when the next state change occurs
@@ -221,19 +239,19 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Adds a leader election listener.
-     * @param listener The leader election listener.
+     * Adds a state change listener.
+     * @param listener The state change listener.
      */
-    public void addLeaderElectionListener(Consumer<RaftMember> listener) {
-        electionListeners.add(listener);
+    public void addStateChangeListener(Consumer<State> listener) {
+        stateChangeListeners.add(listener);
     }
 
     /**
-     * Removes a leader election listener.
-     * @param listener The leader election listener.
+     * Removes a state change listener.
+     * @param listener The state change listener.
      */
-    public void removeLeaderElectionListener(Consumer<RaftMember> listener) {
-        electionListeners.remove(listener);
+    public void removeStateChangeListener(Consumer<State> listener) {
+        stateChangeListeners.remove(listener);
     }
 
     /**
@@ -269,14 +287,6 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Sets the election timeout.
-     * @param electionTimeout The election timeout.
-     */
-    public void setElectionTimeout(Duration electionTimeout) {
-        this.electionTimeout = electionTimeout;
-    }
-
-    /**
      * Returns the election timeout.
      * @return The election timeout.
      */
@@ -285,11 +295,11 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Sets the heartbeat interval.
-     * @param heartbeatInterval The Raft heartbeat interval.
+     * Sets the election timeout.
+     * @param electionTimeout The election timeout.
      */
-    public void setHeartbeatInterval(Duration heartbeatInterval) {
-        this.heartbeatInterval = checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
+    public void setElectionTimeout(Duration electionTimeout) {
+        this.electionTimeout = electionTimeout;
     }
 
     /**
@@ -301,11 +311,11 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Sets the election threshold.
-     * @param electionThreshold the election threshold
+     * Sets the heartbeat interval.
+     * @param heartbeatInterval The Raft heartbeat interval.
      */
-    public void setElectionThreshold(int electionThreshold) {
-        this.electionThreshold = electionThreshold;
+    public void setHeartbeatInterval(Duration heartbeatInterval) {
+        this.heartbeatInterval = checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
     }
 
     /**
@@ -314,6 +324,14 @@ public class RaftContext implements AutoCloseable {
      */
     public int getElectionThreshold() {
         return electionThreshold;
+    }
+
+    /**
+     * Sets the election threshold.
+     * @param electionThreshold the election threshold
+     */
+    public void setElectionThreshold(int electionThreshold) {
+        this.electionThreshold = electionThreshold;
     }
 
     /**
@@ -349,6 +367,15 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
+     * Returns a boolean indicating whether this server is the current leader.
+     * @return Indicates whether this server is the leader.
+     */
+    public boolean isLeader() {
+        MemberId leader = this.leader;
+        return leader != null && leader.equals(cluster.getMember().memberId());
+    }
+
+    /**
      * Sets the state leader.
      * @param leader The state leader.
      */
@@ -375,30 +402,11 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Returns the cluster state.
-     * @return The cluster state.
+     * Returns the state term.
+     * @return The state term.
      */
-    public RaftClusterContext getCluster() {
-        return cluster;
-    }
-
-    /**
-     * Returns the state leader.
-     * @return The state leader.
-     */
-    public DefaultRaftMember getLeader() {
-        // Store in a local variable to prevent race conditions and/or multiple volatile lookups.
-        MemberId leader = this.leader;
-        return leader != null ? cluster.getMember(leader) : null;
-    }
-
-    /**
-     * Returns a boolean indicating whether this server is the current leader.
-     * @return Indicates whether this server is the leader.
-     */
-    public boolean isLeader() {
-        MemberId leader = this.leader;
-        return leader != null && leader.equals(cluster.getMember().memberId());
+    public long getTerm() {
+        return term;
     }
 
     /**
@@ -417,11 +425,34 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Returns the state term.
-     * @return The state term.
+     * Returns the last time a request was received from the leader.
+     * @return The last time a request was received
      */
-    public long getTerm() {
-        return term;
+    public long getLastHeartbeatTime() {
+        return lastHeartbeatTime;
+    }
+
+    /**
+     * Sets the last time a request was received by the node.
+     * @param lastHeartbeatTime The last time a request was received
+     */
+    public void setLastHeartbeatTime(long lastHeartbeatTime) {
+        this.lastHeartbeatTime = lastHeartbeatTime;
+    }
+
+    /**
+     * Sets the last time a request was received from the leader.
+     */
+    public void setLastHeartbeatTime() {
+        setLastHeartbeatTime(System.currentTimeMillis());
+    }
+
+    /**
+     * Returns the state last voted for candidate.
+     * @return The state last voted for candidate.
+     */
+    public MemberId getLastVotedFor() {
+        return lastVotedFor;
     }
 
     /**
@@ -441,37 +472,6 @@ public class RaftContext implements AutoCloseable {
         } else {
             log.trace("Reset last voted for");
         }
-    }
-
-    /**
-     * Returns the last time a request was received from the leader.
-     * @return The last time a request was received
-     */
-    public long getLastHeartbeatTime() {
-        return lastHeartbeatTime;
-    }
-
-    /**
-     * Sets the last time a request was received from the leader.
-     */
-    public void setLastHeartbeatTime() {
-        setLastHeartbeatTime(System.currentTimeMillis());
-    }
-
-    /**
-     * Sets the last time a request was received by the node.
-     * @param lastHeartbeatTime The last time a request was received
-     */
-    public void setLastHeartbeatTime(long lastHeartbeatTime) {
-        this.lastHeartbeatTime = lastHeartbeatTime;
-    }
-
-    /**
-     * Returns the state last voted for candidate.
-     * @return The state last voted for candidate.
-     */
-    public MemberId getLastVotedFor() {
-        return lastVotedFor;
     }
 
     /**
@@ -503,6 +503,14 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
+     * Returns the first commit index.
+     * @return The first commit index.
+     */
+    public long getFirstCommitIndex() {
+        return firstCommitIndex;
+    }
+
+    /**
      * Sets the first commit index.
      * @param firstCommitIndex The first commit index.
      */
@@ -513,11 +521,11 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Returns the first commit index.
-     * @return The first commit index.
+     * Returns the last applied index.
+     * @return the last applied index
      */
-    public long getFirstCommitIndex() {
-        return firstCommitIndex;
+    public long getLastApplied() {
+        return lastApplied;
     }
 
     /**
@@ -534,14 +542,6 @@ public class RaftContext implements AutoCloseable {
                 }
             });
         }
-    }
-
-    /**
-     * Returns the last applied index.
-     * @return the last applied index
-     */
-    public long getLastApplied() {
-        return lastApplied;
     }
 
     /**
@@ -649,69 +649,6 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Checks that the current thread is the state context thread.
-     */
-    public void checkThread() {
-        threadContext.checkThread();
-    }
-
-    /**
-     * Registers server handlers on the configured protocol.
-     */
-    private void registerHandlers(RaftServerProtocol protocol) {
-        protocol.registerOpenSessionHandler(request -> runOnContext(() -> role.onOpenSession(request)));
-        protocol.registerCloseSessionHandler(request -> runOnContext(() -> role.onCloseSession(request)));
-        protocol.registerKeepAliveHandler(request -> runOnContext(() -> role.onKeepAlive(request)));
-        protocol.registerMetadataHandler(request -> runOnContext(() -> role.onMetadata(request)));
-        protocol.registerConfigureHandler(request -> runOnContext(() -> role.onConfigure(request)));
-        protocol.registerInstallHandler(request -> runOnContext(() -> role.onInstall(request)));
-        protocol.registerJoinHandler(request -> runOnContext(() -> role.onJoin(request)));
-        protocol.registerReconfigureHandler(request -> runOnContext(() -> role.onReconfigure(request)));
-        protocol.registerLeaveHandler(request -> runOnContext(() -> role.onLeave(request)));
-        protocol.registerTransferHandler(request -> runOnContext(() -> role.onTransfer(request)));
-        protocol.registerAppendHandler(request -> runOnContext(() -> role.onAppend(request)));
-        protocol.registerPollHandler(request -> runOnContext(() -> role.onPoll(request)));
-        protocol.registerVoteHandler(request -> runOnContext(() -> role.onVote(request)));
-        protocol.registerCommandHandler(request -> runOnContext(() -> role.onCommand(request)));
-        protocol.registerQueryHandler(request -> runOnContext(() -> role.onQuery(request)));
-    }
-
-    private <R extends RaftResponse> CompletableFuture<R> runOnContext(Supplier<CompletableFuture<R>> function) {
-        CompletableFuture<R> future = new CompletableFuture<>();
-        threadContext.execute(() -> {
-            function.get().whenComplete((response, error) -> {
-                if (error == null) {
-                    future.complete(response);
-                } else {
-                    future.completeExceptionally(error);
-                }
-            });
-        });
-        return future;
-    }
-
-    /**
-     * Unregisters server handlers on the configured protocol.
-     */
-    private void unregisterHandlers(RaftServerProtocol protocol) {
-        protocol.unregisterOpenSessionHandler();
-        protocol.unregisterCloseSessionHandler();
-        protocol.unregisterKeepAliveHandler();
-        protocol.unregisterMetadataHandler();
-        protocol.unregisterConfigureHandler();
-        protocol.unregisterInstallHandler();
-        protocol.unregisterJoinHandler();
-        protocol.unregisterReconfigureHandler();
-        protocol.unregisterLeaveHandler();
-        protocol.unregisterTransferHandler();
-        protocol.unregisterAppendHandler();
-        protocol.unregisterPollHandler();
-        protocol.unregisterVoteHandler();
-        protocol.unregisterCommandHandler();
-        protocol.unregisterQueryHandler();
-    }
-
-    /**
      * Attempts to become the leader.
      */
     public CompletableFuture<Void> anoint() {
@@ -760,31 +697,37 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
-     * Transitions the server to the base state for the given member type.
+     * Adds a leader election listener.
+     * @param listener The leader election listener.
      */
-    public void transition(RaftMember.Type type) {
-        switch (type) {
-            case ACTIVE:
-                if (!(role instanceof ActiveRole)) {
-                    transition(RaftServer.Role.FOLLOWER);
-                }
-                break;
-            case PROMOTABLE:
-                if (this.role.role() != RaftServer.Role.PROMOTABLE) {
-                    transition(RaftServer.Role.PROMOTABLE);
-                }
-                break;
-            case PASSIVE:
-                if (this.role.role() != RaftServer.Role.PASSIVE) {
-                    transition(RaftServer.Role.PASSIVE);
-                }
-                break;
-            default:
-                if (this.role.role() != RaftServer.Role.INACTIVE) {
-                    transition(RaftServer.Role.INACTIVE);
-                }
-                break;
-        }
+    public void addLeaderElectionListener(Consumer<RaftMember> listener) {
+        electionListeners.add(listener);
+    }
+
+    /**
+     * Removes a leader election listener.
+     * @param listener The leader election listener.
+     */
+    public void removeLeaderElectionListener(Consumer<RaftMember> listener) {
+        electionListeners.remove(listener);
+    }
+
+    /**
+     * Returns the cluster state.
+     * @return The cluster state.
+     */
+    public RaftClusterContext getCluster() {
+        return cluster;
+    }
+
+    /**
+     * Returns the state leader.
+     * @return The state leader.
+     */
+    public DefaultRaftMember getLeader() {
+        // Store in a local variable to prevent race conditions and/or multiple volatile lookups.
+        MemberId leader = this.leader;
+        return leader != null ? cluster.getMember(leader) : null;
     }
 
     /**
@@ -818,6 +761,13 @@ public class RaftContext implements AutoCloseable {
     }
 
     /**
+     * Checks that the current thread is the state context thread.
+     */
+    public void checkThread() {
+        threadContext.checkThread();
+    }
+
+    /**
      * Creates an internal state for the given state type.
      */
     private RaftRole createRole(RaftServer.Role role) {
@@ -836,6 +786,34 @@ public class RaftContext implements AutoCloseable {
                 return new LeaderRole(this);
             default:
                 throw new AssertionError();
+        }
+    }
+
+    /**
+     * Transitions the server to the base state for the given member type.
+     */
+    public void transition(RaftMember.Type type) {
+        switch (type) {
+            case ACTIVE:
+                if (!(role instanceof ActiveRole)) {
+                    transition(RaftServer.Role.FOLLOWER);
+                }
+                break;
+            case PROMOTABLE:
+                if (this.role.role() != RaftServer.Role.PROMOTABLE) {
+                    transition(RaftServer.Role.PROMOTABLE);
+                }
+                break;
+            case PASSIVE:
+                if (this.role.role() != RaftServer.Role.PASSIVE) {
+                    transition(RaftServer.Role.PASSIVE);
+                }
+                break;
+            default:
+                if (this.role.role() != RaftServer.Role.INACTIVE) {
+                    transition(RaftServer.Role.INACTIVE);
+                }
+                break;
         }
     }
 
@@ -868,6 +846,27 @@ public class RaftContext implements AutoCloseable {
         loadContext.close();
         compactionContext.close();
         threadContextFactory.close();
+    }
+
+    /**
+     * Unregisters server handlers on the configured protocol.
+     */
+    private void unregisterHandlers(RaftServerProtocol protocol) {
+        protocol.unregisterOpenSessionHandler();
+        protocol.unregisterCloseSessionHandler();
+        protocol.unregisterKeepAliveHandler();
+        protocol.unregisterMetadataHandler();
+        protocol.unregisterConfigureHandler();
+        protocol.unregisterInstallHandler();
+        protocol.unregisterJoinHandler();
+        protocol.unregisterReconfigureHandler();
+        protocol.unregisterLeaveHandler();
+        protocol.unregisterTransferHandler();
+        protocol.unregisterAppendHandler();
+        protocol.unregisterPollHandler();
+        protocol.unregisterVoteHandler();
+        protocol.unregisterCommandHandler();
+        protocol.unregisterQueryHandler();
     }
 
     /**

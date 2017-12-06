@@ -37,12 +37,6 @@ public interface AsyncDocumentTree<V> extends AsyncPrimitive {
     }
 
     /**
-     * Returns the {@link DocumentPath path} to root of the tree.
-     * @return path to root of the tree
-     */
-    DocumentPath root();
-
-    /**
      * Returns the children of node at specified path in the form of a mapping from child name to child value.
      * @param path path to the node
      * @return future for mapping from child name to child value
@@ -120,15 +114,6 @@ public interface AsyncDocumentTree<V> extends AsyncPrimitive {
     CompletableFuture<Versioned<V>> removeNode(DocumentPath path);
 
     /**
-     * Registers a listener to be notified when the subtree rooted at the specified path
-     * is modified.
-     * @param path path to the node
-     * @param listener listener to be notified
-     * @return a future that is completed when the operation completes
-     */
-    CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener);
-
-    /**
      * Unregisters a previously added listener.
      * @param listener listener to unregister
      * @return a future that is completed when the operation completes
@@ -143,6 +128,21 @@ public interface AsyncDocumentTree<V> extends AsyncPrimitive {
     default CompletableFuture<Void> addListener(DocumentTreeListener<V> listener) {
         return addListener(root(), listener);
     }
+
+    /**
+     * Returns the {@link DocumentPath path} to root of the tree.
+     * @return path to root of the tree
+     */
+    DocumentPath root();
+
+    /**
+     * Registers a listener to be notified when the subtree rooted at the specified path
+     * is modified.
+     * @param path path to the node
+     * @param listener listener to be notified
+     * @return a future that is completed when the operation completes
+     */
+    CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener);
 
     /**
      * Returns a synchronous {@link DocumentTree} instance that wraps this instance.

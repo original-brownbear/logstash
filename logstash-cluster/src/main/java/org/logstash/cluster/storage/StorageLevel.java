@@ -20,19 +20,19 @@ package org.logstash.cluster.storage;
  */
 public enum StorageLevel {
 
-  /**
-   * Stores data in memory only.
-   */
-  MEMORY,
+    /**
+     * Stores data in memory only.
+     */
+    MEMORY,
 
-  /**
-   * Stores data in a memory-mapped file.
-   */
-  MAPPED,
+    /**
+     * Stores data in a memory-mapped file.
+     */
+    MAPPED,
 
-  /**
-   * Stores data on disk.
-   */
-  DISK
+    /**
+     * Stores data on disk.
+     */
+    DISK
 
 }

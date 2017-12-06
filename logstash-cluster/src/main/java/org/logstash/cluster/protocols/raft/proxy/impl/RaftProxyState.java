@@ -33,13 +33,13 @@ public final class RaftProxyState {
     private final String serviceName;
     private final ServiceType serviceType;
     private final long timeout;
+    private final Set<Consumer<RaftProxy.State>> changeListeners = new CopyOnWriteArraySet<>();
     private volatile RaftProxy.State state = RaftProxy.State.CONNECTED;
     private volatile Long suspendedTime;
     private volatile long commandRequest;
     private volatile long commandResponse;
     private volatile long responseIndex;
     private volatile long eventIndex;
-    private final Set<Consumer<RaftProxy.State>> changeListeners = new CopyOnWriteArraySet<>();
 
     RaftProxyState(String clientId, SessionId sessionId, String serviceName, ServiceType serviceType, long timeout) {
         this.clientId = clientId;
@@ -138,19 +138,19 @@ public final class RaftProxyState {
     }
 
     /**
-     * Sets the last command request sequence number.
-     * @param commandRequest The last command request sequence number.
-     */
-    public void setCommandRequest(long commandRequest) {
-        this.commandRequest = commandRequest;
-    }
-
-    /**
      * Returns the last command request sequence number for the session.
      * @return The last command request sequence number for the session.
      */
     public long getCommandRequest() {
         return commandRequest;
+    }
+
+    /**
+     * Sets the last command request sequence number.
+     * @param commandRequest The last command request sequence number.
+     */
+    public void setCommandRequest(long commandRequest) {
+        this.commandRequest = commandRequest;
     }
 
     /**
@@ -162,14 +162,6 @@ public final class RaftProxyState {
     }
 
     /**
-     * Sets the last command sequence number for which a response has been received.
-     * @param commandResponse The last command sequence number for which a response has been received.
-     */
-    public void setCommandResponse(long commandResponse) {
-        this.commandResponse = commandResponse;
-    }
-
-    /**
      * Returns the last command sequence number for which a response has been received.
      * @return The last command sequence number for which a response has been received.
      */
@@ -178,11 +170,11 @@ public final class RaftProxyState {
     }
 
     /**
-     * Sets the highest index for which a response has been received.
-     * @param responseIndex The highest index for which a command or query response has been received.
+     * Sets the last command sequence number for which a response has been received.
+     * @param commandResponse The last command sequence number for which a response has been received.
      */
-    public void setResponseIndex(long responseIndex) {
-        this.responseIndex = Math.max(this.responseIndex, responseIndex);
+    public void setCommandResponse(long commandResponse) {
+        this.commandResponse = commandResponse;
     }
 
     /**
@@ -194,11 +186,11 @@ public final class RaftProxyState {
     }
 
     /**
-     * Sets the highest index for which an event has been received in sequence.
-     * @param eventIndex The highest index for which an event has been received in sequence.
+     * Sets the highest index for which a response has been received.
+     * @param responseIndex The highest index for which a command or query response has been received.
      */
-    public void setEventIndex(long eventIndex) {
-        this.eventIndex = eventIndex;
+    public void setResponseIndex(long responseIndex) {
+        this.responseIndex = Math.max(this.responseIndex, responseIndex);
     }
 
     /**
@@ -207,5 +199,13 @@ public final class RaftProxyState {
      */
     public long getEventIndex() {
         return eventIndex;
+    }
+
+    /**
+     * Sets the highest index for which an event has been received in sequence.
+     * @param eventIndex The highest index for which an event has been received in sequence.
+     */
+    public void setEventIndex(long eventIndex) {
+        this.eventIndex = eventIndex;
     }
 }

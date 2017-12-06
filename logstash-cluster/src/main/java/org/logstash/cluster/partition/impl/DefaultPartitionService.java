@@ -34,14 +34,14 @@ public class DefaultPartitionService implements ManagedPartitionService {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
-    public Collection<Partition> getPartitions() {
-        return (Collection) partitions.values();
+    public DistributedPrimitiveCreator getPrimitiveCreator(PartitionId partitionId) {
+        return partitions.get(partitionId).getPrimitiveCreator();
     }
 
     @Override
-    public DistributedPrimitiveCreator getPrimitiveCreator(PartitionId partitionId) {
-        return partitions.get(partitionId).getPrimitiveCreator();
+    @SuppressWarnings("unchecked")
+    public Collection<Partition> getPartitions() {
+        return (Collection) partitions.values();
     }
 
     @Override

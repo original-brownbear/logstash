@@ -49,6 +49,10 @@ public class RaftLeaderElector extends AbstractRaftPrimitive implements AsyncLea
         proxy.addEventListener(RaftLeaderElectorEvents.CHANGE, SERIALIZER::decode, this::handleEvent);
     }
 
+    private boolean isListening() {
+        return !leadershipChangeListeners.isEmpty();
+    }
+
     private void handleEvent(List<LeadershipEvent> changes) {
         changes.forEach(change -> leadershipChangeListeners.forEach(l -> l.onEvent(change)));
     }
@@ -69,13 +73,13 @@ public class RaftLeaderElector extends AbstractRaftPrimitive implements AsyncLea
     }
 
     @Override
-    public CompletableFuture<Boolean> promote(byte[] id) {
-        return proxy.<RaftLeaderElectorOperations.Promote, Boolean>invoke(RaftLeaderElectorOperations.PROMOTE, SERIALIZER::encode, new RaftLeaderElectorOperations.Promote(id), SERIALIZER::decode);
+    public CompletableFuture<Void> evict(byte[] id) {
+        return proxy.invoke(RaftLeaderElectorOperations.EVICT, SERIALIZER::encode, new RaftLeaderElectorOperations.Evict(id));
     }
 
     @Override
-    public CompletableFuture<Void> evict(byte[] id) {
-        return proxy.invoke(RaftLeaderElectorOperations.EVICT, SERIALIZER::encode, new RaftLeaderElectorOperations.Evict(id));
+    public CompletableFuture<Boolean> promote(byte[] id) {
+        return proxy.<RaftLeaderElectorOperations.Promote, Boolean>invoke(RaftLeaderElectorOperations.PROMOTE, SERIALIZER::encode, new RaftLeaderElectorOperations.Promote(id), SERIALIZER::decode);
     }
 
     @Override
@@ -99,9 +103,5 @@ public class RaftLeaderElector extends AbstractRaftPrimitive implements AsyncLea
             return proxy.invoke(RaftLeaderElectorOperations.REMOVE_LISTENER).thenApply(v -> null);
         }
         return CompletableFuture.completedFuture(null);
-    }
-
-    private boolean isListening() {
-        return !leadershipChangeListeners.isEmpty();
     }
 }

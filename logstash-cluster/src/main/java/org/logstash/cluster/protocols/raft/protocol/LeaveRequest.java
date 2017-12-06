@@ -26,27 +26,26 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class LeaveRequest extends ConfigurationRequest {
 
-  /**
-   * Returns a new leave request builder.
-   *
-   * @return A new leave request builder.
-   */
-  public static Builder builder() {
-    return new Builder();
-  }
-
-  public LeaveRequest(RaftMember member) {
-    super(member);
-  }
-
-  /**
-   * Leave request builder.
-   */
-  public static class Builder extends ConfigurationRequest.Builder<Builder, LeaveRequest> {
-    @Override
-    public LeaveRequest build() {
-      validate();
-      return new LeaveRequest(member);
+    public LeaveRequest(RaftMember member) {
+        super(member);
     }
-  }
+
+    /**
+     * Returns a new leave request builder.
+     * @return A new leave request builder.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Leave request builder.
+     */
+    public static class Builder extends ConfigurationRequest.Builder<Builder, LeaveRequest> {
+        @Override
+        public LeaveRequest build() {
+            validate();
+            return new LeaveRequest(member);
+        }
+    }
 }

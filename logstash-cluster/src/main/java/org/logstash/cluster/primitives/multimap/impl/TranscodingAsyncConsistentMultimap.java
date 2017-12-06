@@ -89,6 +89,11 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return backingMap.clear();
+    }
+
+    @Override
     public CompletableFuture<Integer> size() {
         return backingMap.size();
     }
@@ -194,11 +199,6 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     }
 
     @Override
-    public CompletableFuture<Void> clear() {
-        return backingMap.clear();
-    }
-
-    @Override
     public CompletableFuture<Versioned<Collection<? extends V1>>> get(K1 key) {
         try {
             return backingMap.get(keyEncoder.apply(key))
@@ -236,16 +236,6 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     }
 
     @Override
-    public CompletableFuture<Map<K1, Collection<V1>>> asMap() {
-        throw new UnsupportedOperationException("Unsupported operation.");
-    }
-
-    @Override
-    public String name() {
-        return backingMap.name();
-    }
-
-    @Override
     public CompletableFuture<Void> addListener(MultimapEventListener<K1, V1> listener, Executor executor) {
         synchronized (listeners) {
             InternalBackingMultimapEventListener backingMapListener =
@@ -264,6 +254,16 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
                 return CompletableFuture.completedFuture(null);
             }
         }
+    }
+
+    @Override
+    public CompletableFuture<Map<K1, Collection<V1>>> asMap() {
+        throw new UnsupportedOperationException("Unsupported operation.");
+    }
+
+    @Override
+    public String name() {
+        return backingMap.name();
     }
 
     @Override

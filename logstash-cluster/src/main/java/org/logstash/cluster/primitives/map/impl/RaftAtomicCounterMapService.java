@@ -88,6 +88,15 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
+     * Handles a {@link Put} command which implements {@link RaftAtomicCounterMap#put(String, long)}.
+     * @param commit put commit
+     * @return put result
+     */
+    protected long put(Commit<RaftAtomicCounterMapOperations.Put> commit) {
+        return primitive(map.put(commit.value().key(), commit.value().value()));
+    }
+
+    /**
      * Returns the primitive value for the given primitive wrapper.
      */
     private long primitive(Long value) {
@@ -96,15 +105,6 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
         } else {
             return 0;
         }
-    }
-
-    /**
-     * Handles a {@link Put} command which implements {@link RaftAtomicCounterMap#put(String, long)}.
-     * @param commit put commit
-     * @return put result
-     */
-    protected long put(Commit<RaftAtomicCounterMapOperations.Put> commit) {
-        return primitive(map.put(commit.value().key(), commit.value().value()));
     }
 
     /**

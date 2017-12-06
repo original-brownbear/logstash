@@ -17,15 +17,13 @@ package org.logstash.cluster.primitives.tree;
 
 /**
  * A listener for {@link DocumentTreeEvent}.
- *
  * @param <V> document tree node value type
  */
 public interface DocumentTreeListener<V> {
 
-  /**
-   * Callback notifying about change to document tree node.
-   *
-   * @param event event
-   */
-  void event(DocumentTreeEvent<V> event);
+    /**
+     * Callback notifying about change to document tree node.
+     * @param event event
+     */
+    void event(DocumentTreeEvent<V> event);
 }

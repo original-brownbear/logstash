@@ -23,20 +23,19 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
  * Atomix work queue events.
  */
 public enum RaftWorkQueueEvents implements EventType {
-  TASK_AVAILABLE("taskAvailable");
+    TASK_AVAILABLE("taskAvailable");
 
-  private final String id;
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
+        .build(RaftWorkQueueEvents.class.getSimpleName());
+    private final String id;
 
-  RaftWorkQueueEvents(String id) {
-    this.id = id;
-  }
+    RaftWorkQueueEvents(String id) {
+        this.id = id;
+    }
 
-  @Override
-  public String id() {
-    return id;
-  }
-
-  public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-      .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
-      .build(RaftWorkQueueEvents.class.getSimpleName());
+    @Override
+    public String id() {
+        return id;
+    }
 }

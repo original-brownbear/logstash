@@ -88,16 +88,16 @@ public interface RaftSession {
     }
 
     /**
-     * Returns the minimum session timeout.
-     * @return The minimum session timeout.
-     */
-    long minTimeout();
-
-    /**
      * Returns the maximum session timeout.
      * @return The maximum session timeout.
      */
     long maxTimeout();
+
+    /**
+     * Returns the minimum session timeout.
+     * @return The minimum session timeout.
+     */
+    long minTimeout();
 
     /**
      * Returns the session state.
@@ -127,6 +127,12 @@ public interface RaftSession {
 
     /**
      * Publishes an event to the session.
+     * @param event the event to publish
+     */
+    void publish(RaftEvent event);
+
+    /**
+     * Publishes an event to the session.
      * @param eventType the event identifier
      * @param encoder the event value encoder
      * @param event the event value
@@ -145,12 +151,6 @@ public interface RaftSession {
     default void publish(EventType eventType, byte[] event) {
         publish(new RaftEvent(eventType, event));
     }
-
-    /**
-     * Publishes an event to the session.
-     * @param event the event to publish
-     */
-    void publish(RaftEvent event);
 
     /**
      * Session state enums.

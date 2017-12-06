@@ -67,6 +67,26 @@ public class InactiveRole extends AbstractRole {
     }
 
     @Override
+    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
+        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
+    }
+
+    @Override
+    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
+        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
+    }
+
+    @Override
+    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
+        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
+    }
+
+    @Override
+    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
+        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
+    }
+
+    @Override
     public CompletableFuture<ConfigureResponse> onConfigure(ConfigureRequest request) {
         raft.checkThread();
         logRequest(request);
@@ -88,26 +108,6 @@ public class InactiveRole extends AbstractRole {
         return CompletableFuture.completedFuture(logResponse(ConfigureResponse.builder()
             .withStatus(RaftResponse.Status.OK)
             .build()));
-    }
-
-    @Override
-    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
-        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
-    }
-
-    @Override
-    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
-        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
-    }
-
-    @Override
-    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
-        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
-    }
-
-    @Override
-    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
-        return Futures.exceptionalFuture(new IllegalStateException("inactive state"));
     }
 
     @Override

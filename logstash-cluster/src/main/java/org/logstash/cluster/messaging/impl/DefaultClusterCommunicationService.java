@@ -45,10 +45,9 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class DefaultClusterCommunicationService implements ManagedClusterCommunicationService {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
     protected final ClusterService cluster;
     protected final MessagingService messagingService;
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeId localNodeId;
     private final AtomicBoolean open = new AtomicBoolean();
 
@@ -72,16 +71,16 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     }
 
     @Override
-    public boolean isClosed() {
-        return !isOpen();
-    }
-
-    @Override
     public CompletableFuture<Void> close() {
         if (open.compareAndSet(true, false)) {
             log.info("Stopped");
         }
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public boolean isClosed() {
+        return !isOpen();
     }
 
     @Override
@@ -157,21 +156,10 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         }
     }
 
-    private CompletableFuture<Void> doUnicast(MessageSubject subject, byte[] payload, NodeId toNodeId) {
-        Node node = cluster.getNode(toNodeId);
-        checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
-        return messagingService.sendAsync(node.endpoint(), subject.toString(), payload);
-    }
-
     private CompletableFuture<byte[]> sendAndReceive(MessageSubject subject, byte[] payload, NodeId toNodeId) {
         Node node = cluster.getNode(toNodeId);
         checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
         return messagingService.sendAndReceive(node.endpoint(), subject.toString(), payload);
-    }
-
-    @Override
-    public void removeSubscriber(MessageSubject subject) {
-        messagingService.unregisterHandler(subject.toString());
     }
 
     @Override
@@ -214,6 +202,17 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
             new InternalMessageConsumer<>(decoder, handler),
             executor);
         return CompletableFuture.completedFuture(null);
+    }
+
+    @Override
+    public void removeSubscriber(MessageSubject subject) {
+        messagingService.unregisterHandler(subject.toString());
+    }
+
+    private CompletableFuture<Void> doUnicast(MessageSubject subject, byte[] payload, NodeId toNodeId) {
+        Node node = cluster.getNode(toNodeId);
+        checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
+        return messagingService.sendAsync(node.endpoint(), subject.toString(), payload);
     }
 
     private class InternalMessageResponder<M, R> implements BiFunction<Endpoint, byte[], CompletableFuture<byte[]>> {

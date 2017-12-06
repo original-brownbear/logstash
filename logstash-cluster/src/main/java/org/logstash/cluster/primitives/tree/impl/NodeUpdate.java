@@ -1,53 +1,17 @@
-/*
- * Copyright 2017-present Open Networking Foundation
-
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import java.util.function.Function;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Map update operation.
  * @param <V> map value type
  */
 public final class NodeUpdate<V> {
-
-    /**
-     * Type of database update operation.
-     */
-    public enum Type {
-        /**
-         * Creates an entry if the current version matches specified version.
-         */
-        CREATE_NODE,
-        /**
-         * Updates an entry if the current version matches specified version.
-         */
-        UPDATE_NODE,
-        /**
-         * Deletes an entry if the current version matches specified version.
-         */
-        DELETE_NODE
-    }
 
     private Type type;
     private DocumentPath path;
@@ -101,6 +65,15 @@ public final class NodeUpdate<V> {
             .build();
     }
 
+    /**
+     * Creates a new builder instance.
+     * @param <V> value type
+     * @return builder.
+     */
+    public static <V> Builder<V> builder() {
+        return new Builder<>();
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(type, path, value, version);
@@ -130,12 +103,21 @@ public final class NodeUpdate<V> {
     }
 
     /**
-     * Creates a new builder instance.
-     * @param <V> value type
-     * @return builder.
+     * Type of database update operation.
      */
-    public static <V> Builder<V> builder() {
-        return new Builder<>();
+    public enum Type {
+        /**
+         * Creates an entry if the current version matches specified version.
+         */
+        CREATE_NODE,
+        /**
+         * Updates an entry if the current version matches specified version.
+         */
+        UPDATE_NODE,
+        /**
+         * Deletes an entry if the current version matches specified version.
+         */
+        DELETE_NODE
     }
 
     /**
@@ -151,13 +133,35 @@ public final class NodeUpdate<V> {
             return update;
         }
 
+        private void validateInputs() {
+            Preconditions.checkNotNull(update.type, "type must be specified");
+            switch (update.type) {
+                case CREATE_NODE:
+                    Preconditions.checkNotNull(update.path, "key must be specified");
+                    Preconditions.checkNotNull(update.value, "value must be specified.");
+                    break;
+                case UPDATE_NODE:
+                    Preconditions.checkNotNull(update.path, "key must be specified");
+                    Preconditions.checkNotNull(update.value, "value must be specified.");
+                    Preconditions.checkState(update.version >= 0, "version must be specified");
+                    break;
+                case DELETE_NODE:
+                    Preconditions.checkNotNull(update.path, "key must be specified");
+                    Preconditions.checkState(update.version >= 0, "version must be specified");
+                    break;
+                default:
+                    throw new IllegalStateException("Unknown operation type");
+            }
+
+        }
+
         public Builder<V> withType(Type type) {
-            update.type = checkNotNull(type, "type cannot be null");
+            update.type = Preconditions.checkNotNull(type, "type cannot be null");
             return this;
         }
 
         public Builder<V> withPath(DocumentPath key) {
-            update.path = checkNotNull(key, "key cannot be null");
+            update.path = Preconditions.checkNotNull(key, "key cannot be null");
             return this;
         }
 
@@ -169,28 +173,6 @@ public final class NodeUpdate<V> {
         public Builder<V> withVersion(long version) {
             update.version = version;
             return this;
-        }
-
-        private void validateInputs() {
-            checkNotNull(update.type, "type must be specified");
-            switch (update.type) {
-                case CREATE_NODE:
-                    checkNotNull(update.path, "key must be specified");
-                    checkNotNull(update.value, "value must be specified.");
-                    break;
-                case UPDATE_NODE:
-                    checkNotNull(update.path, "key must be specified");
-                    checkNotNull(update.value, "value must be specified.");
-                    checkState(update.version >= 0, "version must be specified");
-                    break;
-                case DELETE_NODE:
-                    checkNotNull(update.path, "key must be specified");
-                    checkState(update.version >= 0, "version must be specified");
-                    break;
-                default:
-                    throw new IllegalStateException("Unknown operation type");
-            }
-
         }
     }
 }

@@ -24,18 +24,18 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Single thread context factory.
  */
 public class SingleThreadContextFactory implements ThreadContextFactory {
-  private final ThreadFactory threadFactory;
+    private final ThreadFactory threadFactory;
 
-  public SingleThreadContextFactory(String nameFormat, Logger logger) {
-    this(Threads.namedThreads(nameFormat, logger));
-  }
+    public SingleThreadContextFactory(String nameFormat, Logger logger) {
+        this(Threads.namedThreads(nameFormat, logger));
+    }
 
-  public SingleThreadContextFactory(ThreadFactory threadFactory) {
-    this.threadFactory = checkNotNull(threadFactory);
-  }
+    public SingleThreadContextFactory(ThreadFactory threadFactory) {
+        this.threadFactory = checkNotNull(threadFactory);
+    }
 
-  @Override
-  public ThreadContext createContext() {
-    return new SingleThreadContext(threadFactory);
-  }
+    @Override
+    public ThreadContext createContext() {
+        return new SingleThreadContext(threadFactory);
+    }
 }

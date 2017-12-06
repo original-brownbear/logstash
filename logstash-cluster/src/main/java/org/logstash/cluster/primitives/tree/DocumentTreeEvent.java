@@ -21,106 +21,99 @@ import org.logstash.cluster.time.Versioned;
 
 /**
  * A document tree modification event.
- *
  * @param <V> tree node value type
  */
 public class DocumentTreeEvent<V> {
 
-  /**
-   * Nature of document tree node change.
-   */
-  public enum Type {
+    private final DocumentPath path;
+    private final Type type;
+    private final Optional<Versioned<V>> newValue;
+    private final Optional<Versioned<V>> oldValue;
+    @SuppressWarnings("unused")
+    private DocumentTreeEvent() {
+        this.path = null;
+        this.type = null;
+        this.newValue = null;
+        this.oldValue = null;
+    }
 
     /**
-     * Signifies node being created.
+     * Constructs a new {@code DocumentTreeEvent}.
+     * @param path path to the node
+     * @param type type of change
+     * @param newValue optional new value; will be empty if node was deleted
+     * @param oldValue optional old value; will be empty if node was created
      */
-    CREATED,
+    public DocumentTreeEvent(DocumentPath path,
+        Type type,
+        Optional<Versioned<V>> newValue,
+        Optional<Versioned<V>> oldValue) {
+        this.path = path;
+        this.type = type;
+        this.newValue = newValue;
+        this.oldValue = oldValue;
+    }
 
     /**
-     * Signifies the value of an existing node being updated.
+     * Returns the path to the changed node.
+     * @return node path
      */
-    UPDATED,
+    public DocumentPath path() {
+        return path;
+    }
 
     /**
-     * Signifies an existing node being deleted.
+     * Returns the change type.
+     * @return change type
      */
-    DELETED
-  }
+    public Type type() {
+        return type;
+    }
 
-  private final DocumentPath path;
-  private final Type type;
-  private final Optional<Versioned<V>> newValue;
-  private final Optional<Versioned<V>> oldValue;
+    /**
+     * Returns the new value.
+     * @return optional new value; will be empty if node was deleted
+     */
+    public Optional<Versioned<V>> newValue() {
+        return newValue;
+    }
 
-  @SuppressWarnings("unused")
-  private DocumentTreeEvent() {
-    this.path = null;
-    this.type = null;
-    this.newValue = null;
-    this.oldValue = null;
-  }
+    /**
+     * Returns the old value.
+     * @return optional old value; will be empty if node was created
+     */
+    public Optional<Versioned<V>> oldValue() {
+        return oldValue;
+    }
 
-  /**
-   * Constructs a new {@code DocumentTreeEvent}.
-   *
-   * @param path     path to the node
-   * @param type     type of change
-   * @param newValue optional new value; will be empty if node was deleted
-   * @param oldValue optional old value; will be empty if node was created
-   */
-  public DocumentTreeEvent(DocumentPath path,
-                           Type type,
-                           Optional<Versioned<V>> newValue,
-                           Optional<Versioned<V>> oldValue) {
-    this.path = path;
-    this.type = type;
-    this.newValue = newValue;
-    this.oldValue = oldValue;
-  }
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(getClass())
+            .add("path", path)
+            .add("type", type)
+            .add("newValue", newValue)
+            .add("oldValue", oldValue)
+            .toString();
+    }
 
-  /**
-   * Returns the path to the changed node.
-   *
-   * @return node path
-   */
-  public DocumentPath path() {
-    return path;
-  }
+    /**
+     * Nature of document tree node change.
+     */
+    public enum Type {
 
-  /**
-   * Returns the change type.
-   *
-   * @return change type
-   */
-  public Type type() {
-    return type;
-  }
+        /**
+         * Signifies node being created.
+         */
+        CREATED,
 
-  /**
-   * Returns the new value.
-   *
-   * @return optional new value; will be empty if node was deleted
-   */
-  public Optional<Versioned<V>> newValue() {
-    return newValue;
-  }
+        /**
+         * Signifies the value of an existing node being updated.
+         */
+        UPDATED,
 
-  /**
-   * Returns the old value.
-   *
-   * @return optional old value; will be empty if node was created
-   */
-  public Optional<Versioned<V>> oldValue() {
-    return oldValue;
-  }
-
-  @Override
-  public String toString() {
-    return MoreObjects.toStringHelper(getClass())
-        .add("path", path)
-        .add("type", type)
-        .add("newValue", newValue)
-        .add("oldValue", oldValue)
-        .toString();
-  }
+        /**
+         * Signifies an existing node being deleted.
+         */
+        DELETED
+    }
 }

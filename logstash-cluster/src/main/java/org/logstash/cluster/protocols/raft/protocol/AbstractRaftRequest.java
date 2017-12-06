@@ -22,23 +22,22 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  */
 public abstract class AbstractRaftRequest implements RaftRequest {
 
-  /**
-   * Abstract request builder.
-   *
-   * @param <T> The builder type.
-   * @param <U> The request type.
-   */
-  protected static abstract class Builder<T extends Builder<T, U>, U extends AbstractRaftRequest> implements RaftRequest.Builder<T, U> {
-
     /**
-     * Validates the builder.
+     * Abstract request builder.
+     * @param <T> The builder type.
+     * @param <U> The request type.
      */
-    protected void validate() {
-    }
+    protected static abstract class Builder<T extends Builder<T, U>, U extends AbstractRaftRequest> implements RaftRequest.Builder<T, U> {
 
-    @Override
-    public String toString() {
-      return toStringHelper(this).toString();
+        /**
+         * Validates the builder.
+         */
+        protected void validate() {
+        }
+
+        @Override
+        public String toString() {
+            return toStringHelper(this).toString();
+        }
     }
-  }
 }

@@ -109,10 +109,10 @@ public class RaftConsistentMapService extends AbstractRaftService {
         .build());
 
     protected Map<Long, RaftSession> listeners = new LinkedHashMap<>();
-    private Map<String, MapEntryValue> map;
     protected Set<String> preparedKeys = Sets.newHashSet();
     protected Map<TransactionId, TransactionScope> activeTransactions = Maps.newHashMap();
     protected long currentVersion;
+    private Map<String, MapEntryValue> map;
 
     public RaftConsistentMapService() {
         map = createMap();
@@ -122,14 +122,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
         return Maps.newHashMap();
     }
 
-    protected Map<String, MapEntryValue> entries() {
-        return map;
-    }
-
-    protected Serializer serializer() {
-        return SERIALIZER;
-    }
-
     @Override
     public void snapshot(SnapshotWriter writer) {
         writer.writeObject(Sets.newHashSet(listeners.keySet()), serializer()::encode);
@@ -137,6 +129,14 @@ public class RaftConsistentMapService extends AbstractRaftService {
         writer.writeObject(entries(), serializer()::encode);
         writer.writeObject(activeTransactions, serializer()::encode);
         writer.writeLong(currentVersion);
+    }
+
+    protected Map<String, MapEntryValue> entries() {
+        return map;
+    }
+
+    protected Serializer serializer() {
+        return SERIALIZER;
     }
 
     @Override
@@ -183,6 +183,150 @@ public class RaftConsistentMapService extends AbstractRaftService {
         executor.register(PREPARE_AND_COMMIT, serializer()::decode, this::prepareAndCommit, serializer()::encode);
         executor.register(COMMIT, serializer()::decode, this::commit, serializer()::encode);
         executor.register(ROLLBACK, serializer()::decode, this::rollback, serializer()::encode);
+    }
+
+    /**
+     * Handles a size commit.
+     * @return number of entries in map
+     */
+    protected int size() {
+        return (int) entries().values().stream()
+            .filter(value -> value.type() != MapEntryValue.Type.TOMBSTONE)
+            .count();
+    }
+
+    /**
+     * Handles an is empty commit.
+     * @return {@code true} if map is empty
+     */
+    protected boolean isEmpty() {
+        return entries().values().stream()
+            .noneMatch(value -> value.type() != MapEntryValue.Type.TOMBSTONE);
+    }
+
+    /**
+     * Handles a keySet commit.
+     * @return set of keys in map
+     */
+    protected Set<String> keySet() {
+        return entries().entrySet().stream()
+            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
+            .map(Map.Entry::getKey)
+            .collect(Collectors.toSet());
+    }
+
+    /**
+     * Handles a values commit.
+     * @return collection of values in map
+     */
+    protected Collection<Versioned<byte[]>> values() {
+        return entries().entrySet().stream()
+            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
+            .map(entry -> toVersioned(entry.getValue()))
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Handles a entry set commit.
+     * @return set of map entries
+     */
+    protected Set<Map.Entry<String, Versioned<byte[]>>> entrySet() {
+        return entries().entrySet().stream()
+            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
+            .map(e -> Maps.immutableEntry(e.getKey(), toVersioned(e.getValue())))
+            .collect(Collectors.toSet());
+    }
+
+    /**
+     * Utility for turning a {@code MapEntryValue} to {@code Versioned}.
+     * @param value map entry value
+     * @return versioned instance
+     */
+    protected Versioned<byte[]> toVersioned(MapEntryValue value) {
+        return value != null && value.type() != MapEntryValue.Type.TOMBSTONE
+            ? new Versioned<>(value.value(), value.version()) : null;
+    }
+
+    /**
+     * Handles a clear commit.
+     * @return clear result
+     */
+    protected MapEntryUpdateResult.Status clear() {
+        Iterator<Map.Entry<String, MapEntryValue>> iterator = entries().entrySet().iterator();
+        Map<String, MapEntryValue> entriesToAdd = new HashMap<>();
+        while (iterator.hasNext()) {
+            Map.Entry<String, MapEntryValue> entry = iterator.next();
+            String key = entry.getKey();
+            MapEntryValue value = entry.getValue();
+            if (!valueIsNull(value)) {
+                Versioned<byte[]> removedValue = new Versioned<>(value.value(), value.version());
+                publish(new MapEvent<>(MapEvent.Type.REMOVE, "", key, null, removedValue));
+                if (activeTransactions.isEmpty()) {
+                    iterator.remove();
+                } else {
+                    entriesToAdd.put(key, new MapEntryValue(MapEntryValue.Type.TOMBSTONE, value.version, null));
+                }
+            }
+        }
+        entries().putAll(entriesToAdd);
+        return MapEntryUpdateResult.Status.OK;
+    }
+
+    /**
+     * Returns a boolean indicating whether the given MapEntryValue is null or a tombstone.
+     * @param value the value to check
+     * @return indicates whether the given value is null or is a tombstone
+     */
+    protected boolean valueIsNull(MapEntryValue value) {
+        return value == null || value.type() == MapEntryValue.Type.TOMBSTONE;
+    }
+
+    /**
+     * Publishes an event to listeners.
+     * @param event event to publish
+     */
+    private void publish(MapEvent<String, byte[]> event) {
+        publish(Lists.newArrayList(event));
+    }
+
+    /**
+     * Publishes events to listeners.
+     * @param events list of map event to publish
+     */
+    private void publish(List<MapEvent<String, byte[]>> events) {
+        listeners.values().forEach(session -> {
+            session.publish(CHANGE, serializer()::encode, events);
+        });
+    }
+
+    /**
+     * Handles a listen commit.
+     * @param session listen session
+     */
+    protected void listen(RaftSession session) {
+        listeners.put(session.sessionId().id(), session);
+    }
+
+    /**
+     * Handles an unlisten commit.
+     * @param session unlisten session
+     */
+    protected void unlisten(RaftSession session) {
+        listeners.remove(session.sessionId().id());
+    }
+
+    @Override
+    public void onExpire(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    private void closeListener(Long sessionId) {
+        listeners.remove(sessionId);
     }
 
     /**
@@ -244,89 +388,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a size commit.
-     * @return number of entries in map
-     */
-    protected int size() {
-        return (int) entries().values().stream()
-            .filter(value -> value.type() != MapEntryValue.Type.TOMBSTONE)
-            .count();
-    }
-
-    /**
-     * Handles an is empty commit.
-     * @return {@code true} if map is empty
-     */
-    protected boolean isEmpty() {
-        return entries().values().stream()
-            .noneMatch(value -> value.type() != MapEntryValue.Type.TOMBSTONE);
-    }
-
-    /**
-     * Handles a keySet commit.
-     * @return set of keys in map
-     */
-    protected Set<String> keySet() {
-        return entries().entrySet().stream()
-            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toSet());
-    }
-
-    /**
-     * Handles a values commit.
-     * @return collection of values in map
-     */
-    protected Collection<Versioned<byte[]>> values() {
-        return entries().entrySet().stream()
-            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
-            .map(entry -> toVersioned(entry.getValue()))
-            .collect(Collectors.toList());
-    }
-
-    /**
-     * Handles a entry set commit.
-     * @return set of map entries
-     */
-    protected Set<Map.Entry<String, Versioned<byte[]>>> entrySet() {
-        return entries().entrySet().stream()
-            .filter(entry -> entry.getValue().type() != MapEntryValue.Type.TOMBSTONE)
-            .map(e -> Maps.immutableEntry(e.getKey(), toVersioned(e.getValue())))
-            .collect(Collectors.toSet());
-    }
-
-    /**
-     * Returns a boolean indicating whether the given MapEntryValues are equal.
-     * @param oldValue the first value to compare
-     * @param newValue the second value to compare
-     * @return indicates whether the two values are equal
-     */
-    protected boolean valuesEqual(MapEntryValue oldValue, MapEntryValue newValue) {
-        return (oldValue == null && newValue == null)
-            || (oldValue != null && newValue != null && valuesEqual(oldValue.value(), newValue.value()));
-    }
-
-    /**
-     * Returns a boolean indicating whether the given entry values are equal.
-     * @param oldValue the first value to compare
-     * @param newValue the second value to compare
-     * @return indicates whether the two values are equal
-     */
-    protected boolean valuesEqual(byte[] oldValue, byte[] newValue) {
-        return (oldValue == null && newValue == null)
-            || (oldValue != null && newValue != null && Arrays.equals(oldValue, newValue));
-    }
-
-    /**
-     * Returns a boolean indicating whether the given MapEntryValue is null or a tombstone.
-     * @param value the value to check
-     * @return indicates whether the given value is null or is a tombstone
-     */
-    protected boolean valueIsNull(MapEntryValue value) {
-        return value == null || value.type() == MapEntryValue.Type.TOMBSTONE;
-    }
-
-    /**
      * Handles a put commit.
      * @param commit put commit
      * @return map entry update result
@@ -369,6 +430,28 @@ public class RaftConsistentMapService extends AbstractRaftService {
         }
         // If the value hasn't changed, return a NOOP result.
         return new MapEntryUpdateResult<>(MapEntryUpdateResult.Status.NOOP, commit.index(), key, toVersioned(oldValue));
+    }
+
+    /**
+     * Returns a boolean indicating whether the given MapEntryValues are equal.
+     * @param oldValue the first value to compare
+     * @param newValue the second value to compare
+     * @return indicates whether the two values are equal
+     */
+    protected boolean valuesEqual(MapEntryValue oldValue, MapEntryValue newValue) {
+        return (oldValue == null && newValue == null)
+            || (oldValue != null && newValue != null && valuesEqual(oldValue.value(), newValue.value()));
+    }
+
+    /**
+     * Returns a boolean indicating whether the given entry values are equal.
+     * @param oldValue the first value to compare
+     * @param newValue the second value to compare
+     * @return indicates whether the two values are equal
+     */
+    protected boolean valuesEqual(byte[] oldValue, byte[] newValue) {
+        return (oldValue == null && newValue == null)
+            || (oldValue != null && newValue != null && Arrays.equals(oldValue, newValue));
     }
 
     /**
@@ -450,6 +533,15 @@ public class RaftConsistentMapService extends AbstractRaftService {
 
     /**
      * Handles a remove commit.
+     * @param commit remove commit
+     * @return map entry update result
+     */
+    protected MapEntryUpdateResult<String, byte[]> remove(Commit<? extends Remove> commit) {
+        return removeIf(commit.index(), commit.value().key(), v -> true);
+    }
+
+    /**
+     * Handles a remove commit.
      * @param index the commit index
      * @param key the key to remove
      * @param predicate predicate to determine whether to remove the entry
@@ -481,15 +573,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a remove commit.
-     * @param commit remove commit
-     * @return map entry update result
-     */
-    protected MapEntryUpdateResult<String, byte[]> remove(Commit<? extends Remove> commit) {
-        return removeIf(commit.index(), commit.value().key(), v -> true);
-    }
-
-    /**
      * Handles a removeValue commit.
      * @param commit removeValue commit
      * @return map entry update result
@@ -506,6 +589,16 @@ public class RaftConsistentMapService extends AbstractRaftService {
      */
     protected MapEntryUpdateResult<String, byte[]> removeVersion(Commit<? extends RemoveVersion> commit) {
         return removeIf(commit.index(), commit.value().key(), v -> v.version() == commit.value().version());
+    }
+
+    /**
+     * Handles a replace commit.
+     * @param commit replace commit
+     * @return map entry update result
+     */
+    protected MapEntryUpdateResult<String, byte[]> replace(Commit<? extends Replace> commit) {
+        MapEntryValue value = new MapEntryValue(MapEntryValue.Type.VALUE, commit.index(), commit.value().value());
+        return replaceIf(commit.index(), commit.value().key(), value, v -> true);
     }
 
     /**
@@ -541,16 +634,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a replace commit.
-     * @param commit replace commit
-     * @return map entry update result
-     */
-    protected MapEntryUpdateResult<String, byte[]> replace(Commit<? extends Replace> commit) {
-        MapEntryValue value = new MapEntryValue(MapEntryValue.Type.VALUE, commit.index(), commit.value().value());
-        return replaceIf(commit.index(), commit.value().key(), value, v -> true);
-    }
-
-    /**
      * Handles a replaceValue commit.
      * @param commit replaceValue commit
      * @return map entry update result
@@ -570,47 +653,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
         MapEntryValue value = new MapEntryValue(MapEntryValue.Type.VALUE, commit.index(), commit.value().newValue());
         return replaceIf(commit.index(), commit.value().key(), value,
             v -> v.version() == commit.value().oldVersion());
-    }
-
-    /**
-     * Handles a clear commit.
-     * @return clear result
-     */
-    protected MapEntryUpdateResult.Status clear() {
-        Iterator<Map.Entry<String, MapEntryValue>> iterator = entries().entrySet().iterator();
-        Map<String, MapEntryValue> entriesToAdd = new HashMap<>();
-        while (iterator.hasNext()) {
-            Map.Entry<String, MapEntryValue> entry = iterator.next();
-            String key = entry.getKey();
-            MapEntryValue value = entry.getValue();
-            if (!valueIsNull(value)) {
-                Versioned<byte[]> removedValue = new Versioned<>(value.value(), value.version());
-                publish(new MapEvent<>(MapEvent.Type.REMOVE, "", key, null, removedValue));
-                if (activeTransactions.isEmpty()) {
-                    iterator.remove();
-                } else {
-                    entriesToAdd.put(key, new MapEntryValue(MapEntryValue.Type.TOMBSTONE, value.version, null));
-                }
-            }
-        }
-        entries().putAll(entriesToAdd);
-        return MapEntryUpdateResult.Status.OK;
-    }
-
-    /**
-     * Handles a listen commit.
-     * @param session listen session
-     */
-    protected void listen(RaftSession session) {
-        listeners.put(session.sessionId().id(), session);
-    }
-
-    /**
-     * Handles an unlisten commit.
-     * @param session unlisten session
-     */
-    protected void unlisten(RaftSession session) {
-        listeners.remove(session.sessionId().id());
     }
 
     /**
@@ -718,29 +760,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles an commit commit (ha!).
-     * @param commit transaction commit commit
-     * @return commit result
-     */
-    protected CommitResult commit(Commit<? extends TransactionCommit> commit) {
-        TransactionId transactionId = commit.value().transactionId();
-        TransactionScope transactionScope = activeTransactions.remove(transactionId);
-        if (transactionScope == null) {
-            return CommitResult.UNKNOWN_TRANSACTION_ID;
-        }
-
-        try {
-            this.currentVersion = commit.index();
-            return commitTransaction(transactionScope);
-        } catch (Exception e) {
-            logger().warn("Failure applying {}", commit, e);
-            throw Throwables.propagate(e);
-        } finally {
-            discardTombstones();
-        }
-    }
-
-    /**
      * Applies committed operations to the state machine.
      */
     private CommitResult commitTransaction(TransactionScope transactionScope) {
@@ -813,35 +832,6 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles an rollback commit (ha!).
-     * @param commit transaction rollback commit
-     * @return rollback result
-     */
-    protected RollbackResult rollback(Commit<? extends TransactionRollback> commit) {
-        TransactionId transactionId = commit.value().transactionId();
-        TransactionScope transactionScope = activeTransactions.remove(transactionId);
-        if (transactionScope == null) {
-            return RollbackResult.UNKNOWN_TRANSACTION_ID;
-        } else if (!transactionScope.isPrepared()) {
-            discardTombstones();
-            return RollbackResult.OK;
-        } else {
-            try {
-                transactionScope.transactionLog().records()
-                    .forEach(record -> {
-                        if (record.type() != MapUpdate.Type.VERSION_MATCH) {
-                            preparedKeys.remove(record.key());
-                        }
-                    });
-                return RollbackResult.OK;
-            } finally {
-                discardTombstones();
-            }
-        }
-
-    }
-
-    /**
      * Discards tombstones no longer needed by active transactions.
      */
     private void discardTombstones() {
@@ -868,45 +858,55 @@ public class RaftConsistentMapService extends AbstractRaftService {
     }
 
     /**
-     * Utility for turning a {@code MapEntryValue} to {@code Versioned}.
-     * @param value map entry value
-     * @return versioned instance
+     * Handles an commit commit (ha!).
+     * @param commit transaction commit commit
+     * @return commit result
      */
-    protected Versioned<byte[]> toVersioned(MapEntryValue value) {
-        return value != null && value.type() != MapEntryValue.Type.TOMBSTONE
-            ? new Versioned<>(value.value(), value.version()) : null;
+    protected CommitResult commit(Commit<? extends TransactionCommit> commit) {
+        TransactionId transactionId = commit.value().transactionId();
+        TransactionScope transactionScope = activeTransactions.remove(transactionId);
+        if (transactionScope == null) {
+            return CommitResult.UNKNOWN_TRANSACTION_ID;
+        }
+
+        try {
+            this.currentVersion = commit.index();
+            return commitTransaction(transactionScope);
+        } catch (Exception e) {
+            logger().warn("Failure applying {}", commit, e);
+            throw Throwables.propagate(e);
+        } finally {
+            discardTombstones();
+        }
     }
 
     /**
-     * Publishes an event to listeners.
-     * @param event event to publish
+     * Handles an rollback commit (ha!).
+     * @param commit transaction rollback commit
+     * @return rollback result
      */
-    private void publish(MapEvent<String, byte[]> event) {
-        publish(Lists.newArrayList(event));
-    }
+    protected RollbackResult rollback(Commit<? extends TransactionRollback> commit) {
+        TransactionId transactionId = commit.value().transactionId();
+        TransactionScope transactionScope = activeTransactions.remove(transactionId);
+        if (transactionScope == null) {
+            return RollbackResult.UNKNOWN_TRANSACTION_ID;
+        } else if (!transactionScope.isPrepared()) {
+            discardTombstones();
+            return RollbackResult.OK;
+        } else {
+            try {
+                transactionScope.transactionLog().records()
+                    .forEach(record -> {
+                        if (record.type() != MapUpdate.Type.VERSION_MATCH) {
+                            preparedKeys.remove(record.key());
+                        }
+                    });
+                return RollbackResult.OK;
+            } finally {
+                discardTombstones();
+            }
+        }
 
-    /**
-     * Publishes events to listeners.
-     * @param events list of map event to publish
-     */
-    private void publish(List<MapEvent<String, byte[]>> events) {
-        listeners.values().forEach(session -> {
-            session.publish(CHANGE, serializer()::encode, events);
-        });
-    }
-
-    @Override
-    public void onExpire(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
-
-    @Override
-    public void onClose(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
-
-    private void closeListener(Long sessionId) {
-        listeners.remove(sessionId);
     }
 
     /**
@@ -981,20 +981,20 @@ public class RaftConsistentMapService extends AbstractRaftService {
         }
 
         /**
-         * Returns whether this is a prepared transaction scope.
-         * @return whether this is a prepared transaction scope
-         */
-        boolean isPrepared() {
-            return transactionLog != null;
-        }
-
-        /**
          * Returns the transaction commit log.
          * @return the transaction commit log
          */
         TransactionLog<MapUpdate<String, byte[]>> transactionLog() {
             checkState(isPrepared());
             return transactionLog;
+        }
+
+        /**
+         * Returns whether this is a prepared transaction scope.
+         * @return whether this is a prepared transaction scope
+         */
+        boolean isPrepared() {
+            return transactionLog != null;
         }
 
         /**

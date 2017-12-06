@@ -36,19 +36,19 @@ public class DefaultOperationId extends AbstractIdentifier<String> implements Op
         this.type = type;
     }
 
-    /**
-     * Returns the operation type.
-     * @return the operation type
-     */
-    public OperationType type() {
-        return type;
-    }
-
     @Override
     public String toString() {
         return toStringHelper(this)
             .add("id", id())
             .add("type", type())
             .toString();
+    }
+
+    /**
+     * Returns the operation type.
+     * @return the operation type
+     */
+    public OperationType type() {
+        return type;
     }
 }

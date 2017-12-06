@@ -33,14 +33,6 @@ public class VectorTimestamp<T extends Identifier> extends LogicalTimestamp {
         this.identifier = identifier;
     }
 
-    /**
-     * Returns the timestamp identifier.
-     * @return the timestamp identifier
-     */
-    public T identifier() {
-        return identifier;
-    }
-
     @Override
     public int compareTo(Timestamp o) {
         checkArgument(o instanceof VectorTimestamp, "Must be VectorTimestamp", o);
@@ -55,6 +47,14 @@ public class VectorTimestamp<T extends Identifier> extends LogicalTimestamp {
     @Override
     public int hashCode() {
         return Objects.hash(identifier(), value());
+    }
+
+    /**
+     * Returns the timestamp identifier.
+     * @return the timestamp identifier
+     */
+    public T identifier() {
+        return identifier;
     }
 
     @Override

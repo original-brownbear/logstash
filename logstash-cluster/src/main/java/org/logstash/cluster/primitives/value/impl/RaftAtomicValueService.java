@@ -80,14 +80,6 @@ public class RaftAtomicValueService extends AbstractRaftService {
         }
     }
 
-    private byte[] updateAndNotify(byte[] value) {
-        byte[] oldValue = this.value;
-        this.value = value;
-        AtomicValueEvent<byte[]> event = new AtomicValueEvent<>(oldValue, value);
-        listeners.forEach(s -> s.publish(CHANGE, SERIALIZER::encode, event));
-        return oldValue;
-    }
-
     /**
      * Handles a set commit.
      * @param commit the commit to handle
@@ -96,6 +88,14 @@ public class RaftAtomicValueService extends AbstractRaftService {
         if (!Arrays.equals(this.value, commit.value().value())) {
             updateAndNotify(commit.value().value());
         }
+    }
+
+    private byte[] updateAndNotify(byte[] value) {
+        byte[] oldValue = this.value;
+        this.value = value;
+        AtomicValueEvent<byte[]> event = new AtomicValueEvent<>(oldValue, value);
+        listeners.forEach(s -> s.publish(CHANGE, SERIALIZER::encode, event));
+        return oldValue;
     }
 
     /**

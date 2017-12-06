@@ -36,6 +36,14 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class UnsafeMappedBuffer extends NativeBuffer {
     private static final int DEFAULT_INITIAL_CAPACITY = 1024 * 1024 * 16;
 
+    protected UnsafeMappedBuffer(UnsafeMappedBytes bytes, ReferenceManager<Buffer> referenceManager) {
+        super(bytes, referenceManager);
+    }
+
+    UnsafeMappedBuffer(UnsafeMappedBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity);
+    }
+
     /**
      * Allocates a dynamic capacity mapped buffer in {@link FileChannel.MapMode#READ_WRITE} mode with an initial capacity
      * of {@code 16MiB} and a maximum capacity of {@link Integer#MAX_VALUE}.
@@ -55,6 +63,36 @@ public class UnsafeMappedBuffer extends NativeBuffer {
      */
     public static UnsafeMappedBuffer allocate(File file) {
         return allocate(file, MappedMemoryAllocator.DEFAULT_MAP_MODE, DEFAULT_INITIAL_CAPACITY, Integer.MAX_VALUE);
+    }
+
+    /**
+     * Allocates a mapped buffer.
+     * <p>
+     * Memory will be mapped by opening and expanding the given {@link File} to the desired {@code count} and mapping the
+     * file contents into memory via {@link FileChannel#map(FileChannel.MapMode, long, long)}.
+     * <p>
+     * The resulting buffer will have a capacity of {@code initialCapacity}. The underlying {@link UnsafeMappedBytes} will be
+     * initialized to the next power of {@code 2}. As bytes are written to the buffer, the buffer's capacity will double
+     * as int as {@code maxCapacity > capacity}.
+     * @param file The file to map into memory. If the file doesn't exist it will be automatically created.
+     * @param mode The mode with which to map the file.
+     * @param initialCapacity The initial capacity of the buffer.
+     * @param maxCapacity The maximum capacity of the buffer.
+     * @return The mapped buffer.
+     * @throws NullPointerException If {@code file} is {@code null}
+     * @throws IllegalArgumentException If the {@code capacity} or {@code maxCapacity} is greater than
+     * {@link Integer#MAX_VALUE}.
+     * @see UnsafeMappedBuffer#allocate(File)
+     * @see UnsafeMappedBuffer#allocate(File, FileChannel.MapMode)
+     * @see UnsafeMappedBuffer#allocate(File, int)
+     * @see UnsafeMappedBuffer#allocate(File, FileChannel.MapMode, int)
+     * @see UnsafeMappedBuffer#allocate(File, int, int)
+     */
+    public static UnsafeMappedBuffer allocate(File file, FileChannel.MapMode mode, int initialCapacity, int maxCapacity) {
+        checkNotNull(file, "file cannot be null");
+        checkNotNull(mode, "mode cannot be null");
+        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        return new UnsafeMappedBuffer(new UnsafeMappedBytes(file, MappedMemory.allocate(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity))), 0, initialCapacity, maxCapacity);
     }
 
     /**
@@ -151,44 +189,6 @@ public class UnsafeMappedBuffer extends NativeBuffer {
      */
     public static UnsafeMappedBuffer allocate(File file, int initialCapacity, int maxCapacity) {
         return allocate(file, MappedMemoryAllocator.DEFAULT_MAP_MODE, initialCapacity, maxCapacity);
-    }
-
-    /**
-     * Allocates a mapped buffer.
-     * <p>
-     * Memory will be mapped by opening and expanding the given {@link File} to the desired {@code count} and mapping the
-     * file contents into memory via {@link FileChannel#map(FileChannel.MapMode, long, long)}.
-     * <p>
-     * The resulting buffer will have a capacity of {@code initialCapacity}. The underlying {@link UnsafeMappedBytes} will be
-     * initialized to the next power of {@code 2}. As bytes are written to the buffer, the buffer's capacity will double
-     * as int as {@code maxCapacity > capacity}.
-     * @param file The file to map into memory. If the file doesn't exist it will be automatically created.
-     * @param mode The mode with which to map the file.
-     * @param initialCapacity The initial capacity of the buffer.
-     * @param maxCapacity The maximum capacity of the buffer.
-     * @return The mapped buffer.
-     * @throws NullPointerException If {@code file} is {@code null}
-     * @throws IllegalArgumentException If the {@code capacity} or {@code maxCapacity} is greater than
-     * {@link Integer#MAX_VALUE}.
-     * @see UnsafeMappedBuffer#allocate(File)
-     * @see UnsafeMappedBuffer#allocate(File, FileChannel.MapMode)
-     * @see UnsafeMappedBuffer#allocate(File, int)
-     * @see UnsafeMappedBuffer#allocate(File, FileChannel.MapMode, int)
-     * @see UnsafeMappedBuffer#allocate(File, int, int)
-     */
-    public static UnsafeMappedBuffer allocate(File file, FileChannel.MapMode mode, int initialCapacity, int maxCapacity) {
-        checkNotNull(file, "file cannot be null");
-        checkNotNull(mode, "mode cannot be null");
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
-        return new UnsafeMappedBuffer(new UnsafeMappedBytes(file, MappedMemory.allocate(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity))), 0, initialCapacity, maxCapacity);
-    }
-
-    protected UnsafeMappedBuffer(UnsafeMappedBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
-    }
-
-    UnsafeMappedBuffer(UnsafeMappedBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity);
     }
 
     @Override

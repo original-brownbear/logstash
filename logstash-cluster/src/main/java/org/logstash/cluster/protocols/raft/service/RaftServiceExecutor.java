@@ -83,14 +83,6 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @param callback the operation callback
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
-    void handle(OperationId operationId, Function<Commit<byte[]>, byte[]> callback);
-
-    /**
-     * Registers a operation callback.
-     * @param operationId the operation identifier
-     * @param callback the operation callback
-     * @throws NullPointerException if the {@code operationId} or {@code callback} is null
-     */
     default void register(OperationId operationId, Runnable callback) {
         checkNotNull(operationId, "operationId cannot be null");
         checkNotNull(callback, "callback cannot be null");
@@ -99,6 +91,14 @@ public interface RaftServiceExecutor extends ThreadContext {
             return HeapBytes.EMPTY;
         });
     }
+
+    /**
+     * Registers a operation callback.
+     * @param operationId the operation identifier
+     * @param callback the operation callback
+     * @throws NullPointerException if the {@code operationId} or {@code callback} is null
+     */
+    void handle(OperationId operationId, Function<Commit<byte[]>, byte[]> callback);
 
     /**
      * Registers a no argument operation callback.

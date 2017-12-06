@@ -102,6 +102,11 @@ public class DiscreteRaftProxyClient implements RaftProxyClient {
     }
 
     @Override
+    public SessionId sessionId() {
+        return state.getSessionId();
+    }
+
+    @Override
     public String name() {
         return state.getServiceName();
     }
@@ -109,11 +114,6 @@ public class DiscreteRaftProxyClient implements RaftProxyClient {
     @Override
     public ServiceType serviceType() {
         return state.getServiceType();
-    }
-
-    @Override
-    public SessionId sessionId() {
-        return state.getSessionId();
     }
 
     @Override

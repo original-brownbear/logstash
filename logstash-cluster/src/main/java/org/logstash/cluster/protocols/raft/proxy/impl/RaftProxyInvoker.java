@@ -104,6 +104,20 @@ final class RaftProxyInvoker {
     }
 
     /**
+     * Submits an operation attempt.
+     * @param attempt The attempt to submit.
+     */
+    private <T extends OperationRequest, U extends OperationResponse> void invoke(final OperationAttempt<T, U> attempt) {
+        if (state.getState() == RaftProxy.State.CLOSED) {
+            attempt.fail(new RaftException.ClosedSession("session closed"));
+        } else {
+            attempts.put(attempt.sequence, attempt);
+            attempt.send();
+            attempt.future.whenComplete((r, e) -> attempts.remove(attempt.sequence));
+        }
+    }
+
+    /**
      * Submits a query to the cluster.
      */
     private void invokeQuery(final RaftOperation operation, final CompletableFuture<byte[]> future) {
@@ -121,20 +135,6 @@ final class RaftProxyInvoker {
      */
     private void invokeQuery(final QueryRequest request, final CompletableFuture<byte[]> future) {
         invoke(new QueryAttempt(sequencer.nextRequest(), request, future));
-    }
-
-    /**
-     * Submits an operation attempt.
-     * @param attempt The attempt to submit.
-     */
-    private <T extends OperationRequest, U extends OperationResponse> void invoke(final OperationAttempt<T, U> attempt) {
-        if (state.getState() == RaftProxy.State.CLOSED) {
-            attempt.fail(new RaftException.ClosedSession("session closed"));
-        } else {
-            attempts.put(attempt.sequence, attempt);
-            attempt.send();
-            attempt.future.whenComplete((r, e) -> attempts.remove(attempt.sequence));
-        }
     }
 
     /**
@@ -207,10 +207,17 @@ final class RaftProxyInvoker {
         protected abstract void send();
 
         /**
-         * Returns the next instance of the attempt.
-         * @return The next instance of the attempt.
+         * Completes the operation successfully.
+         * @param response The operation response.
          */
-        protected abstract OperationAttempt<T, U> next();
+        protected abstract void complete(U response);
+
+        /**
+         * Fails the attempt.
+         */
+        public void fail() {
+            fail(defaultException());
+        }
 
         /**
          * Returns a new instance of the default exception for the operation.
@@ -219,10 +226,12 @@ final class RaftProxyInvoker {
         protected abstract Throwable defaultException();
 
         /**
-         * Completes the operation successfully.
-         * @param response The operation response.
+         * Fails the attempt with the given exception.
+         * @param t The exception with which to fail the attempt.
          */
-        protected abstract void complete(U response);
+        public void fail(final Throwable t) {
+            complete(t);
+        }
 
         /**
          * Completes the operation with an exception.
@@ -242,26 +251,17 @@ final class RaftProxyInvoker {
         }
 
         /**
-         * Fails the attempt.
-         */
-        public void fail() {
-            fail(defaultException());
-        }
-
-        /**
-         * Fails the attempt with the given exception.
-         * @param t The exception with which to fail the attempt.
-         */
-        public void fail(final Throwable t) {
-            complete(t);
-        }
-
-        /**
          * Immediately retries the attempt.
          */
         public void retry() {
             context.execute(() -> invoke(next()));
         }
+
+        /**
+         * Returns the next instance of the attempt.
+         * @return The next instance of the attempt.
+         */
+        protected abstract OperationAttempt<T, U> next();
 
         /**
          * Retries the attempt after the given duration.
@@ -289,16 +289,6 @@ final class RaftProxyInvoker {
         @Override
         protected void send() {
             leaderConnection.command(request).whenComplete(this);
-        }
-
-        @Override
-        protected OperationAttempt<CommandRequest, CommandResponse> next() {
-            return new CommandAttempt(sequence, this.attempt + 1, request, future);
-        }
-
-        @Override
-        protected Throwable defaultException() {
-            return new RaftException.CommandFailure("failed to complete command");
         }
 
         @Override
@@ -336,7 +326,17 @@ final class RaftProxyInvoker {
             } else {
                 fail(error);
             }
+        }        @Override
+        protected OperationAttempt<CommandRequest, CommandResponse> next() {
+            return new CommandAttempt(sequence, this.attempt + 1, request, future);
         }
+
+        @Override
+        protected Throwable defaultException() {
+            return new RaftException.CommandFailure("failed to complete command");
+        }
+
+
 
         @Override
         public void fail(final Throwable cause) {

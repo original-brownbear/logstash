@@ -30,19 +30,19 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class MetadataResponse extends AbstractRaftResponse {
 
+    private final Set<RaftSessionMetadata> sessions;
+
+    public MetadataResponse(Status status, RaftError error, Set<RaftSessionMetadata> sessions) {
+        super(status, error);
+        this.sessions = sessions;
+    }
+
     /**
      * Returns a new metadata response builder.
      * @return A new metadata response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final Set<RaftSessionMetadata> sessions;
-
-    public MetadataResponse(Status status, RaftError error, Set<RaftSessionMetadata> sessions) {
-        super(status, error);
-        this.sessions = sessions;
     }
 
     /**
@@ -94,17 +94,17 @@ public class MetadataResponse extends AbstractRaftResponse {
         }
 
         @Override
+        public MetadataResponse build() {
+            validate();
+            return new MetadataResponse(status, error, sessions);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
                 checkNotNull(sessions, "sessions cannot be null");
             }
-        }
-
-        @Override
-        public MetadataResponse build() {
-            validate();
-            return new MetadataResponse(status, error, sessions);
         }
     }
 }

@@ -137,6 +137,11 @@ public class DelegatingAsyncConsistentTreeMap<K, V>
     }
 
     @Override
+    public CompletableFuture<Void> clear() {
+        return delegateMap.clear();
+    }
+
+    @Override
     public CompletableFuture<Integer> size() {
         return delegateMap.size();
     }
@@ -188,11 +193,6 @@ public class DelegatingAsyncConsistentTreeMap<K, V>
     @Override
     public CompletableFuture<Versioned<V>> remove(K key) {
         return delegateMap.remove(key);
-    }
-
-    @Override
-    public CompletableFuture<Void> clear() {
-        return delegateMap.clear();
     }
 
     @Override

@@ -22,13 +22,8 @@ import org.logstash.cluster.utils.AbstractIdentifier;
  */
 public class ServiceId extends AbstractIdentifier<Long> {
 
-    /**
-     * Creates a snapshot ID from the given number.
-     * @param id the number from which to create the identifier
-     * @return the snapshot identifier
-     */
-    public static ServiceId from(long id) {
-        return new ServiceId(id);
+    public ServiceId(Long value) {
+        super(value);
     }
 
     /**
@@ -40,7 +35,12 @@ public class ServiceId extends AbstractIdentifier<Long> {
         return from(Long.parseLong(id));
     }
 
-    public ServiceId(Long value) {
-        super(value);
+    /**
+     * Creates a snapshot ID from the given number.
+     * @param id the number from which to create the identifier
+     * @return the snapshot identifier
+     */
+    public static ServiceId from(long id) {
+        return new ServiceId(id);
     }
 }

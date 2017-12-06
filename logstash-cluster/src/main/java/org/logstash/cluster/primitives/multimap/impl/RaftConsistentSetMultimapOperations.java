@@ -33,351 +33,349 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * AsyncConsistentMultimap state machine commands.
  */
 public enum RaftConsistentSetMultimapOperations implements OperationId {
-  GET("get", OperationType.QUERY),
-  SIZE("size", OperationType.QUERY),
-  IS_EMPTY("isEmpty", OperationType.QUERY),
-  CONTAINS_KEY("containsKey", OperationType.QUERY),
-  CONTAINS_VALUE("containsValue", OperationType.QUERY),
-  CONTAINS_ENTRY("containsEntry", OperationType.QUERY),
-  KEY_SET("keySet", OperationType.QUERY),
-  KEYS("keys", OperationType.QUERY),
-  VALUES("values", OperationType.QUERY),
-  ENTRIES("entries", OperationType.QUERY),
-  PUT("put", OperationType.COMMAND),
-  REMOVE("remove", OperationType.COMMAND),
-  REMOVE_ALL("removeAll", OperationType.COMMAND),
-  REPLACE("replace", OperationType.COMMAND),
-  CLEAR("clear", OperationType.COMMAND),
-  ADD_LISTENER("addListener", OperationType.COMMAND),
-  REMOVE_LISTENER("removeListener", OperationType.COMMAND);
+    GET("get", OperationType.QUERY),
+    SIZE("size", OperationType.QUERY),
+    IS_EMPTY("isEmpty", OperationType.QUERY),
+    CONTAINS_KEY("containsKey", OperationType.QUERY),
+    CONTAINS_VALUE("containsValue", OperationType.QUERY),
+    CONTAINS_ENTRY("containsEntry", OperationType.QUERY),
+    KEY_SET("keySet", OperationType.QUERY),
+    KEYS("keys", OperationType.QUERY),
+    VALUES("values", OperationType.QUERY),
+    ENTRIES("entries", OperationType.QUERY),
+    PUT("put", OperationType.COMMAND),
+    REMOVE("remove", OperationType.COMMAND),
+    REMOVE_ALL("removeAll", OperationType.COMMAND),
+    REPLACE("replace", OperationType.COMMAND),
+    CLEAR("clear", OperationType.COMMAND),
+    ADD_LISTENER("addListener", OperationType.COMMAND),
+    REMOVE_LISTENER("removeListener", OperationType.COMMAND);
 
-  private final String id;
-  private final OperationType type;
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
+        .register(ContainsEntry.class)
+        .register(ContainsKey.class)
+        .register(ContainsValue.class)
+        .register(Get.class)
+        .register(MultiRemove.class)
+        .register(Put.class)
+        .register(RemoveAll.class)
+        .register(Replace.class)
+        .register(Match.class)
+        .register(Versioned.class)
+        .register(ArrayList.class)
+        .register(Maps.immutableEntry("", "").getClass())
+        .build(RaftConsistentSetMultimap.class.getSimpleName());
+    private final String id;
+    private final OperationType type;
 
-  RaftConsistentSetMultimapOperations(String id, OperationType type) {
-    this.id = id;
-    this.type = type;
-  }
-
-  @Override
-  public String id() {
-    return id;
-  }
-
-  @Override
-  public OperationType type() {
-    return type;
-  }
-
-  public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-      .register(KryoNamespaces.BASIC)
-      .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-      .register(ContainsEntry.class)
-      .register(ContainsKey.class)
-      .register(ContainsValue.class)
-      .register(Get.class)
-      .register(MultiRemove.class)
-      .register(Put.class)
-      .register(RemoveAll.class)
-      .register(Replace.class)
-      .register(Match.class)
-      .register(Versioned.class)
-      .register(ArrayList.class)
-      .register(Maps.immutableEntry("", "").getClass())
-      .build(RaftConsistentSetMultimap.class.getSimpleName());
-
-  /**
-   * Abstract multimap command.
-   */
-  @SuppressWarnings("serial")
-  public abstract static class MultimapOperation {
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .toString();
-    }
-  }
-
-  /**
-   * Abstract key-based multimap query.
-   */
-  @SuppressWarnings("serial")
-  public abstract static class KeyOperation extends MultimapOperation {
-    protected String key;
-
-    public KeyOperation() {
-    }
-
-    public KeyOperation(String key) {
-      this.key = checkNotNull(key);
-    }
-
-    public String key() {
-      return key;
+    RaftConsistentSetMultimapOperations(String id, OperationType type) {
+        this.id = id;
+        this.type = type;
     }
 
     @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .toString();
-    }
-  }
-
-  /**
-   * Abstract value-based query.
-   */
-  @SuppressWarnings("serial")
-  public abstract static class ValueOperation extends MultimapOperation {
-    protected byte[] value;
-
-    public ValueOperation() {
+    public String id() {
+        return id;
     }
 
-    public ValueOperation(byte[] value) {
-      this.value = checkNotNull(value);
+    @Override
+    public OperationType type() {
+        return type;
     }
 
     /**
-     * Returns the value.
-     *
-     * @return value.
+     * Abstract multimap command.
      */
-    public byte[] value() {
-      return value;
+    @SuppressWarnings("serial")
+    public abstract static class MultimapOperation {
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .toString();
+        }
     }
 
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("value", value)
-          .toString();
-    }
-  }
+    /**
+     * Abstract key-based multimap query.
+     */
+    @SuppressWarnings("serial")
+    public abstract static class KeyOperation extends MultimapOperation {
+        protected String key;
 
-  /**
-   * Contains key query.
-   */
-  @SuppressWarnings("serial")
-  public static class ContainsKey extends KeyOperation {
-    public ContainsKey() {
-    }
+        public KeyOperation() {
+        }
 
-    public ContainsKey(String key) {
-      super(key);
-    }
-  }
+        public KeyOperation(String key) {
+            this.key = checkNotNull(key);
+        }
 
-  /**
-   * Contains value query.
-   */
-  @SuppressWarnings("serial")
-  public static class ContainsValue extends ValueOperation {
-    public ContainsValue() {
+        public String key() {
+            return key;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .toString();
+        }
     }
 
-    public ContainsValue(byte[] value) {
-      super(value);
-    }
-  }
+    /**
+     * Abstract value-based query.
+     */
+    @SuppressWarnings("serial")
+    public abstract static class ValueOperation extends MultimapOperation {
+        protected byte[] value;
 
-  /**
-   * Contains entry query.
-   */
-  @SuppressWarnings("serial")
-  public static class ContainsEntry extends MultimapOperation {
-    protected String key;
-    protected byte[] value;
+        public ValueOperation() {
+        }
 
-    public ContainsEntry() {
-    }
+        public ValueOperation(byte[] value) {
+            this.value = checkNotNull(value);
+        }
 
-    public ContainsEntry(String key, byte[] value) {
-      this.key = checkNotNull(key);
-      this.value = checkNotNull(value);
-    }
+        /**
+         * Returns the value.
+         * @return value.
+         */
+        public byte[] value() {
+            return value;
+        }
 
-    public String key() {
-      return key;
-    }
-
-    public byte[] value() {
-      return value;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .add("value", value)
-          .toString();
-    }
-  }
-
-  /**
-   * Remove command, backs remove and removeAll's that return booleans.
-   */
-  @SuppressWarnings("serial")
-  public static class RemoveAll extends MultimapOperation {
-    private String key;
-    private Match<Long> versionMatch;
-
-    public RemoveAll() {
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("value", value)
+                .toString();
+        }
     }
 
-    public RemoveAll(String key, Match<Long> versionMatch) {
-      this.key = checkNotNull(key);
-      this.versionMatch = versionMatch;
+    /**
+     * Contains key query.
+     */
+    @SuppressWarnings("serial")
+    public static class ContainsKey extends KeyOperation {
+        public ContainsKey() {
+        }
+
+        public ContainsKey(String key) {
+            super(key);
+        }
     }
 
-    public String key() {
-      return this.key;
+    /**
+     * Contains value query.
+     */
+    @SuppressWarnings("serial")
+    public static class ContainsValue extends ValueOperation {
+        public ContainsValue() {
+        }
+
+        public ContainsValue(byte[] value) {
+            super(value);
+        }
     }
 
-    public Match<Long> versionMatch() {
-      return versionMatch;
+    /**
+     * Contains entry query.
+     */
+    @SuppressWarnings("serial")
+    public static class ContainsEntry extends MultimapOperation {
+        protected String key;
+        protected byte[] value;
+
+        public ContainsEntry() {
+        }
+
+        public ContainsEntry(String key, byte[] value) {
+            this.key = checkNotNull(key);
+            this.value = checkNotNull(value);
+        }
+
+        public String key() {
+            return key;
+        }
+
+        public byte[] value() {
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .add("value", value)
+                .toString();
+        }
     }
 
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .add("versionMatch", versionMatch)
-          .toString();
-    }
-  }
+    /**
+     * Remove command, backs remove and removeAll's that return booleans.
+     */
+    @SuppressWarnings("serial")
+    public static class RemoveAll extends MultimapOperation {
+        private String key;
+        private Match<Long> versionMatch;
 
-  /**
-   * Remove command, backs remove and removeAll's that return booleans.
-   */
-  @SuppressWarnings("serial")
-  public static class MultiRemove extends MultimapOperation {
-    private String key;
-    private Collection<byte[]> values;
-    private Match<Long> versionMatch;
+        public RemoveAll() {
+        }
 
-    public MultiRemove() {
-    }
+        public RemoveAll(String key, Match<Long> versionMatch) {
+            this.key = checkNotNull(key);
+            this.versionMatch = versionMatch;
+        }
 
-    public MultiRemove(String key, Collection<byte[]> valueMatches,
-                       Match<Long> versionMatch) {
-      this.key = checkNotNull(key);
-      this.values = valueMatches;
-      this.versionMatch = versionMatch;
-    }
+        public String key() {
+            return this.key;
+        }
 
-    public String key() {
-      return this.key;
-    }
+        public Match<Long> versionMatch() {
+            return versionMatch;
+        }
 
-    public Collection<byte[]> values() {
-      return values;
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .add("versionMatch", versionMatch)
+                .toString();
+        }
     }
 
-    public Match<Long> versionMatch() {
-      return versionMatch;
+    /**
+     * Remove command, backs remove and removeAll's that return booleans.
+     */
+    @SuppressWarnings("serial")
+    public static class MultiRemove extends MultimapOperation {
+        private String key;
+        private Collection<byte[]> values;
+        private Match<Long> versionMatch;
+
+        public MultiRemove() {
+        }
+
+        public MultiRemove(String key, Collection<byte[]> valueMatches,
+            Match<Long> versionMatch) {
+            this.key = checkNotNull(key);
+            this.values = valueMatches;
+            this.versionMatch = versionMatch;
+        }
+
+        public String key() {
+            return this.key;
+        }
+
+        public Collection<byte[]> values() {
+            return values;
+        }
+
+        public Match<Long> versionMatch() {
+            return versionMatch;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .add("values", values)
+                .add("versionMatch", versionMatch)
+                .toString();
+        }
     }
 
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .add("values", values)
-          .add("versionMatch", versionMatch)
-          .toString();
-    }
-  }
+    /**
+     * Command to back the put and putAll methods.
+     */
+    @SuppressWarnings("serial")
+    public static class Put extends MultimapOperation {
+        private String key;
+        private Collection<? extends byte[]> values;
+        private Match<Long> versionMatch;
 
-  /**
-   * Command to back the put and putAll methods.
-   */
-  @SuppressWarnings("serial")
-  public static class Put extends MultimapOperation {
-    private String key;
-    private Collection<? extends byte[]> values;
-    private Match<Long> versionMatch;
+        public Put() {
+        }
 
-    public Put() {
-    }
+        public Put(String key, Collection<? extends byte[]> values, Match<Long> versionMatch) {
+            this.key = checkNotNull(key);
+            this.values = values;
+            this.versionMatch = versionMatch;
+        }
 
-    public Put(String key, Collection<? extends byte[]> values, Match<Long> versionMatch) {
-      this.key = checkNotNull(key);
-      this.values = values;
-      this.versionMatch = versionMatch;
-    }
+        public String key() {
+            return key;
+        }
 
-    public String key() {
-      return key;
-    }
+        public Collection<? extends byte[]> values() {
+            return values;
+        }
 
-    public Collection<? extends byte[]> values() {
-      return values;
-    }
+        public Match<Long> versionMatch() {
+            return versionMatch;
+        }
 
-    public Match<Long> versionMatch() {
-      return versionMatch;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .add("values", values)
-          .add("versionMatch", versionMatch)
-          .toString();
-    }
-  }
-
-  /**
-   * Replace command, returns the collection that was replaced.
-   */
-  @SuppressWarnings("serial")
-  public static class Replace extends MultimapOperation {
-    private String key;
-    private Collection<byte[]> values;
-    private Match<Long> versionMatch;
-
-    public Replace() {
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .add("values", values)
+                .add("versionMatch", versionMatch)
+                .toString();
+        }
     }
 
-    public Replace(String key, Collection<byte[]> values,
-                   Match<Long> versionMatch) {
-      this.key = checkNotNull(key);
-      this.values = values;
-      this.versionMatch = versionMatch;
+    /**
+     * Replace command, returns the collection that was replaced.
+     */
+    @SuppressWarnings("serial")
+    public static class Replace extends MultimapOperation {
+        private String key;
+        private Collection<byte[]> values;
+        private Match<Long> versionMatch;
+
+        public Replace() {
+        }
+
+        public Replace(String key, Collection<byte[]> values,
+            Match<Long> versionMatch) {
+            this.key = checkNotNull(key);
+            this.values = values;
+            this.versionMatch = versionMatch;
+        }
+
+        public String key() {
+            return this.key;
+        }
+
+        public Match<Long> versionMatch() {
+            return versionMatch;
+        }
+
+        public Collection<byte[]> values() {
+            return values;
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(getClass())
+                .add("key", key)
+                .add("values", values)
+                .add("versionMatch", versionMatch)
+                .toString();
+        }
     }
 
-    public String key() {
-      return this.key;
-    }
+    /**
+     * Get value query.
+     */
+    public static class Get extends KeyOperation {
+        public Get() {
+        }
 
-    public Match<Long> versionMatch() {
-      return versionMatch;
+        public Get(String key) {
+            super(key);
+        }
     }
-
-    public Collection<byte[]> values() {
-      return values;
-    }
-
-    @Override
-    public String toString() {
-      return MoreObjects.toStringHelper(getClass())
-          .add("key", key)
-          .add("values", values)
-          .add("versionMatch", versionMatch)
-          .toString();
-    }
-  }
-
-  /**
-   * Get value query.
-   */
-  public static class Get extends KeyOperation {
-    public Get() {
-    }
-
-    public Get(String key) {
-      super(key);
-    }
-  }
 }

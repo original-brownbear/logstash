@@ -66,6 +66,8 @@ import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperatio
  * State Machine for {@link RaftDocumentTree} resource.
  */
 public class RaftDocumentTreeService extends AbstractRaftService {
+    private Map<Long, SessionListenCommits> listeners = new HashMap<>();
+    private AtomicLong versionCounter = new AtomicLong(0);
     private final Serializer serializer = Serializer.using(KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .register(RaftDocumentTreeOperations.NAMESPACE)
@@ -104,9 +106,6 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         }, DefaultDocumentTree.class)
         .register(DefaultDocumentTreeNode.class)
         .build());
-
-    private Map<Long, SessionListenCommits> listeners = new HashMap<>();
-    private AtomicLong versionCounter = new AtomicLong(0);
     private DocumentTree<byte[]> docTree;
     private Set<DocumentPath> preparedKeys = Sets.newHashSet();
 
@@ -143,13 +142,18 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         executor.register(CLEAR, this::clear);
     }
 
-    /**
-     * Returns a boolean indicating whether the given path is currently locked by a transaction.
-     * @param path the path to check
-     * @return whether the given path is locked by a running transaction
-     */
-    private boolean isLocked(DocumentPath path) {
-        return preparedKeys.contains(path);
+    @Override
+    public void onExpire(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    @Override
+    public void onClose(RaftSession session) {
+        closeListener(session.sessionId().id());
+    }
+
+    private void closeListener(Long sessionId) {
+        listeners.remove(sessionId);
     }
 
     protected void listen(Commit<? extends RaftDocumentTreeOperations.Listen> commit) {
@@ -243,6 +247,22 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         return result;
     }
 
+    /**
+     * Returns a boolean indicating whether the given path is currently locked by a transaction.
+     * @param path the path to check
+     * @return whether the given path is locked by a running transaction
+     */
+    private boolean isLocked(DocumentPath path) {
+        return preparedKeys.contains(path);
+    }
+
+    private void notifyListeners(DocumentTreeEvent<byte[]> event) {
+        listeners.values()
+            .stream()
+            .filter(l -> event.path().isDescendentOf(l.leastCommonAncestorPath()))
+            .forEach(listener -> listener.publish(CHANGE, Arrays.asList(event)));
+    }
+
     protected void clear(Commit<Void> commit) {
         Queue<DocumentPath> toClearQueue = Queues.newArrayDeque();
         Map<String, Versioned<byte[]>> topLevelChildren = docTree.getChildren(DocumentPath.from("root"));
@@ -268,25 +288,22 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         });
     }
 
-    private void notifyListeners(DocumentTreeEvent<byte[]> event) {
-        listeners.values()
-            .stream()
-            .filter(l -> event.path().isDescendentOf(l.leastCommonAncestorPath()))
-            .forEach(listener -> listener.publish(CHANGE, Arrays.asList(event)));
-    }
+    private static class Listener {
+        private final RaftSession session;
+        private final DocumentPath path;
 
-    @Override
-    public void onExpire(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
+        public Listener(RaftSession session, DocumentPath path) {
+            this.session = session;
+            this.path = path;
+        }
 
-    @Override
-    public void onClose(RaftSession session) {
-        closeListener(session.sessionId().id());
-    }
+        public DocumentPath path() {
+            return path;
+        }
 
-    private void closeListener(Long sessionId) {
-        listeners.remove(sessionId);
+        public RaftSession session() {
+            return session;
+        }
     }
 
     private class SessionListenCommits {
@@ -296,6 +313,12 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         public void add(Listener listener) {
             listeners.add(listener);
             recomputeLeastCommonAncestor();
+        }
+
+        private void recomputeLeastCommonAncestor() {
+            this.leastCommonAncestorPath = DocumentPath.leastCommonAncestor(listeners.stream()
+                .map(Listener::path)
+                .collect(Collectors.toList()));
         }
 
         public void remove(Commit<? extends RaftDocumentTreeOperations.Unlisten> commit) {
@@ -317,30 +340,6 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         public <M> void publish(EventType topic, M message) {
             listeners.stream().findAny().ifPresent(listener ->
                 listener.session().publish(topic, serializer::encode, message));
-        }
-
-        private void recomputeLeastCommonAncestor() {
-            this.leastCommonAncestorPath = DocumentPath.leastCommonAncestor(listeners.stream()
-                .map(Listener::path)
-                .collect(Collectors.toList()));
-        }
-    }
-
-    private static class Listener {
-        private final RaftSession session;
-        private final DocumentPath path;
-
-        public Listener(RaftSession session, DocumentPath path) {
-            this.session = session;
-            this.path = path;
-        }
-
-        public DocumentPath path() {
-            return path;
-        }
-
-        public RaftSession session() {
-            return session;
         }
     }
 }

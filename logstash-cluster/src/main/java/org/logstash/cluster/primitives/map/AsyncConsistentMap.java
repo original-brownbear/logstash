@@ -71,10 +71,11 @@ public interface AsyncConsistentMap<K, V> extends AsyncPrimitive, Transactional<
     }
 
     /**
-     * Returns the number of entries in the map.
-     * @return a future for map size.
+     * Removes all of the mappings from this map (optional operation).
+     * The map will be empty after this call returns.
+     * @return future that will be successfully completed when the map is cleared
      */
-    CompletableFuture<Integer> size();
+    CompletableFuture<Void> clear();
 
     /**
      * Returns true if the map is empty.
@@ -83,6 +84,12 @@ public interface AsyncConsistentMap<K, V> extends AsyncPrimitive, Transactional<
     default CompletableFuture<Boolean> isEmpty() {
         return size().thenApply(s -> s == 0);
     }
+
+    /**
+     * Returns the number of entries in the map.
+     * @return a future for map size.
+     */
+    CompletableFuture<Integer> size();
 
     /**
      * Returns true if this map contains a mapping for the specified key.
@@ -145,6 +152,21 @@ public interface AsyncConsistentMap<K, V> extends AsyncPrimitive, Transactional<
     }
 
     /**
+     * If the value for the specified key satisfies a condition, attempts to compute a new
+     * mapping given the key and its current mapped value.
+     * If the computed value is null, the current mapping will be removed from the map.
+     * If a conflicting concurrent modification attempt is detected, the returned future
+     * will be completed exceptionally with ConsistentMapException.ConcurrentModification.
+     * @param key key with which the specified value is to be associated
+     * @param condition condition that should evaluate to true for the computation to proceed
+     * @param remappingFunction the function to compute a value
+     * @return the new value associated with the specified key, or the old value if condition evaluates to false
+     */
+    CompletableFuture<Versioned<V>> computeIf(K key,
+        Predicate<? super V> condition,
+        BiFunction<? super K, ? super V, ? extends V> remappingFunction);
+
+    /**
      * If the value for the specified key is present and non-null, attempts to compute a new
      * mapping given the key and its current mapped value.
      * If the computed value is null, the current mapping will be removed from the map.
@@ -175,21 +197,6 @@ public interface AsyncConsistentMap<K, V> extends AsyncPrimitive, Transactional<
     }
 
     /**
-     * If the value for the specified key satisfies a condition, attempts to compute a new
-     * mapping given the key and its current mapped value.
-     * If the computed value is null, the current mapping will be removed from the map.
-     * If a conflicting concurrent modification attempt is detected, the returned future
-     * will be completed exceptionally with ConsistentMapException.ConcurrentModification.
-     * @param key key with which the specified value is to be associated
-     * @param condition condition that should evaluate to true for the computation to proceed
-     * @param remappingFunction the function to compute a value
-     * @return the new value associated with the specified key, or the old value if condition evaluates to false
-     */
-    CompletableFuture<Versioned<V>> computeIf(K key,
-        Predicate<? super V> condition,
-        BiFunction<? super K, ? super V, ? extends V> remappingFunction);
-
-    /**
      * Associates the specified value with the specified key in this map (optional operation).
      * If the map previously contained a mapping for the key, the old value is replaced by the
      * specified value.
@@ -217,13 +224,6 @@ public interface AsyncConsistentMap<K, V> extends AsyncPrimitive, Transactional<
      * or null if the map contained no mapping for the key.
      */
     CompletableFuture<Versioned<V>> remove(K key);
-
-    /**
-     * Removes all of the mappings from this map (optional operation).
-     * The map will be empty after this call returns.
-     * @return future that will be successfully completed when the map is cleared
-     */
-    CompletableFuture<Void> clear();
 
     /**
      * Returns a Set view of the keys contained in this map.

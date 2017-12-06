@@ -48,12 +48,12 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
     private final ServiceType serviceType;
     private final RaftProxyClient.Builder proxyClientBuilder;
     private final Scheduler scheduler;
+    private final Set<Consumer<RaftProxy.State>> stateChangeListeners = Sets.newCopyOnWriteArraySet();
+    private final Set<Consumer<RaftEvent>> eventListeners = Sets.newCopyOnWriteArraySet();
     private Logger log;
     private volatile OrderedFuture<RaftProxyClient> clientFuture;
     private volatile RaftProxyClient client;
     private volatile RaftProxy.State state = RaftProxy.State.SUSPENDED;
-    private final Set<Consumer<RaftProxy.State>> stateChangeListeners = Sets.newCopyOnWriteArraySet();
-    private final Set<Consumer<RaftEvent>> eventListeners = Sets.newCopyOnWriteArraySet();
     private Scheduled recoverTask;
     private volatile boolean open = false;
 
@@ -88,6 +88,54 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
         return state;
     }
 
+    @Override
+    public void addStateChangeListener(Consumer<RaftProxy.State> listener) {
+        stateChangeListeners.add(listener);
+    }
+
+    @Override
+    public void removeStateChangeListener(Consumer<RaftProxy.State> listener) {
+        stateChangeListeners.remove(listener);
+    }
+
+    @Override
+    public CompletableFuture<byte[]> execute(RaftOperation operation) {
+        checkOpen();
+        RaftProxyClient client = this.client;
+        if (client != null) {
+            return client.execute(operation);
+        } else {
+            return clientFuture.thenCompose(c -> c.execute(operation));
+        }
+    }
+
+    /**
+     * Verifies that the client is open.
+     */
+    private void checkOpen() {
+        checkState(isOpen(), "client not open");
+    }
+
+    @Override
+    public synchronized void addEventListener(Consumer<RaftEvent> consumer) {
+        checkOpen();
+        eventListeners.add(consumer);
+        RaftProxyClient client = this.client;
+        if (client != null) {
+            client.addEventListener(consumer);
+        }
+    }
+
+    @Override
+    public synchronized void removeEventListener(Consumer<RaftEvent> consumer) {
+        checkOpen();
+        eventListeners.remove(consumer);
+        RaftProxyClient client = this.client;
+        if (client != null) {
+            client.removeEventListener(consumer);
+        }
+    }
+
     /**
      * Sets the session state.
      * @param state the session state
@@ -109,23 +157,6 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
                 stateChangeListeners.forEach(l -> l.accept(state));
             }
         }
-    }
-
-    @Override
-    public void addStateChangeListener(Consumer<RaftProxy.State> listener) {
-        stateChangeListeners.add(listener);
-    }
-
-    @Override
-    public void removeStateChangeListener(Consumer<RaftProxy.State> listener) {
-        stateChangeListeners.remove(listener);
-    }
-
-    /**
-     * Verifies that the client is open.
-     */
-    private void checkOpen() {
-        checkState(isOpen(), "client not open");
     }
 
     /**
@@ -177,37 +208,6 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
                 recoverTask = scheduler.schedule(Duration.ofSeconds(1), () -> openClient(future));
             }
         });
-    }
-
-    @Override
-    public CompletableFuture<byte[]> execute(RaftOperation operation) {
-        checkOpen();
-        RaftProxyClient client = this.client;
-        if (client != null) {
-            return client.execute(operation);
-        } else {
-            return clientFuture.thenCompose(c -> c.execute(operation));
-        }
-    }
-
-    @Override
-    public synchronized void addEventListener(Consumer<RaftEvent> consumer) {
-        checkOpen();
-        eventListeners.add(consumer);
-        RaftProxyClient client = this.client;
-        if (client != null) {
-            client.addEventListener(consumer);
-        }
-    }
-
-    @Override
-    public synchronized void removeEventListener(Consumer<RaftEvent> consumer) {
-        checkOpen();
-        eventListeners.remove(consumer);
-        RaftProxyClient client = this.client;
-        if (client != null) {
-            client.removeEventListener(consumer);
-        }
     }
 
     @Override

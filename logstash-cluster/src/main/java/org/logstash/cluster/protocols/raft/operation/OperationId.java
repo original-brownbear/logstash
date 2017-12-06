@@ -33,15 +33,6 @@ public interface OperationId extends Identifier<String> {
     }
 
     /**
-     * Returns a new query operation identifier.
-     * @param id the query identifier
-     * @return the operation identifier
-     */
-    static OperationId query(String id) {
-        return from(id, OperationType.QUERY);
-    }
-
-    /**
      * Returns a new operation identifier.
      * @param id the operation name
      * @param type the operation type
@@ -49,6 +40,15 @@ public interface OperationId extends Identifier<String> {
      */
     static OperationId from(String id, OperationType type) {
         return new DefaultOperationId(id, type);
+    }
+
+    /**
+     * Returns a new query operation identifier.
+     * @param id the query identifier
+     * @return the operation identifier
+     */
+    static OperationId query(String id) {
+        return from(id, OperationType.QUERY);
     }
 
     /**

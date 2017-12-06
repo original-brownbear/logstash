@@ -26,21 +26,20 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class ReconfigureRequest extends ConfigurationRequest {
 
+    private final long index;
+    private final long term;
+    public ReconfigureRequest(RaftMember member, long index, long term) {
+        super(member);
+        this.index = index;
+        this.term = term;
+    }
+
     /**
      * Returns a new reconfigure request builder.
      * @return A new reconfigure request builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    private final long index;
-    private final long term;
-
-    public ReconfigureRequest(RaftMember member, long index, long term) {
-        super(member);
-        this.index = index;
-        this.term = term;
     }
 
     /**
@@ -112,16 +111,16 @@ public class ReconfigureRequest extends ConfigurationRequest {
         }
 
         @Override
+        public ReconfigureRequest build() {
+            validate();
+            return new ReconfigureRequest(member, index, term);
+        }
+
+        @Override
         protected void validate() {
             super.validate();
             checkArgument(index >= 0, "index must be positive");
             checkArgument(term >= 0, "term must be positive");
-        }
-
-        @Override
-        public ReconfigureRequest build() {
-            validate();
-            return new ReconfigureRequest(member, index, term);
         }
     }
 }

@@ -71,13 +71,35 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
     }
 
     @Override
-    public CompletableFuture<Integer> size() {
-        return Futures.allOf(getMaps().stream().map(m -> m.size()).collect(Collectors.toList()), Math::addExact, 0);
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
+        partitions.values().forEach(map -> map.addStatusChangeListener(listener));
+    }
+
+    @Override
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
+        partitions.values().forEach(map -> map.removeStatusChangeListener(listener));
+    }
+
+    @Override
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CompletableFuture<Void> clear() {
+        return CompletableFuture.allOf(getMaps().stream()
+            .map(map -> map.clear())
+            .toArray(CompletableFuture[]::new));
     }
 
     @Override
     public CompletableFuture<Boolean> isEmpty() {
         return size().thenApply(size -> size == 0);
+    }
+
+    @Override
+    public CompletableFuture<Integer> size() {
+        return Futures.allOf(getMaps().stream().map(m -> m.size()).collect(Collectors.toList()), Math::addExact, 0);
     }
 
     @Override
@@ -135,13 +157,6 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
     @Override
     public CompletableFuture<Versioned<V>> remove(K key) {
         return getMap(key).remove(key);
-    }
-
-    @Override
-    public CompletableFuture<Void> clear() {
-        return CompletableFuture.allOf(getMaps().stream()
-            .map(map -> map.clear())
-            .toArray(CompletableFuture[]::new));
     }
 
     @Override
@@ -209,6 +224,23 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
             .toArray(CompletableFuture[]::new));
     }
 
+    /**
+     * Returns the map (partition) to which the specified key maps.
+     * @param key key
+     * @return AsyncConsistentMap to which key maps
+     */
+    private AsyncConsistentMap<K, V> getMap(K key) {
+        return partitions.get(keyHasher.hash(key));
+    }
+
+    /**
+     * Returns all the constituent maps.
+     * @return collection of maps.
+     */
+    private Collection<AsyncConsistentMap<K, V>> getMaps() {
+        return partitions.values();
+    }
+
     @Override
     public CompletableFuture<Version> begin(TransactionId transactionId) {
         throw new UnsupportedOperationException();
@@ -235,39 +267,7 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
-        partitions.values().forEach(map -> map.addStatusChangeListener(listener));
-    }
-
-    @Override
-    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
-        partitions.values().forEach(map -> map.removeStatusChangeListener(listener));
-    }
-
-    @Override
-    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public CompletableFuture<Void> close() {
         return Futures.allOf(getMaps().stream().map(AsyncPrimitive::close).collect(Collectors.toList())).thenApply(v -> null);
-    }
-
-    /**
-     * Returns the map (partition) to which the specified key maps.
-     * @param key key
-     * @return AsyncConsistentMap to which key maps
-     */
-    private AsyncConsistentMap<K, V> getMap(K key) {
-        return partitions.get(keyHasher.hash(key));
-    }
-
-    /**
-     * Returns all the constituent maps.
-     * @return collection of maps.
-     */
-    private Collection<AsyncConsistentMap<K, V>> getMaps() {
-        return partitions.values();
     }
 }

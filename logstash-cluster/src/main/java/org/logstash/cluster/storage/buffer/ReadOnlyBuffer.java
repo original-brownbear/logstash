@@ -31,31 +31,6 @@ public class ReadOnlyBuffer extends AbstractBuffer {
     }
 
     @Override
-    public boolean isDirect() {
-        return root.isDirect();
-    }
-
-    @Override
-    public boolean isFile() {
-        return root.isFile();
-    }
-
-    @Override
-    public boolean isReadOnly() {
-        return true;
-    }
-
-    @Override
-    public Buffer compact() {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
-    protected void compact(int from, int to, int length) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
     public Buffer duplicate() {
         return new ReadOnlyBuffer(root, referenceManager);
     }
@@ -72,13 +47,13 @@ public class ReadOnlyBuffer extends AbstractBuffer {
     }
 
     @Override
-    public Buffer zero(int offset, int length) {
-        throw new ReadOnlyBufferException();
+    public boolean isDirect() {
+        return root.isDirect();
     }
 
     @Override
-    public Buffer zero(int offset) {
-        throw new ReadOnlyBufferException();
+    public boolean isFile() {
+        return root.isFile();
     }
 
     @Override
@@ -87,7 +62,52 @@ public class ReadOnlyBuffer extends AbstractBuffer {
     }
 
     @Override
-    public Buffer writeBoolean(int offset, boolean b) {
+    public boolean isReadOnly() {
+        return true;
+    }
+
+    @Override
+    public Buffer zero(int offset) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer zero(int offset, int length) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer compact() {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer writeMedium(int offset, int m) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    protected void compact(int from, int to, int length) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer writeUnsignedMedium(int offset, int m) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer flush() {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer writeMedium(int m) {
+        throw new ReadOnlyBufferException();
+    }
+
+    @Override
+    public Buffer writeUnsignedMedium(int m) {
         throw new ReadOnlyBufferException();
     }
 
@@ -177,26 +197,6 @@ public class ReadOnlyBuffer extends AbstractBuffer {
     }
 
     @Override
-    public Buffer writeMedium(int m) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
-    public Buffer writeMedium(int offset, int m) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
-    public Buffer writeUnsignedMedium(int m) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
-    public Buffer writeUnsignedMedium(int offset, int m) {
-        throw new ReadOnlyBufferException();
-    }
-
-    @Override
     public Buffer writeInt(int i) {
         throw new ReadOnlyBufferException();
     }
@@ -252,12 +252,12 @@ public class ReadOnlyBuffer extends AbstractBuffer {
     }
 
     @Override
-    public Buffer writeUTF8(String s) {
+    public Buffer writeBoolean(int offset, boolean b) {
         throw new ReadOnlyBufferException();
     }
 
     @Override
-    public Buffer flush() {
+    public Buffer writeUTF8(String s) {
         throw new ReadOnlyBufferException();
     }
 

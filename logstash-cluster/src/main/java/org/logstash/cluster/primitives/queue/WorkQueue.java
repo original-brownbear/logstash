@@ -45,30 +45,6 @@ public interface WorkQueue<E> extends SyncPrimitive {
     }
 
     /**
-     * Adds a collection of tasks to the work queue.
-     * @param items collection of task items
-     */
-    void addMultiple(Collection<E> items);
-
-    /**
-     * Picks up multiple tasks from the work queue to work on.
-     * <p>
-     * Tasks that are taken remain invisible to other consumers as long as the consumer stays alive.
-     * If a consumer unexpectedly terminates before {@link #complete(String...) completing} the task,
-     * the task becomes visible again to other consumers to process.
-     * @param maxItems maximum number of items to take from the queue. The actual number of tasks returned
-     * can be at the max this number
-     * @return an empty collection if there are no unassigned tasks in the work queue
-     */
-    Collection<Task<E>> take(int maxItems);
-
-    /**
-     * Completes a collection of tasks.
-     * @param taskIds ids of tasks to complete
-     */
-    void complete(Collection<String> taskIds);
-
-    /**
      * Registers a task processing callback to be automatically invoked when new tasks are
      * added to the work queue.
      * @param taskProcessor task processing callback
@@ -100,12 +76,24 @@ public interface WorkQueue<E> extends SyncPrimitive {
     }
 
     /**
+     * Completes a collection of tasks.
+     * @param taskIds ids of tasks to complete
+     */
+    void complete(Collection<String> taskIds);
+
+    /**
      * Adds a single task to the work queue.
      * @param item task item
      */
     default void addOne(E item) {
         addMultiple(ImmutableList.of(item));
     }
+
+    /**
+     * Adds a collection of tasks to the work queue.
+     * @param items collection of task items
+     */
+    void addMultiple(Collection<E> items);
 
     /**
      * Picks up a single task from the work queue to work on.
@@ -120,4 +108,16 @@ public interface WorkQueue<E> extends SyncPrimitive {
         Collection<Task<E>> tasks = take(1);
         return tasks.isEmpty() ? null : tasks.iterator().next();
     }
+
+    /**
+     * Picks up multiple tasks from the work queue to work on.
+     * <p>
+     * Tasks that are taken remain invisible to other consumers as long as the consumer stays alive.
+     * If a consumer unexpectedly terminates before {@link #complete(String...) completing} the task,
+     * the task becomes visible again to other consumers to process.
+     * @param maxItems maximum number of items to take from the queue. The actual number of tasks returned
+     * can be at the max this number
+     * @return an empty collection if there are no unassigned tasks in the work queue
+     */
+    Collection<Task<E>> take(int maxItems);
 }

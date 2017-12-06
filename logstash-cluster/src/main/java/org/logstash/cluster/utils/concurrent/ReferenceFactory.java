@@ -17,17 +17,15 @@ package org.logstash.cluster.utils.concurrent;
 
 /**
  * Reference factory.
- *
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public interface ReferenceFactory<T extends ReferenceCounted<?>> {
 
-  /**
-   * Creates a new reference.
-   *
-   * @param manager The reference manager.
-   * @return The created reference.
-   */
-  T createReference(ReferenceManager<T> manager);
+    /**
+     * Creates a new reference.
+     * @param manager The reference manager.
+     * @return The created reference.
+     */
+    T createReference(ReferenceManager<T> manager);
 
 }

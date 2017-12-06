@@ -24,16 +24,16 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class ReconfigureResponse extends ConfigurationResponse {
 
+    public ReconfigureResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+        super(status, error, index, term, timestamp, members);
+    }
+
     /**
      * Returns a new reconfigure response builder.
      * @return A new reconfigure response builder.
      */
     public static Builder builder() {
         return new Builder();
-    }
-
-    public ReconfigureResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
-        super(status, error, index, term, timestamp, members);
     }
 
     /**

@@ -63,6 +63,13 @@ final class MemorySnapshot extends Snapshot {
     }
 
     @Override
+    public Snapshot complete() {
+        buffer.flip().skip(SnapshotDescriptor.BYTES).mark();
+        descriptor.lock();
+        return super.complete();
+    }
+
+    @Override
     public Snapshot persist() {
         if (store.storage.storageLevel() != StorageLevel.MEMORY) {
             try (Snapshot newSnapshot = store.newSnapshot(serviceId(), name, index(), timestamp())) {
@@ -79,13 +86,6 @@ final class MemorySnapshot extends Snapshot {
     @Override
     public boolean isPersisted() {
         return store.storage.storageLevel() == StorageLevel.MEMORY;
-    }
-
-    @Override
-    public Snapshot complete() {
-        buffer.flip().skip(SnapshotDescriptor.BYTES).mark();
-        descriptor.lock();
-        return super.complete();
     }
 
     @Override

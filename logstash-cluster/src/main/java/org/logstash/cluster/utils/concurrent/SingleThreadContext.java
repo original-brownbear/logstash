@@ -100,14 +100,12 @@ public class SingleThreadContext implements ThreadContext {
     }
 
     @Override
-    public void execute(Runnable command) {
-        wrappedExecutor.execute(command);
-    }
-
-    @Override
     public Scheduled schedule(Duration delay, Runnable runnable) {
         ScheduledFuture<?> future = executor.schedule(runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
         return () -> future.cancel(false);
+    }    @Override
+    public void execute(Runnable command) {
+        wrappedExecutor.execute(command);
     }
 
     @Override
@@ -120,5 +118,7 @@ public class SingleThreadContext implements ThreadContext {
     public void close() {
         executor.shutdownNow();
     }
+
+
 
 }

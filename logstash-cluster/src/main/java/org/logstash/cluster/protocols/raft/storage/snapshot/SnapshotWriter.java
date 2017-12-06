@@ -70,12 +70,6 @@ public class SnapshotWriter implements BufferOutput<SnapshotWriter> {
     }
 
     @Override
-    public SnapshotWriter write(byte[] bytes) {
-        buffer.write(bytes);
-        return this;
-    }
-
-    @Override
     public SnapshotWriter write(Bytes bytes, int offset, int length) {
         buffer.write(bytes, offset, length);
         return this;
@@ -90,6 +84,12 @@ public class SnapshotWriter implements BufferOutput<SnapshotWriter> {
     @Override
     public SnapshotWriter write(Buffer buffer) {
         this.buffer.write(buffer);
+        return this;
+    }
+
+    @Override
+    public SnapshotWriter write(byte[] bytes) {
+        buffer.write(bytes);
         return this;
     }
 

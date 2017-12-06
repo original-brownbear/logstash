@@ -34,6 +34,14 @@ public enum RaftAtomicValueOperations implements OperationId {
     ADD_LISTENER("addListener", OperationType.COMMAND),
     REMOVE_LISTENER("removeListener", OperationType.COMMAND);
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .register(KryoNamespaces.BASIC)
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
+        .register(Get.class)
+        .register(Set.class)
+        .register(CompareAndSet.class)
+        .register(GetAndSet.class)
+        .build(RaftAtomicValueOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
 
@@ -51,15 +59,6 @@ public enum RaftAtomicValueOperations implements OperationId {
     public OperationType type() {
         return type;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .register(KryoNamespaces.BASIC)
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Get.class)
-        .register(Set.class)
-        .register(CompareAndSet.class)
-        .register(GetAndSet.class)
-        .build(RaftAtomicValueOperations.class.getSimpleName());
 
     /**
      * Abstract value command.

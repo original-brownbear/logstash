@@ -20,11 +20,10 @@ package org.logstash.cluster.time;
  */
 public interface Clock<T extends Timestamp> {
 
-  /**
-   * Returns the current time of the clock.
-   *
-   * @return the current time
-   */
-  T getTime();
+    /**
+     * Returns the current time of the clock.
+     * @return the current time
+     */
+    T getTime();
 
 }

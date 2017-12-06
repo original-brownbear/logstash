@@ -23,42 +23,41 @@ import org.logstash.cluster.utils.AtomixRuntimeException;
 /**
  * DistributedPrimitive that is a synchronous (blocking) version of
  * another.
- *
  * @param <T> type of DistributedPrimitive
  */
 public abstract class Synchronous<T extends AsyncPrimitive> implements SyncPrimitive {
 
-  private final T primitive;
+    private final T primitive;
 
-  public Synchronous(T primitive) {
-    this.primitive = primitive;
-  }
-
-  @Override
-  public String name() {
-    return primitive.name();
-  }
-
-  @Override
-  public Type primitiveType() {
-    return primitive.primitiveType();
-  }
-
-  @Override
-  public void destroy() {
-    try {
-      primitive.destroy().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-      throw new AtomixRuntimeException(e);
+    public Synchronous(T primitive) {
+        this.primitive = primitive;
     }
-  }
 
-  @Override
-  public void close() {
-    try {
-      primitive.close().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-      throw new AtomixRuntimeException(e);
+    @Override
+    public String name() {
+        return primitive.name();
     }
-  }
+
+    @Override
+    public Type primitiveType() {
+        return primitive.primitiveType();
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            primitive.destroy().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new AtomixRuntimeException(e);
+        }
+    }
+
+    @Override
+    public void close() {
+        try {
+            primitive.close().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new AtomixRuntimeException(e);
+        }
+    }
 }

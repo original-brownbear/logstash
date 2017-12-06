@@ -29,6 +29,14 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 public enum RaftLeaderElectorEvents implements EventType {
     CHANGE("change");
 
+    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
+        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
+        .register(NodeId.class)
+        .register(Leadership.class)
+        .register(Leader.class)
+        .register(LeadershipEvent.class)
+        .register(LeadershipEvent.Type.class)
+        .build(RaftLeaderElectorEvents.class.getSimpleName());
     private final String id;
 
     RaftLeaderElectorEvents(String id) {
@@ -39,13 +47,4 @@ public enum RaftLeaderElectorEvents implements EventType {
     public String id() {
         return id;
     }
-
-    public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
-        .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 50)
-        .register(NodeId.class)
-        .register(Leadership.class)
-        .register(Leader.class)
-        .register(LeadershipEvent.class)
-        .register(LeadershipEvent.Type.class)
-        .build(RaftLeaderElectorEvents.class.getSimpleName());
 }

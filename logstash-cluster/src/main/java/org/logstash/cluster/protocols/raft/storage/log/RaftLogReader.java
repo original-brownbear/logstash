@@ -24,26 +24,9 @@ import org.logstash.cluster.storage.journal.SegmentedJournalReader;
  */
 public class RaftLogReader extends DelegatingJournalReader<RaftLogEntry> {
 
-    /**
-     * Raft log reader mode.
-     */
-    public enum Mode {
-
-        /**
-         * Reads all entries from the log.
-         */
-        ALL,
-
-        /**
-         * Reads committed entries from the log.
-         */
-        COMMITS,
-    }
-
     private final SegmentedJournalReader<RaftLogEntry> reader;
     private final RaftLog log;
     private final Mode mode;
-
     public RaftLogReader(SegmentedJournalReader<RaftLogEntry> reader, RaftLog log, Mode mode) {
         super(reader);
         this.reader = reader;
@@ -68,5 +51,21 @@ public class RaftLogReader extends DelegatingJournalReader<RaftLogEntry> {
         long nextIndex = getNextIndex();
         long commitIndex = log.getCommitIndex();
         return nextIndex <= commitIndex && super.hasNext();
+    }
+
+    /**
+     * Raft log reader mode.
+     */
+    public enum Mode {
+
+        /**
+         * Reads all entries from the log.
+         */
+        ALL,
+
+        /**
+         * Reads committed entries from the log.
+         */
+        COMMITS,
     }
 }

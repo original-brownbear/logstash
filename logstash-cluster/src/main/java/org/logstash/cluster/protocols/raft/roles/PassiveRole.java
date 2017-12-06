@@ -78,15 +78,18 @@ public class PassiveRole extends InactiveRole {
     }
 
     @Override
-    public RaftServer.Role role() {
-        return RaftServer.Role.PASSIVE;
-    }
-
-    @Override
     public CompletableFuture<RaftRole> open() {
         return super.open()
             .thenRun(this::truncateUncommittedEntries)
             .thenApply(v -> this);
+    }
+
+    @Override
+    public CompletableFuture<Void> close() {
+        for (PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
+            pendingSnapshot.rollback();
+        }
+        return super.close();
     }
 
     /**
@@ -100,11 +103,382 @@ public class PassiveRole extends InactiveRole {
     }
 
     @Override
+    public RaftServer.Role role() {
+        return RaftServer.Role.PASSIVE;
+    }
+
+    @Override
+    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(MetadataResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::metadata)
+                .exceptionally(error -> MetadataResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(KeepAliveResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::keepAlive)
+                .exceptionally(error -> KeepAliveResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(OpenSessionResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::openSession)
+                .exceptionally(error -> OpenSessionResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(CloseSessionResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::closeSession)
+                .exceptionally(error -> CloseSessionResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<InstallResponse> onInstall(InstallRequest request) {
+        raft.checkThread();
+        logRequest(request);
+        updateTermAndLeader(request.term(), request.leader());
+
+        // If the request is for a lesser term, reject the request.
+        if (request.term() < raft.getTerm()) {
+            return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request term is less than the local term " + request.term())
+                .build()));
+        }
+
+        // Get the pending snapshot for the associated snapshot ID.
+        PendingSnapshot pendingSnapshot = pendingSnapshots.get(request.serviceId());
+
+        // If a snapshot is currently being received and the snapshot versions don't match, simply
+        // close the existing snapshot. This is a naive implementation that assumes that the leader
+        // will be responsible in sending the correct snapshot to this server. Leaders must dictate
+        // where snapshots must be sent since entries can still legitimately exist prior to the snapshot,
+        // and so snapshots aren't simply sent at the beginning of the follower's log, but rather the
+        // leader dictates when a snapshot needs to be sent.
+        if (pendingSnapshot != null && request.snapshotIndex() != pendingSnapshot.snapshot().index()) {
+            pendingSnapshot.rollback();
+            pendingSnapshot = null;
+        }
+
+        // If there is no pending snapshot, create a new snapshot.
+        if (pendingSnapshot == null) {
+            // For new snapshots, the initial snapshot offset must be 0.
+            if (request.chunkOffset() > 0) {
+                return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request chunk offset is invalid")
+                    .build()));
+            }
+
+            Snapshot snapshot = raft.getSnapshotStore().newSnapshot(
+                ServiceId.from(request.serviceId()),
+                request.serviceName(),
+                request.snapshotIndex(),
+                WallClockTimestamp.from(request.snapshotTimestamp()));
+            pendingSnapshot = new PendingSnapshot(snapshot);
+        }
+
+        // If the request offset is greater than the next expected snapshot offset, fail the request.
+        if (request.chunkOffset() > pendingSnapshot.nextOffset()) {
+            return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request chunk offset does not match the next chunk offset")
+                .build()));
+        }
+
+        // Write the data to the snapshot.
+        try (SnapshotWriter writer = pendingSnapshot.snapshot().openWriter()) {
+            writer.write(request.data());
+        }
+
+        // If the snapshot is complete, store the snapshot and reset state, otherwise update the next snapshot offset.
+        if (request.complete()) {
+            pendingSnapshot.commit();
+            pendingSnapshots.remove(request.serviceId());
+        } else {
+            pendingSnapshot.incrementOffset();
+            pendingSnapshots.put(request.serviceId(), pendingSnapshot);
+        }
+
+        return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
+            .withStatus(RaftResponse.Status.OK)
+            .build()));
+    }
+
+    @Override
+    public CompletableFuture<JoinResponse> onJoin(JoinRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::join)
+                .exceptionally(error -> JoinResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<ReconfigureResponse> onReconfigure(ReconfigureRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::reconfigure)
+                .exceptionally(error -> ReconfigureResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<LeaveResponse> onLeave(LeaveRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::leave)
+                .exceptionally(error -> LeaveResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
     public CompletableFuture<AppendResponse> onAppend(final AppendRequest request) {
         raft.checkThread();
         logRequest(request);
         updateTermAndLeader(request.term(), request.leader());
         return handleAppend(request);
+    }
+
+    @Override
+    public CompletableFuture<PollResponse> onPoll(PollRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        return CompletableFuture.completedFuture(logResponse(PollResponse.builder()
+            .withStatus(RaftResponse.Status.ERROR)
+            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Cannot poll RESERVE member")
+            .build()));
+    }
+
+    @Override
+    public CompletableFuture<VoteResponse> onVote(VoteRequest request) {
+        raft.checkThread();
+        logRequest(request);
+        updateTermAndLeader(request.term(), null);
+
+        return CompletableFuture.completedFuture(logResponse(VoteResponse.builder()
+            .withStatus(RaftResponse.Status.ERROR)
+            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Cannot request vote from RESERVE member")
+            .build()));
+    }
+
+    @Override
+    public CompletableFuture<CommandResponse> onCommand(CommandRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        } else {
+            return forward(request, raft.getProtocol()::command)
+                .exceptionally(error -> CommandResponse.builder()
+                    .withStatus(RaftResponse.Status.ERROR)
+                    .withError(RaftError.Type.NO_LEADER)
+                    .build())
+                .thenApply(this::logResponse);
+        }
+    }
+
+    @Override
+    public CompletableFuture<QueryResponse> onQuery(QueryRequest request) {
+        raft.checkThread();
+        logRequest(request);
+
+        // If this server has not yet applied entries up to the client's session ID, forward the
+        // query to the leader. This ensures that a follower does not tell the client its session
+        // doesn't exist if the follower hasn't had a chance to see the session's registration entry.
+        if (raft.getLastApplied() < request.session()) {
+            log.trace("State out of sync, forwarding query to leader");
+            return queryForward(request);
+        }
+
+        // Look up the client's session.
+        RaftSessionContext session = raft.getSessions().getSession(request.session());
+        if (session == null) {
+            log.trace("State out of sync, forwarding query to leader");
+            return queryForward(request);
+        }
+
+        // If the session's consistency level is SEQUENTIAL, handle the request here, otherwise forward it.
+        if (session.readConsistency() == ReadConsistency.SEQUENTIAL) {
+
+            // If the commit index is not in the log then we've fallen too far behind the leader to perform a local query.
+            // Forward the request to the leader.
+            if (raft.getLogWriter().getLastIndex() < raft.getCommitIndex()) {
+                log.trace("State out of sync, forwarding query to leader");
+                return queryForward(request);
+            }
+
+            final Indexed<QueryEntry> entry = new Indexed<>(
+                request.index(),
+                new QueryEntry(
+                    raft.getTerm(),
+                    System.currentTimeMillis(),
+                    request.session(),
+                    request.sequenceNumber(),
+                    request.operation()), 0);
+
+            return applyQuery(entry).thenApply(this::logResponse);
+        } else {
+            return queryForward(request);
+        }
+    }
+
+    /**
+     * Forwards the query to the leader.
+     */
+    private CompletableFuture<QueryResponse> queryForward(QueryRequest request) {
+        if (raft.getLeader() == null) {
+            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build()));
+        }
+
+        log.trace("Forwarding {}", request);
+        return forward(request, raft.getProtocol()::query)
+            .exceptionally(error -> QueryResponse.builder()
+                .withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.NO_LEADER)
+                .build())
+            .thenApply(this::logResponse);
+    }
+
+    /**
+     * Applies a query to the state machine.
+     */
+    protected CompletableFuture<QueryResponse> applyQuery(Indexed<QueryEntry> entry) {
+        // In the case of the leader, the state machine is always up to date, so no queries will be queued and all query
+        // indexes will be the last applied index.
+        CompletableFuture<QueryResponse> future = new CompletableFuture<>();
+        raft.getStateMachine().<OperationResult>apply(entry).whenComplete((result, error) -> {
+            completeOperation(result, QueryResponse.builder(), error, future);
+        });
+        return future;
+    }
+
+    /**
+     * Completes an operation.
+     */
+    protected <T extends OperationResponse> void completeOperation(OperationResult result, OperationResponse.Builder<?, T> builder, Throwable error, CompletableFuture<T> future) {
+        if (result != null) {
+            builder.withIndex(result.index());
+            builder.withEventIndex(result.eventIndex());
+            if (result.failed()) {
+                error = result.error();
+            }
+        }
+
+        if (error == null) {
+            future.complete(builder.withStatus(RaftResponse.Status.OK)
+                .withResult(result != null ? result.result() : null)
+                .build());
+        } else if (error instanceof CompletionException && error.getCause() instanceof RaftException) {
+            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
+                .withError(((RaftException) error.getCause()).getType(), error.getMessage())
+                .build());
+        } else if (error instanceof RaftException) {
+            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
+                .withError(((RaftException) error).getType(), error.getMessage())
+                .build());
+        } else {
+            log.warn("An unexpected error occurred: {}", error);
+            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
+                .withError(RaftError.Type.PROTOCOL_ERROR, error.getMessage())
+                .build());
+        }
     }
 
     /**
@@ -360,385 +734,11 @@ public class PassiveRole extends InactiveRole {
         return succeeded;
     }
 
-    @Override
-    public CompletableFuture<QueryResponse> onQuery(QueryRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        // If this server has not yet applied entries up to the client's session ID, forward the
-        // query to the leader. This ensures that a follower does not tell the client its session
-        // doesn't exist if the follower hasn't had a chance to see the session's registration entry.
-        if (raft.getLastApplied() < request.session()) {
-            log.trace("State out of sync, forwarding query to leader");
-            return queryForward(request);
-        }
-
-        // Look up the client's session.
-        RaftSessionContext session = raft.getSessions().getSession(request.session());
-        if (session == null) {
-            log.trace("State out of sync, forwarding query to leader");
-            return queryForward(request);
-        }
-
-        // If the session's consistency level is SEQUENTIAL, handle the request here, otherwise forward it.
-        if (session.readConsistency() == ReadConsistency.SEQUENTIAL) {
-
-            // If the commit index is not in the log then we've fallen too far behind the leader to perform a local query.
-            // Forward the request to the leader.
-            if (raft.getLogWriter().getLastIndex() < raft.getCommitIndex()) {
-                log.trace("State out of sync, forwarding query to leader");
-                return queryForward(request);
-            }
-
-            final Indexed<QueryEntry> entry = new Indexed<>(
-                request.index(),
-                new QueryEntry(
-                    raft.getTerm(),
-                    System.currentTimeMillis(),
-                    request.session(),
-                    request.sequenceNumber(),
-                    request.operation()), 0);
-
-            return applyQuery(entry).thenApply(this::logResponse);
-        } else {
-            return queryForward(request);
-        }
-    }
-
-    /**
-     * Forwards the query to the leader.
-     */
-    private CompletableFuture<QueryResponse> queryForward(QueryRequest request) {
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        }
-
-        log.trace("Forwarding {}", request);
-        return forward(request, raft.getProtocol()::query)
-            .exceptionally(error -> QueryResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build())
-            .thenApply(this::logResponse);
-    }
-
     /**
      * Performs a local query.
      */
     protected CompletableFuture<QueryResponse> queryLocal(Indexed<QueryEntry> entry) {
         return applyQuery(entry);
-    }
-
-    /**
-     * Applies a query to the state machine.
-     */
-    protected CompletableFuture<QueryResponse> applyQuery(Indexed<QueryEntry> entry) {
-        // In the case of the leader, the state machine is always up to date, so no queries will be queued and all query
-        // indexes will be the last applied index.
-        CompletableFuture<QueryResponse> future = new CompletableFuture<>();
-        raft.getStateMachine().<OperationResult>apply(entry).whenComplete((result, error) -> {
-            completeOperation(result, QueryResponse.builder(), error, future);
-        });
-        return future;
-    }
-
-    /**
-     * Completes an operation.
-     */
-    protected <T extends OperationResponse> void completeOperation(OperationResult result, OperationResponse.Builder<?, T> builder, Throwable error, CompletableFuture<T> future) {
-        if (result != null) {
-            builder.withIndex(result.index());
-            builder.withEventIndex(result.eventIndex());
-            if (result.failed()) {
-                error = result.error();
-            }
-        }
-
-        if (error == null) {
-            future.complete(builder.withStatus(RaftResponse.Status.OK)
-                .withResult(result != null ? result.result() : null)
-                .build());
-        } else if (error instanceof CompletionException && error.getCause() instanceof RaftException) {
-            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
-                .withError(((RaftException) error.getCause()).getType(), error.getMessage())
-                .build());
-        } else if (error instanceof RaftException) {
-            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
-                .withError(((RaftException) error).getType(), error.getMessage())
-                .build());
-        } else {
-            log.warn("An unexpected error occurred: {}", error);
-            future.complete(builder.withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.PROTOCOL_ERROR, error.getMessage())
-                .build());
-        }
-    }
-
-    @Override
-    public CompletableFuture<InstallResponse> onInstall(InstallRequest request) {
-        raft.checkThread();
-        logRequest(request);
-        updateTermAndLeader(request.term(), request.leader());
-
-        // If the request is for a lesser term, reject the request.
-        if (request.term() < raft.getTerm()) {
-            return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request term is less than the local term " + request.term())
-                .build()));
-        }
-
-        // Get the pending snapshot for the associated snapshot ID.
-        PendingSnapshot pendingSnapshot = pendingSnapshots.get(request.serviceId());
-
-        // If a snapshot is currently being received and the snapshot versions don't match, simply
-        // close the existing snapshot. This is a naive implementation that assumes that the leader
-        // will be responsible in sending the correct snapshot to this server. Leaders must dictate
-        // where snapshots must be sent since entries can still legitimately exist prior to the snapshot,
-        // and so snapshots aren't simply sent at the beginning of the follower's log, but rather the
-        // leader dictates when a snapshot needs to be sent.
-        if (pendingSnapshot != null && request.snapshotIndex() != pendingSnapshot.snapshot().index()) {
-            pendingSnapshot.rollback();
-            pendingSnapshot = null;
-        }
-
-        // If there is no pending snapshot, create a new snapshot.
-        if (pendingSnapshot == null) {
-            // For new snapshots, the initial snapshot offset must be 0.
-            if (request.chunkOffset() > 0) {
-                return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request chunk offset is invalid")
-                    .build()));
-            }
-
-            Snapshot snapshot = raft.getSnapshotStore().newSnapshot(
-                ServiceId.from(request.serviceId()),
-                request.serviceName(),
-                request.snapshotIndex(),
-                WallClockTimestamp.from(request.snapshotTimestamp()));
-            pendingSnapshot = new PendingSnapshot(snapshot);
-        }
-
-        // If the request offset is greater than the next expected snapshot offset, fail the request.
-        if (request.chunkOffset() > pendingSnapshot.nextOffset()) {
-            return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Request chunk offset does not match the next chunk offset")
-                .build()));
-        }
-
-        // Write the data to the snapshot.
-        try (SnapshotWriter writer = pendingSnapshot.snapshot().openWriter()) {
-            writer.write(request.data());
-        }
-
-        // If the snapshot is complete, store the snapshot and reset state, otherwise update the next snapshot offset.
-        if (request.complete()) {
-            pendingSnapshot.commit();
-            pendingSnapshots.remove(request.serviceId());
-        } else {
-            pendingSnapshot.incrementOffset();
-            pendingSnapshots.put(request.serviceId(), pendingSnapshot);
-        }
-
-        return CompletableFuture.completedFuture(logResponse(InstallResponse.builder()
-            .withStatus(RaftResponse.Status.OK)
-            .build()));
-    }
-
-    @Override
-    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(MetadataResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::metadata)
-                .exceptionally(error -> MetadataResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<PollResponse> onPoll(PollRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        return CompletableFuture.completedFuture(logResponse(PollResponse.builder()
-            .withStatus(RaftResponse.Status.ERROR)
-            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Cannot poll RESERVE member")
-            .build()));
-    }
-
-    @Override
-    public CompletableFuture<VoteResponse> onVote(VoteRequest request) {
-        raft.checkThread();
-        logRequest(request);
-        updateTermAndLeader(request.term(), null);
-
-        return CompletableFuture.completedFuture(logResponse(VoteResponse.builder()
-            .withStatus(RaftResponse.Status.ERROR)
-            .withError(RaftError.Type.ILLEGAL_MEMBER_STATE, "Cannot request vote from RESERVE member")
-            .build()));
-    }
-
-    @Override
-    public CompletableFuture<CommandResponse> onCommand(CommandRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::command)
-                .exceptionally(error -> CommandResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(KeepAliveResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::keepAlive)
-                .exceptionally(error -> KeepAliveResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(OpenSessionResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::openSession)
-                .exceptionally(error -> OpenSessionResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(CloseSessionResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::closeSession)
-                .exceptionally(error -> CloseSessionResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<JoinResponse> onJoin(JoinRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(JoinResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::join)
-                .exceptionally(error -> JoinResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<ReconfigureResponse> onReconfigure(ReconfigureRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::reconfigure)
-                .exceptionally(error -> ReconfigureResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<LeaveResponse> onLeave(LeaveRequest request) {
-        raft.checkThread();
-        logRequest(request);
-
-        if (raft.getLeader() == null) {
-            return CompletableFuture.completedFuture(logResponse(LeaveResponse.builder()
-                .withStatus(RaftResponse.Status.ERROR)
-                .withError(RaftError.Type.NO_LEADER)
-                .build()));
-        } else {
-            return forward(request, raft.getProtocol()::leave)
-                .exceptionally(error -> LeaveResponse.builder()
-                    .withStatus(RaftResponse.Status.ERROR)
-                    .withError(RaftError.Type.NO_LEADER)
-                    .build())
-                .thenApply(this::logResponse);
-        }
-    }
-
-    @Override
-    public CompletableFuture<Void> close() {
-        for (PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
-            pendingSnapshot.rollback();
-        }
-        return super.close();
     }
 
     /**

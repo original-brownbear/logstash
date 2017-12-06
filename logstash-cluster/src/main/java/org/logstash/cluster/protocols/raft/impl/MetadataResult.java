@@ -24,25 +24,24 @@ import static com.google.common.base.MoreObjects.toStringHelper;
  * Metadata result.
  */
 public final class MetadataResult {
-  final Set<RaftSessionMetadata> sessions;
+    final Set<RaftSessionMetadata> sessions;
 
-  MetadataResult(Set<RaftSessionMetadata> sessions) {
-    this.sessions = sessions;
-  }
+    MetadataResult(Set<RaftSessionMetadata> sessions) {
+        this.sessions = sessions;
+    }
 
-  /**
-   * Returns the session metadata.
-   *
-   * @return The session metadata.
-   */
-  public Set<RaftSessionMetadata> sessions() {
-    return sessions;
-  }
+    /**
+     * Returns the session metadata.
+     * @return The session metadata.
+     */
+    public Set<RaftSessionMetadata> sessions() {
+        return sessions;
+    }
 
-  @Override
-  public String toString() {
-    return toStringHelper(this)
-        .add("sessions", sessions)
-        .toString();
-  }
+    @Override
+    public String toString() {
+        return toStringHelper(this)
+            .add("sessions", sessions)
+            .toString();
+    }
 }

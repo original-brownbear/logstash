@@ -52,22 +52,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class RaftStorage {
 
-    /**
-     * Returns a new storage builder.
-     * @return A new storage builder.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    public static Builder newBuilder() {
-        return builder();
-    }
-
     private final String prefix;
     private final StorageLevel storageLevel;
     private final File directory;
@@ -79,7 +63,6 @@ public class RaftStorage {
     private final boolean flushOnCommit;
     private final boolean retainStaleSnapshots;
     private final StorageStatistics statistics;
-
     private RaftStorage(
         String prefix,
         StorageLevel storageLevel,
@@ -106,6 +89,22 @@ public class RaftStorage {
     }
 
     /**
+     * @deprecated since 2.1
+     */
+    @Deprecated
+    public static Builder newBuilder() {
+        return builder();
+    }
+
+    /**
+     * Returns a new storage builder.
+     * @return A new storage builder.
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
      * Returns the storage filename prefix.
      * @return The storage filename prefix.
      */
@@ -119,18 +118,6 @@ public class RaftStorage {
      */
     public Serializer serializer() {
         return serializer;
-    }
-
-    /**
-     * Returns the storage directory.
-     * <p>
-     * The storage directory is the directory to which all {@link RaftLog}s write files. Segment files
-     * for multiple logs may be stored in the storage directory, and files for each log instance will be identified
-     * by the {@code name} provided when the log is {@link #openLog() opened}.
-     * @return The storage directory.
-     */
-    public File directory() {
-        return directory;
     }
 
     /**
@@ -232,6 +219,22 @@ public class RaftStorage {
     }
 
     /**
+     * Deletes file in the storage directory that match the given predicate.
+     */
+    private void deleteFiles(Predicate<File> predicate) {
+        directory.mkdirs();
+
+        // Iterate through all files in the storage directory.
+        for (File file : directory.listFiles(f -> f.isFile() && predicate.test(f))) {
+            try {
+                Files.delete(file.toPath());
+            } catch (IOException e) {
+                // Ignore the exception.
+            }
+        }
+    }
+
+    /**
      * Opens a new {@link SnapshotStore}, recovering snapshots from disk if they exist.
      * <p>
      * The snapshot store will be loaded using based on the configured {@link StorageLevel}. If the storage level is persistent
@@ -284,27 +287,23 @@ public class RaftStorage {
         deleteFiles(f -> JournalSegmentFile.isSegmentFile(prefix, f));
     }
 
-    /**
-     * Deletes file in the storage directory that match the given predicate.
-     */
-    private void deleteFiles(Predicate<File> predicate) {
-        directory.mkdirs();
-
-        // Iterate through all files in the storage directory.
-        for (File file : directory.listFiles(f -> f.isFile() && predicate.test(f))) {
-            try {
-                Files.delete(file.toPath());
-            } catch (IOException e) {
-                // Ignore the exception.
-            }
-        }
-    }
-
     @Override
     public String toString() {
         return toStringHelper(this)
             .add("directory", directory())
             .toString();
+    }
+
+    /**
+     * Returns the storage directory.
+     * <p>
+     * The storage directory is the directory to which all {@link RaftLog}s write files. Segment files
+     * for multiple logs may be stored in the storage directory, and files for each log instance will be identified
+     * by the {@code name} provided when the log is {@link #openLog() opened}.
+     * @return The storage directory.
+     */
+    public File directory() {
+        return directory;
     }
 
     /**

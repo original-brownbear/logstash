@@ -27,6 +27,14 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public class UnsafeDirectBuffer extends NativeBuffer {
 
+    protected UnsafeDirectBuffer(UnsafeDirectBytes bytes, int offset, int initialCapacity, int maxCapacity) {
+        super(bytes, offset, initialCapacity, maxCapacity);
+    }
+
+    protected UnsafeDirectBuffer(UnsafeDirectBytes bytes, ReferenceManager<Buffer> referenceManager) {
+        super(bytes, referenceManager);
+    }
+
     /**
      * Allocates a direct buffer with an initial capacity of {@code 4096} and a maximum capacity of {@link Long#MAX_VALUE}.
      * <p>
@@ -40,23 +48,6 @@ public class UnsafeDirectBuffer extends NativeBuffer {
      */
     public static UnsafeDirectBuffer allocate() {
         return allocate(DEFAULT_INITIAL_CAPACITY, Integer.MAX_VALUE);
-    }
-
-    /**
-     * Allocates a direct buffer with the given initial capacity.
-     * <p>
-     * When the buffer is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
-     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
-     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
-     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
-     * @return The direct buffer.
-     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
-     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
-     * @see UnsafeDirectBuffer#allocate()
-     * @see UnsafeDirectBuffer#allocate(int, int)
-     */
-    public static UnsafeDirectBuffer allocate(int initialCapacity) {
-        return allocate(initialCapacity, Integer.MAX_VALUE);
     }
 
     /**
@@ -79,12 +70,21 @@ public class UnsafeDirectBuffer extends NativeBuffer {
         return new UnsafeDirectBuffer(new UnsafeDirectBytes(DirectMemory.allocate((int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity))), 0, initialCapacity, maxCapacity);
     }
 
-    protected UnsafeDirectBuffer(UnsafeDirectBytes bytes, int offset, int initialCapacity, int maxCapacity) {
-        super(bytes, offset, initialCapacity, maxCapacity);
-    }
-
-    protected UnsafeDirectBuffer(UnsafeDirectBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
+    /**
+     * Allocates a direct buffer with the given initial capacity.
+     * <p>
+     * When the buffer is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
+     * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
+     * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).
+     * @return The direct buffer.
+     * @throws IllegalArgumentException If {@code capacity} is greater than the maximum allowed count for
+     * a {@link java.nio.ByteBuffer} - {@code Integer.MAX_VALUE - 5}
+     * @see UnsafeDirectBuffer#allocate()
+     * @see UnsafeDirectBuffer#allocate(int, int)
+     */
+    public static UnsafeDirectBuffer allocate(int initialCapacity) {
+        return allocate(initialCapacity, Integer.MAX_VALUE);
     }
 
     @Override

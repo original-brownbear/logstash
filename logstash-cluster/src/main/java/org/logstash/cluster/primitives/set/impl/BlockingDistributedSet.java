@@ -122,16 +122,6 @@ public class BlockingDistributedSet<E> extends Synchronous<AsyncDistributedSet<E
         complete(asyncSet.clear());
     }
 
-    @Override
-    public void addListener(SetEventListener<E> listener) {
-        complete(asyncSet.addListener(listener));
-    }
-
-    @Override
-    public void removeListener(SetEventListener<E> listener) {
-        complete(asyncSet.removeListener(listener));
-    }
-
     private <T> T complete(CompletableFuture<T> future) {
         try {
             return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
@@ -147,5 +137,15 @@ public class BlockingDistributedSet<E> extends Synchronous<AsyncDistributedSet<E
                 throw new PrimitiveException(e.getCause());
             }
         }
+    }
+
+    @Override
+    public void addListener(SetEventListener<E> listener) {
+        complete(asyncSet.addListener(listener));
+    }
+
+    @Override
+    public void removeListener(SetEventListener<E> listener) {
+        complete(asyncSet.removeListener(listener));
     }
 }

@@ -76,6 +76,14 @@ public interface RaftProxyExecutor {
     }
 
     /**
+     * Executes an operation to the cluster.
+     * @param operation the operation to execute
+     * @return a future to be completed with the operation result
+     * @throws NullPointerException if {@code operation} is null
+     */
+    CompletableFuture<byte[]> execute(RaftOperation operation);
+
+    /**
      * Executes an operation to the Raft cluster.
      * @param operationId the operation identifier
      * @param operation the operation to execute
@@ -85,14 +93,6 @@ public interface RaftProxyExecutor {
     default CompletableFuture<byte[]> execute(OperationId operationId, byte[] operation) {
         return execute(new RaftOperation(operationId, operation));
     }
-
-    /**
-     * Executes an operation to the cluster.
-     * @param operation the operation to execute
-     * @return a future to be completed with the operation result
-     * @throws NullPointerException if {@code operation} is null
-     */
-    CompletableFuture<byte[]> execute(RaftOperation operation);
 
     /**
      * Adds a session event listener.

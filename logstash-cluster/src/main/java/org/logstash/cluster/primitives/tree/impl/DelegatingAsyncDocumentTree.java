@@ -36,11 +36,6 @@ public class DelegatingAsyncDocumentTree<V> extends DelegatingDistributedPrimiti
     }
 
     @Override
-    public DocumentPath root() {
-        return delegateTree.root();
-    }
-
-    @Override
     public CompletableFuture<Map<String, Versioned<V>>> getChildren(DocumentPath path) {
         return delegateTree.getChildren(path);
     }
@@ -81,13 +76,18 @@ public class DelegatingAsyncDocumentTree<V> extends DelegatingDistributedPrimiti
     }
 
     @Override
-    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener) {
-        return delegateTree.addListener(path, listener);
+    public CompletableFuture<Void> removeListener(DocumentTreeListener<V> listener) {
+        return delegateTree.removeListener(listener);
     }
 
     @Override
-    public CompletableFuture<Void> removeListener(DocumentTreeListener<V> listener) {
-        return delegateTree.removeListener(listener);
+    public DocumentPath root() {
+        return delegateTree.root();
+    }
+
+    @Override
+    public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<V> listener) {
+        return delegateTree.addListener(path, listener);
     }
 
     @Override

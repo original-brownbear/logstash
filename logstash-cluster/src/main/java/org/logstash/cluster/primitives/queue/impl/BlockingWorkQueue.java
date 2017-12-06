@@ -44,21 +44,6 @@ public class BlockingWorkQueue<E> extends Synchronous<AsyncWorkQueue<E>> impleme
     }
 
     @Override
-    public void addMultiple(Collection<E> items) {
-        complete(asyncQueue.addMultiple(items));
-    }
-
-    @Override
-    public Collection<Task<E>> take(int maxItems) {
-        return complete(asyncQueue.take(maxItems));
-    }
-
-    @Override
-    public void complete(Collection<String> taskIds) {
-        complete(asyncQueue.complete(taskIds));
-    }
-
-    @Override
     public void registerTaskProcessor(Consumer<E> taskProcessor, int parallelism, Executor executor) {
         complete(asyncQueue.registerTaskProcessor(taskProcessor, parallelism, executor));
     }
@@ -71,6 +56,21 @@ public class BlockingWorkQueue<E> extends Synchronous<AsyncWorkQueue<E>> impleme
     @Override
     public WorkQueueStats stats() {
         return complete(asyncQueue.stats());
+    }
+
+    @Override
+    public void complete(Collection<String> taskIds) {
+        complete(asyncQueue.complete(taskIds));
+    }
+
+    @Override
+    public void addMultiple(Collection<E> items) {
+        complete(asyncQueue.addMultiple(items));
+    }
+
+    @Override
+    public Collection<Task<E>> take(int maxItems) {
+        return complete(asyncQueue.take(maxItems));
     }
 
     private <T> T complete(CompletableFuture<T> future) {

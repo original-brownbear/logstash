@@ -22,18 +22,18 @@ import org.logstash.cluster.event.AbstractEvent;
  */
 public class BackupEvent<T> extends AbstractEvent<BackupEvent.Type, T> {
 
-    /**
-     * Failure detection event type.
-     */
-    public enum Type {
-        BACKUP,
-    }
-
     public BackupEvent(Type type, T subject) {
         super(type, subject);
     }
 
     public BackupEvent(Type type, T subject, long time) {
         super(type, subject, time);
+    }
+
+    /**
+     * Failure detection event type.
+     */
+    public enum Type {
+        BACKUP,
     }
 }

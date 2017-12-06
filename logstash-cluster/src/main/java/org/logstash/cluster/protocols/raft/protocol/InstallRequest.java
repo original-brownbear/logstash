@@ -36,14 +36,6 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public class InstallRequest extends AbstractRaftRequest {
 
-    /**
-     * Returns a new install request builder.
-     * @return A new install request builder.
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
     private final long term;
     private final MemberId leader;
     private final long serviceId;
@@ -53,7 +45,6 @@ public class InstallRequest extends AbstractRaftRequest {
     private final int offset;
     private final byte[] data;
     private final boolean complete;
-
     public InstallRequest(long term, MemberId leader, long serviceId, String serviceName, long index, long timestamp, int offset, byte[] data, boolean complete) {
         this.term = term;
         this.leader = leader;
@@ -64,6 +55,14 @@ public class InstallRequest extends AbstractRaftRequest {
         this.offset = offset;
         this.data = data;
         this.complete = complete;
+    }
+
+    /**
+     * Returns a new install request builder.
+     * @return A new install request builder.
+     */
+    public static Builder builder() {
+        return new Builder();
     }
 
     /**
@@ -285,6 +284,15 @@ public class InstallRequest extends AbstractRaftRequest {
             return this;
         }
 
+        /**
+         * @throws IllegalStateException if member is null
+         */
+        @Override
+        public InstallRequest build() {
+            validate();
+            return new InstallRequest(term, leader, serviceId, serviceName, index, timestamp, offset, data, complete);
+        }
+
         @Override
         protected void validate() {
             super.validate();
@@ -295,15 +303,6 @@ public class InstallRequest extends AbstractRaftRequest {
             checkArgument(index >= 0, "index must be positive");
             checkArgument(offset >= 0, "offset must be positive");
             checkNotNull(data, "data cannot be null");
-        }
-
-        /**
-         * @throws IllegalStateException if member is null
-         */
-        @Override
-        public InstallRequest build() {
-            validate();
-            return new InstallRequest(term, leader, serviceId, serviceName, index, timestamp, offset, data, complete);
         }
     }
 

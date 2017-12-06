@@ -49,13 +49,6 @@ public class MessagesResource {
     private static final Logger LOGGER = LoggerFactory.getLogger(EventsResource.class);
     private static final int UUID_STRING_LENGTH = UUID.randomUUID().toString().length();
 
-    /**
-     * Returns an event log name.
-     */
-    private String getEventLogName(String subject, String id) {
-        return String.format("%s-%s", subject, id);
-    }
-
     @POST
     @Path("/{subject}")
     @Consumes(MediaType.TEXT_PLAIN)
@@ -144,6 +137,13 @@ public class MessagesResource {
                     response.resume(Response.serverError().build());
                 }
             });
+    }
+
+    /**
+     * Returns an event log name.
+     */
+    private String getEventLogName(String subject, String id) {
+        return String.format("%s-%s", subject, id);
     }
 
     @GET

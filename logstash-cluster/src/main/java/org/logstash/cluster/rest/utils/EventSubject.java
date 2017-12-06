@@ -24,23 +24,23 @@ import java.util.function.Consumer;
  * Event subject.
  */
 class EventSubject extends EventSession implements Consumer<String> {
-  private final Map<Integer, EventSession> sessions = new ConcurrentHashMap<>();
-  private final AtomicInteger sessionId = new AtomicInteger();
+    private final Map<Integer, EventSession> sessions = new ConcurrentHashMap<>();
+    private final AtomicInteger sessionId = new AtomicInteger();
 
-  EventSession getSession(int sessionId) {
-    return sessions.get(sessionId);
-  }
+    EventSession getSession(int sessionId) {
+        return sessions.get(sessionId);
+    }
 
-  int newSession() {
-    int sessionId = this.sessionId.incrementAndGet();
-    EventSession session = new EventSession();
-    sessions.put(sessionId, session);
-    return sessionId;
-  }
+    int newSession() {
+        int sessionId = this.sessionId.incrementAndGet();
+        EventSession session = new EventSession();
+        sessions.put(sessionId, session);
+        return sessionId;
+    }
 
-  @Override
-  public void accept(String event) {
-    addEvent(event);
-    sessions.values().forEach(s -> s.addEvent(event));
-  }
+    @Override
+    public void accept(String event) {
+        addEvent(event);
+        sessions.values().forEach(s -> s.addEvent(event));
+    }
 }

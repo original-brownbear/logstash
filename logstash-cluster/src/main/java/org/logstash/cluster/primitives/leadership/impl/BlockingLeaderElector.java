@@ -82,6 +82,19 @@ public class BlockingLeaderElector<T> extends Synchronous<AsyncLeaderElector<T>>
         complete(asyncElector.removeListener(listener));
     }
 
+    private <T> T complete(CompletableFuture<T> future) {
+        try {
+            return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new PrimitiveException.Interrupted();
+        } catch (TimeoutException e) {
+            throw new PrimitiveException.Timeout();
+        } catch (ExecutionException e) {
+            throw new PrimitiveException(e.getCause());
+        }
+    }
+
     @Override
     public void addStatusChangeListener(Consumer<Status> listener) {
         asyncElector.addStatusChangeListener(listener);
@@ -95,18 +108,5 @@ public class BlockingLeaderElector<T> extends Synchronous<AsyncLeaderElector<T>>
     @Override
     public Collection<Consumer<Status>> statusChangeListeners() {
         return asyncElector.statusChangeListeners();
-    }
-
-    private <T> T complete(CompletableFuture<T> future) {
-        try {
-            return future.get(operationTimeoutMillis, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new PrimitiveException.Interrupted();
-        } catch (TimeoutException e) {
-            throw new PrimitiveException.Timeout();
-        } catch (ExecutionException e) {
-            throw new PrimitiveException(e.getCause());
-        }
     }
 }

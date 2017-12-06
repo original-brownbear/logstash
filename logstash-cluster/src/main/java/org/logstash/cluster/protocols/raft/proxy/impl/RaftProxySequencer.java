@@ -57,14 +57,14 @@ import org.slf4j.Logger;
 final class RaftProxySequencer {
     private final Logger log;
     private final RaftProxyState state;
+    private final Queue<EventCallback> eventCallbacks = new ArrayDeque<>();
+    private final Map<Long, ResponseCallback> responseCallbacks = new HashMap<>();
     @VisibleForTesting
     long requestSequence;
     @VisibleForTesting
     long responseSequence;
     @VisibleForTesting
     long eventIndex;
-    private final Queue<EventCallback> eventCallbacks = new ArrayDeque<>();
-    private final Map<Long, ResponseCallback> responseCallbacks = new HashMap<>();
 
     RaftProxySequencer(RaftProxyState state) {
         this.state = state;
@@ -102,36 +102,6 @@ final class RaftProxySequencer {
         } else {
             eventCallbacks.add(new EventCallback(request, callback));
             completeResponses();
-        }
-    }
-
-    /**
-     * Sequences a response.
-     * <p>
-     * When an operation is sequenced, it's first sequenced in the order in which it was submitted to the cluster.
-     * Once placed in sequential request order, if a response's {@code eventIndex} is greater than the last completed
-     * {@code eventIndex}, we attempt to sequence pending events. If after sequencing pending events the response's
-     * {@code eventIndex} is equal to the last completed {@code eventIndex} then the response can be immediately
-     * completed. If not enough events are pending to meet the sequence requirement, the sequencing of responses is
-     * stopped until events are received.
-     * @param sequence The request sequence number.
-     * @param response The response to sequence.
-     * @param callback The callback to sequence.
-     */
-    public void sequenceResponse(long sequence, OperationResponse response, Runnable callback) {
-        // If the request sequence number is equal to the next response sequence number, attempt to complete the response.
-        if (sequence == responseSequence + 1) {
-            if (completeResponse(response, callback)) {
-                ++responseSequence;
-                completeResponses();
-            } else {
-                responseCallbacks.put(sequence, new ResponseCallback(response, callback));
-            }
-        }
-        // If the response has not yet been sequenced, store it in the response callbacks map.
-        // Otherwise, the response for the operation with this sequence number has already been handled.
-        else if (sequence > responseSequence) {
-            responseCallbacks.put(sequence, new ResponseCallback(response, callback));
         }
     }
 
@@ -216,6 +186,36 @@ final class RaftProxySequencer {
             return true;
         } else {
             return false;
+        }
+    }
+
+    /**
+     * Sequences a response.
+     * <p>
+     * When an operation is sequenced, it's first sequenced in the order in which it was submitted to the cluster.
+     * Once placed in sequential request order, if a response's {@code eventIndex} is greater than the last completed
+     * {@code eventIndex}, we attempt to sequence pending events. If after sequencing pending events the response's
+     * {@code eventIndex} is equal to the last completed {@code eventIndex} then the response can be immediately
+     * completed. If not enough events are pending to meet the sequence requirement, the sequencing of responses is
+     * stopped until events are received.
+     * @param sequence The request sequence number.
+     * @param response The response to sequence.
+     * @param callback The callback to sequence.
+     */
+    public void sequenceResponse(long sequence, OperationResponse response, Runnable callback) {
+        // If the request sequence number is equal to the next response sequence number, attempt to complete the response.
+        if (sequence == responseSequence + 1) {
+            if (completeResponse(response, callback)) {
+                ++responseSequence;
+                completeResponses();
+            } else {
+                responseCallbacks.put(sequence, new ResponseCallback(response, callback));
+            }
+        }
+        // If the response has not yet been sequenced, store it in the response callbacks map.
+        // Otherwise, the response for the operation with this sequence number has already been handled.
+        else if (sequence > responseSequence) {
+            responseCallbacks.put(sequence, new ResponseCallback(response, callback));
         }
     }
 
