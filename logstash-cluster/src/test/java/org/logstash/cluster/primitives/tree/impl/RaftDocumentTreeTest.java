@@ -71,7 +71,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests queries (get and getChildren).
      */
     @Test
-    public void testQueries() throws Throwable {
+    public void testQueries() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         Versioned<byte[]> root = tree.get(path("root")).join();
         assertEquals(1, root.version());
@@ -86,7 +86,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests create.
      */
     @Test
-    public void testCreate() throws Throwable {
+    public void testCreate() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -109,7 +109,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests recursive create.
      */
     @Test
-    public void testRecursiveCreate() throws Throwable {
+    public void testRecursiveCreate() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.createRecursive(path("root.a.b.c"), "abc".getBytes()).join();
         Versioned<byte[]> a = tree.get(path("root.a")).join();
@@ -126,7 +126,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests child node order.
      */
     @Test
-    public void testOrder() throws Throwable {
+    public void testOrder() {
         RaftDocumentTree naturalTree = newPrimitive(UUID.randomUUID().toString(), Ordering.NATURAL);
         naturalTree.create(path("root.c"), "foo".getBytes());
         naturalTree.create(path("root.b"), "bar".getBytes());
@@ -154,7 +154,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests set.
      */
     @Test
-    public void testSet() throws Throwable {
+    public void testSet() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -181,7 +181,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests replace if version matches.
      */
     @Test
-    public void testReplaceVersion() throws Throwable {
+    public void testReplaceVersion() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -202,7 +202,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests replace if value matches.
      */
     @Test
-    public void testReplaceValue() throws Throwable {
+    public void testReplaceValue() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -223,7 +223,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests remove.
      */
     @Test
-    public void testRemove() throws Throwable {
+    public void testRemove() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -251,7 +251,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests invalid removes.
      */
     @Test
-    public void testRemoveFailures() throws Throwable {
+    public void testRemoveFailures() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
@@ -283,7 +283,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests invalid create.
      */
     @Test
-    public void testCreateFailures() throws Throwable {
+    public void testCreateFailures() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         try {
             tree.create(path("root.a.c"), "ac".getBytes()).join();
@@ -297,7 +297,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests invalid set.
      */
     @Test
-    public void testSetFailures() throws Throwable {
+    public void testSetFailures() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         try {
             tree.set(path("root.a.c"), "ac".getBytes()).join();
@@ -311,7 +311,7 @@ public class RaftDocumentTreeTest extends AbstractRaftPrimitiveTest<RaftDocument
      * Tests getChildren.
      */
     @Test
-    public void testGetChildren() throws Throwable {
+    public void testGetChildren() {
         RaftDocumentTree tree = newPrimitive(UUID.randomUUID().toString());
         tree.create(path("root.a"), "a".getBytes()).join();
         tree.create(path("root.a.b"), "ab".getBytes()).join();
