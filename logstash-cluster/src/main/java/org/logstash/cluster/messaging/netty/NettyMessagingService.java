@@ -510,7 +510,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         final Bootstrap bootstrap = bootstrapClient(ep);
         final CompletableFuture<Channel> retFuture = new CompletableFuture<>();
         final ChannelFuture f = bootstrap.connect();
-
         f.addListener(future -> {
             if (future.isSuccess()) {
                 retFuture.complete(f.channel());

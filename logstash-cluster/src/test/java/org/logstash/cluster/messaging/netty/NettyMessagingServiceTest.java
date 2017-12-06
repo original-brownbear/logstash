@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -130,20 +131,20 @@ public final class NettyMessagingServiceTest {
         final AtomicBoolean handlerInvoked = new AtomicBoolean(false);
         final AtomicReference<byte[]> request = new AtomicReference<>();
         final AtomicReference<Endpoint> sender = new AtomicReference<>();
-
+        final byte[] rawResponse = "hello there".getBytes(StandardCharsets.UTF_8);
+        final byte[] rawRequest = "hello world".getBytes(StandardCharsets.UTF_8);
         final BiFunction<Endpoint, byte[], byte[]> handler = (ep, data) -> {
             handlerInvoked.set(true);
             sender.set(ep);
             request.set(data);
-            return "hello there".getBytes();
+            return rawResponse;
         };
         netty2.registerHandler(subject, handler, MoreExecutors.directExecutor());
-
         final CompletableFuture<byte[]> response =
-            netty1.sendAndReceive(ep2, subject, "hello world".getBytes());
-        assertTrue(Arrays.equals("hello there".getBytes(), response.join()));
+            netty1.sendAndReceive(ep2, subject, rawRequest);
+        assertTrue(Arrays.equals(rawResponse, response.join()));
         assertTrue(handlerInvoked.get());
-        assertTrue(Arrays.equals(request.get(), "hello world".getBytes()));
+        assertTrue(Arrays.equals(request.get(), rawRequest));
         assertEquals(ep1, sender.get());
     }
 
