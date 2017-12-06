@@ -16,31 +16,30 @@
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
 import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
 import java.nio.charset.Charset;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.BufferOutput;
 import org.logstash.cluster.storage.buffer.Bytes;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Writes bytes to a state machine {@link Snapshot}.
  * <p>
  * This class provides the primary interface for writing snapshot buffers to disk or memory.
  * Snapshot bytes are written to an underlying {@link Buffer} which is backed by either memory
- * or disk based on the configured {@link StorageLevel}.
+ * or disk based on the configured {@link org.logstash.cluster.storage.StorageLevel}.
  * <p>
  * In addition to standard {@link BufferOutput} methods, snapshot readers support writing serializable objects
  * to the snapshot via the {@link #writeObject(Object, Function)} method. Serializable types must be registered on the
- * {@link RaftServer} serializer to be supported in snapshots.
+ * {@link org.logstash.cluster.protocols.raft.RaftServer} serializer to be supported in snapshots.
  */
 public class SnapshotWriter implements BufferOutput<SnapshotWriter> {
     final Buffer buffer;
     private final Snapshot snapshot;
 
     SnapshotWriter(Buffer buffer, Snapshot snapshot) {
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
-        this.snapshot = checkNotNull(snapshot, "snapshot cannot be null");
+        this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null");
+        this.snapshot = Preconditions.checkNotNull(snapshot, "snapshot cannot be null");
     }
 
     /**

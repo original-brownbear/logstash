@@ -16,6 +16,7 @@
 package org.logstash.cluster.messaging.netty;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
@@ -24,8 +25,6 @@ import java.util.List;
 import org.logstash.cluster.messaging.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Decoder for inbound messages.
@@ -96,7 +95,7 @@ public class MessageDecoder extends ReplayingDecoder<DecoderState> {
                         checkpoint(DecoderState.READ_STATUS);
                         break;
                     default:
-                        checkState(false, "Must not be here");
+                        Preconditions.checkState(false, "Must not be here");
                 }
                 break;
             default:
@@ -142,7 +141,7 @@ public class MessageDecoder extends ReplayingDecoder<DecoderState> {
                 }
                 break;
             default:
-                checkState(false, "Must not be here");
+                Preconditions.checkState(false, "Must not be here");
         }
     }
 
