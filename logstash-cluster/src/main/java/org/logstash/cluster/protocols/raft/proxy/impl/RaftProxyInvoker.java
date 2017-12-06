@@ -1,20 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.Preconditions;
 import java.net.ConnectException;
 import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
@@ -40,8 +26,6 @@ import org.logstash.cluster.protocols.raft.protocol.RaftResponse;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Session operation submitter.
  */
@@ -66,18 +50,18 @@ final class RaftProxyInvoker {
     private final AtomicLong keepAliveIndex = new AtomicLong();
 
     public RaftProxyInvoker(
-        RaftProxyConnection leaderConnection,
-        RaftProxyConnection sessionConnection,
-        RaftProxyState state,
-        RaftProxySequencer sequencer,
-        RaftProxyManager manager,
-        ThreadContext context) {
-        this.leaderConnection = checkNotNull(leaderConnection, "leaderConnection");
-        this.sessionConnection = checkNotNull(sessionConnection, "sessionConnection");
-        this.state = checkNotNull(state, "state");
-        this.sequencer = checkNotNull(sequencer, "sequencer");
-        this.manager = checkNotNull(manager, "manager");
-        this.context = checkNotNull(context, "context cannot be null");
+        final RaftProxyConnection leaderConnection,
+        final RaftProxyConnection sessionConnection,
+        final RaftProxyState state,
+        final RaftProxySequencer sequencer,
+        final RaftProxyManager manager,
+        final ThreadContext context) {
+        this.leaderConnection = Preconditions.checkNotNull(leaderConnection, "leaderConnection");
+        this.sessionConnection = Preconditions.checkNotNull(sessionConnection, "sessionConnection");
+        this.state = Preconditions.checkNotNull(state, "state");
+        this.sequencer = Preconditions.checkNotNull(sequencer, "sequencer");
+        this.manager = Preconditions.checkNotNull(manager, "manager");
+        this.context = Preconditions.checkNotNull(context, "context cannot be null");
     }
 
     /**
@@ -85,8 +69,8 @@ final class RaftProxyInvoker {
      * @param operation The operation to submit.
      * @return A completable future to be completed once the command has been submitted.
      */
-    public CompletableFuture<byte[]> invoke(RaftOperation operation) {
-        CompletableFuture<byte[]> future = new CompletableFuture<>();
+    public CompletableFuture<byte[]> invoke(final RaftOperation operation) {
+        final CompletableFuture<byte[]> future = new CompletableFuture<>();
         switch (operation.id().type()) {
             case COMMAND:
                 context.execute(() -> invokeCommand(operation, future));
@@ -103,8 +87,8 @@ final class RaftProxyInvoker {
     /**
      * Submits a command to the cluster.
      */
-    private void invokeCommand(RaftOperation operation, CompletableFuture<byte[]> future) {
-        CommandRequest request = CommandRequest.builder()
+    private void invokeCommand(final RaftOperation operation, final CompletableFuture<byte[]> future) {
+        final CommandRequest request = CommandRequest.builder()
             .withSession(state.getSessionId().id())
             .withSequence(state.nextCommandRequest())
             .withOperation(operation)
@@ -115,15 +99,15 @@ final class RaftProxyInvoker {
     /**
      * Submits a command request to the cluster.
      */
-    private void invokeCommand(CommandRequest request, CompletableFuture<byte[]> future) {
+    private void invokeCommand(final CommandRequest request, final CompletableFuture<byte[]> future) {
         invoke(new CommandAttempt(sequencer.nextRequest(), request, future));
     }
 
     /**
      * Submits a query to the cluster.
      */
-    private void invokeQuery(RaftOperation operation, CompletableFuture<byte[]> future) {
-        QueryRequest request = QueryRequest.builder()
+    private void invokeQuery(final RaftOperation operation, final CompletableFuture<byte[]> future) {
+        final QueryRequest request = QueryRequest.builder()
             .withSession(state.getSessionId().id())
             .withSequence(state.getCommandRequest())
             .withOperation(operation)
@@ -135,7 +119,7 @@ final class RaftProxyInvoker {
     /**
      * Submits a query request to the cluster.
      */
-    private void invokeQuery(QueryRequest request, CompletableFuture<byte[]> future) {
+    private void invokeQuery(final QueryRequest request, final CompletableFuture<byte[]> future) {
         invoke(new QueryAttempt(sequencer.nextRequest(), request, future));
     }
 
@@ -143,7 +127,7 @@ final class RaftProxyInvoker {
      * Submits an operation attempt.
      * @param attempt The attempt to submit.
      */
-    private <T extends OperationRequest, U extends OperationResponse> void invoke(OperationAttempt<T, U> attempt) {
+    private <T extends OperationRequest, U extends OperationResponse> void invoke(final OperationAttempt<T, U> attempt) {
         if (state.getState() == RaftProxy.State.CLOSED) {
             attempt.fail(new RaftException.ClosedSession("session closed"));
         } else {
@@ -162,13 +146,13 @@ final class RaftProxyInvoker {
      * operation attempts and retrying commands where the sequence number is greater than the given
      * {@code commandSequence} number and the attempt number is less than or equal to the version.
      */
-    private void resubmit(long commandSequence, OperationAttempt<?, ?> attempt) {
+    private void resubmit(final long commandSequence, final OperationAttempt<?, ?> attempt) {
         // If the client's response sequence number is greater than the given command sequence number,
         // the cluster likely has a new leader, and we need to reset the sequencing in the leader by
         // sending a keep-alive request.
         // Ensure that the client doesn't resubmit many concurrent KeepAliveRequests by tracking the last
         // keep-alive response sequence number and only resubmitting if the sequence number has changed.
-        long responseSequence = state.getCommandResponse();
+        final long responseSequence = state.getCommandResponse();
         if (commandSequence < responseSequence && keepAliveIndex.get() != responseSequence) {
             keepAliveIndex.set(responseSequence);
             manager.resetIndexes(state.getSessionId()).whenCompleteAsync((result, error) -> {
@@ -180,8 +164,8 @@ final class RaftProxyInvoker {
                 }
             }, context);
         } else {
-            for (Map.Entry<Long, OperationAttempt> entry : attempts.entrySet()) {
-                OperationAttempt operation = entry.getValue();
+            for (final Map.Entry<Long, OperationAttempt> entry : attempts.entrySet()) {
+                final OperationAttempt operation = entry.getValue();
                 if (operation instanceof CommandAttempt && operation.request.sequenceNumber() > commandSequence && operation.attempt <= attempt.attempt) {
                     operation.retry();
                 }
@@ -194,7 +178,7 @@ final class RaftProxyInvoker {
      * @return A completable future to be completed with a list of pending operations.
      */
     public CompletableFuture<Void> close() {
-        for (OperationAttempt attempt : new ArrayList<>(attempts.values())) {
+        for (final OperationAttempt attempt : new ArrayList<>(attempts.values())) {
             attempt.fail(new RaftException.ClosedSession("session closed"));
         }
         attempts.clear();
@@ -210,7 +194,7 @@ final class RaftProxyInvoker {
         protected final T request;
         protected final CompletableFuture<byte[]> future;
 
-        protected OperationAttempt(long sequence, int attempt, T request, CompletableFuture<byte[]> future) {
+        protected OperationAttempt(final long sequence, final int attempt, final T request, final CompletableFuture<byte[]> future) {
             this.sequence = sequence;
             this.attempt = attempt;
             this.request = request;
@@ -244,7 +228,7 @@ final class RaftProxyInvoker {
          * Completes the operation with an exception.
          * @param error The completion exception.
          */
-        protected void complete(Throwable error) {
+        protected void complete(final Throwable error) {
             sequence(null, () -> future.completeExceptionally(error));
         }
 
@@ -253,7 +237,7 @@ final class RaftProxyInvoker {
          * @param response The operation response.
          * @param callback The callback to run in sequence.
          */
-        protected final void sequence(OperationResponse response, Runnable callback) {
+        protected final void sequence(final OperationResponse response, final Runnable callback) {
             sequencer.sequenceResponse(sequence, response, callback);
         }
 
@@ -268,7 +252,7 @@ final class RaftProxyInvoker {
          * Fails the attempt with the given exception.
          * @param t The exception with which to fail the attempt.
          */
-        public void fail(Throwable t) {
+        public void fail(final Throwable t) {
             complete(t);
         }
 
@@ -283,7 +267,7 @@ final class RaftProxyInvoker {
          * Retries the attempt after the given duration.
          * @param after The duration after which to retry the attempt.
          */
-        public void retry(Duration after) {
+        public void retry(final Duration after) {
             context.schedule(after, () -> invoke(next()));
         }
     }
@@ -294,11 +278,11 @@ final class RaftProxyInvoker {
     private final class CommandAttempt extends OperationAttempt<CommandRequest, CommandResponse> {
         private final long time = System.currentTimeMillis();
 
-        public CommandAttempt(long sequence, CommandRequest request, CompletableFuture<byte[]> future) {
+        public CommandAttempt(final long sequence, final CommandRequest request, final CompletableFuture<byte[]> future) {
             super(sequence, 1, request, future);
         }
 
-        public CommandAttempt(long sequence, int attempt, CommandRequest request, CompletableFuture<byte[]> future) {
+        public CommandAttempt(final long sequence, final int attempt, final CommandRequest request, final CompletableFuture<byte[]> future) {
             super(sequence, attempt, request, future);
         }
 
@@ -318,7 +302,7 @@ final class RaftProxyInvoker {
         }
 
         @Override
-        public void accept(CommandResponse response, Throwable error) {
+        public void accept(final CommandResponse response, final Throwable error) {
             if (error == null) {
                 if (response.status() == RaftResponse.Status.OK) {
                     complete(response);
@@ -355,7 +339,7 @@ final class RaftProxyInvoker {
         }
 
         @Override
-        public void fail(Throwable cause) {
+        public void fail(final Throwable cause) {
             super.fail(cause);
 
             // If the session has been closed, update the client's state.
@@ -366,7 +350,7 @@ final class RaftProxyInvoker {
 
         @Override
         @SuppressWarnings("unchecked")
-        protected void complete(CommandResponse response) {
+        protected void complete(final CommandResponse response) {
             sequence(response, () -> {
                 state.setCommandResponse(request.sequenceNumber());
                 state.setResponseIndex(response.index());
@@ -379,11 +363,11 @@ final class RaftProxyInvoker {
      * Query operation attempt.
      */
     private final class QueryAttempt extends OperationAttempt<QueryRequest, QueryResponse> {
-        public QueryAttempt(long sequence, QueryRequest request, CompletableFuture<byte[]> future) {
+        public QueryAttempt(final long sequence, final QueryRequest request, final CompletableFuture<byte[]> future) {
             super(sequence, 1, request, future);
         }
 
-        public QueryAttempt(long sequence, int attempt, QueryRequest request, CompletableFuture<byte[]> future) {
+        public QueryAttempt(final long sequence, final int attempt, final QueryRequest request, final CompletableFuture<byte[]> future) {
             super(sequence, attempt, request, future);
         }
 
@@ -403,7 +387,7 @@ final class RaftProxyInvoker {
         }
 
         @Override
-        public void accept(QueryResponse response, Throwable error) {
+        public void accept(final QueryResponse response, final Throwable error) {
             if (error == null) {
                 if (response.status() == RaftResponse.Status.OK) {
                     complete(response);
@@ -417,7 +401,7 @@ final class RaftProxyInvoker {
 
         @Override
         @SuppressWarnings("unchecked")
-        protected void complete(QueryResponse response) {
+        protected void complete(final QueryResponse response) {
             sequence(response, () -> {
                 state.setResponseIndex(response.index());
                 future.complete(response.result());

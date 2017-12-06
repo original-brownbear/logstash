@@ -43,7 +43,6 @@ import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOpera
 import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.SIZE;
 
 /**
- * Atomic counter map state for Atomix.
  * <p>
  * The counter map state is implemented as a snapshottable state machine. Snapshots are necessary
  * since incremental compaction is impractical for counters where the value of a counter is the sum
@@ -152,7 +151,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
      * @param commit remove commit
      * @return remove result
      */
-    protected long remove(Commit<RaftConsistentMapOperations.Remove> commit) {
+    protected long remove(Commit<RaftAtomicCounterMapOperations.Remove> commit) {
         return primitive(map.remove(commit.value().key()));
     }
 

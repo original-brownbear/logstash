@@ -81,23 +81,23 @@ public enum RaftConsistentMapOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(ContainsKey.class)
-        .register(ContainsValue.class)
-        .register(Get.class)
-        .register(GetAllPresent.class)
-        .register(GetOrDefault.class)
-        .register(Put.class)
-        .register(Remove.class)
-        .register(RemoveValue.class)
-        .register(RemoveVersion.class)
-        .register(Replace.class)
-        .register(ReplaceValue.class)
-        .register(ReplaceVersion.class)
-        .register(TransactionBegin.class)
-        .register(TransactionPrepare.class)
-        .register(TransactionPrepareAndCommit.class)
-        .register(TransactionCommit.class)
-        .register(TransactionRollback.class)
+        .register(RaftConsistentMapOperations.ContainsKey.class)
+        .register(RaftConsistentMapOperations.ContainsValue.class)
+        .register(RaftConsistentMapOperations.Get.class)
+        .register(RaftConsistentMapOperations.GetAllPresent.class)
+        .register(RaftConsistentMapOperations.GetOrDefault.class)
+        .register(RaftConsistentMapOperations.Put.class)
+        .register(RaftConsistentMapOperations.Remove.class)
+        .register(RaftConsistentMapOperations.RemoveValue.class)
+        .register(RaftConsistentMapOperations.RemoveVersion.class)
+        .register(RaftConsistentMapOperations.Replace.class)
+        .register(RaftConsistentMapOperations.ReplaceValue.class)
+        .register(RaftConsistentMapOperations.ReplaceVersion.class)
+        .register(RaftConsistentMapOperations.TransactionBegin.class)
+        .register(RaftConsistentMapOperations.TransactionPrepare.class)
+        .register(RaftConsistentMapOperations.TransactionPrepareAndCommit.class)
+        .register(RaftConsistentMapOperations.TransactionCommit.class)
+        .register(RaftConsistentMapOperations.TransactionRollback.class)
         .register(TransactionId.class)
         .register(TransactionLog.class)
         .register(MapUpdate.class)
@@ -127,7 +127,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Abstract key-based query.
      */
     @SuppressWarnings("serial")
-    public abstract static class KeyOperation extends MapOperation {
+    public abstract static class KeyOperation extends RaftConsistentMapOperations.MapOperation {
         protected String key;
 
         public KeyOperation() {
@@ -157,7 +157,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Abstract value-based query.
      */
     @SuppressWarnings("serial")
-    public abstract static class ValueOperation extends MapOperation {
+    public abstract static class ValueOperation extends RaftConsistentMapOperations.MapOperation {
         protected byte[] value;
 
         public ValueOperation() {
@@ -187,7 +187,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Abstract key/value operation.
      */
     @SuppressWarnings("serial")
-    public abstract static class KeyValueOperation extends KeyOperation {
+    public abstract static class KeyValueOperation extends RaftConsistentMapOperations.KeyOperation {
         protected byte[] value;
 
         public KeyValueOperation() {
@@ -219,7 +219,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Abstract key/version operation.
      */
     @SuppressWarnings("serial")
-    public abstract static class KeyVersionOperation extends KeyOperation {
+    public abstract static class KeyVersionOperation extends RaftConsistentMapOperations.KeyOperation {
         protected long version;
 
         public KeyVersionOperation() {
@@ -251,7 +251,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Contains key command.
      */
     @SuppressWarnings("serial")
-    public static class ContainsKey extends KeyOperation {
+    public static class ContainsKey extends RaftConsistentMapOperations.KeyOperation {
         public ContainsKey() {
         }
 
@@ -264,7 +264,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Contains value command.
      */
     @SuppressWarnings("serial")
-    public static class ContainsValue extends ValueOperation {
+    public static class ContainsValue extends RaftConsistentMapOperations.ValueOperation {
         public ContainsValue() {
         }
 
@@ -276,7 +276,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Map put operation.
      */
-    public static class Put extends KeyValueOperation {
+    public static class Put extends RaftConsistentMapOperations.KeyValueOperation {
         public Put() {
         }
 
@@ -288,7 +288,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Remove operation.
      */
-    public static class Remove extends KeyOperation {
+    public static class Remove extends RaftConsistentMapOperations.KeyOperation {
         public Remove() {
         }
 
@@ -300,7 +300,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Remove if value match operation.
      */
-    public static class RemoveValue extends KeyValueOperation {
+    public static class RemoveValue extends RaftConsistentMapOperations.KeyValueOperation {
         public RemoveValue() {
         }
 
@@ -312,7 +312,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Remove if version match operation.
      */
-    public static class RemoveVersion extends KeyVersionOperation {
+    public static class RemoveVersion extends RaftConsistentMapOperations.KeyVersionOperation {
         public RemoveVersion() {
         }
 
@@ -324,7 +324,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Replace operation.
      */
-    public static class Replace extends KeyValueOperation {
+    public static class Replace extends RaftConsistentMapOperations.KeyValueOperation {
         public Replace() {
         }
 
@@ -336,7 +336,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Replace by value operation.
      */
-    public static class ReplaceValue extends KeyOperation {
+    public static class ReplaceValue extends RaftConsistentMapOperations.KeyOperation {
         private byte[] oldValue;
         private byte[] newValue;
 
@@ -370,7 +370,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Replace by version operation.
      */
-    public static class ReplaceVersion extends KeyOperation {
+    public static class ReplaceVersion extends RaftConsistentMapOperations.KeyOperation {
         private long oldVersion;
         private byte[] newValue;
 
@@ -404,7 +404,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     /**
      * Transaction begin command.
      */
-    public static class TransactionBegin extends MapOperation {
+    public static class TransactionBegin extends RaftConsistentMapOperations.MapOperation {
         private TransactionId transactionId;
 
         public TransactionBegin() {
@@ -423,7 +423,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Map prepare command.
      */
     @SuppressWarnings("serial")
-    public static class TransactionPrepare extends MapOperation {
+    public static class TransactionPrepare extends RaftConsistentMapOperations.MapOperation {
         private TransactionLog<MapUpdate<String, byte[]>> transactionLog;
 
         public TransactionPrepare() {
@@ -449,7 +449,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Map prepareAndCommit command.
      */
     @SuppressWarnings("serial")
-    public static class TransactionPrepareAndCommit extends TransactionPrepare {
+    public static class TransactionPrepareAndCommit extends RaftConsistentMapOperations.TransactionPrepare {
         public TransactionPrepareAndCommit() {
         }
 
@@ -462,7 +462,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Map transaction commit command.
      */
     @SuppressWarnings("serial")
-    public static class TransactionCommit extends MapOperation {
+    public static class TransactionCommit extends RaftConsistentMapOperations.MapOperation {
         private TransactionId transactionId;
 
         public TransactionCommit() {
@@ -492,7 +492,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Map transaction rollback command.
      */
     @SuppressWarnings("serial")
-    public static class TransactionRollback extends MapOperation {
+    public static class TransactionRollback extends RaftConsistentMapOperations.MapOperation {
         private TransactionId transactionId;
 
         public TransactionRollback() {
@@ -522,7 +522,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Get query.
      */
     @SuppressWarnings("serial")
-    public static class Get extends KeyOperation {
+    public static class Get extends RaftConsistentMapOperations.KeyOperation {
         public Get() {
         }
 
@@ -535,7 +535,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Get all present query.
      */
     @SuppressWarnings("serial")
-    public static class GetAllPresent extends MapOperation {
+    public static class GetAllPresent extends RaftConsistentMapOperations.MapOperation {
         private Set<String> keys;
 
         public GetAllPresent() {
@@ -565,7 +565,7 @@ public enum RaftConsistentMapOperations implements OperationId {
      * Get or default query.
      */
     @SuppressWarnings("serial")
-    public static class GetOrDefault extends KeyOperation {
+    public static class GetOrDefault extends RaftConsistentMapOperations.KeyOperation {
         private byte[] defaultValue;
 
         public GetOrDefault() {

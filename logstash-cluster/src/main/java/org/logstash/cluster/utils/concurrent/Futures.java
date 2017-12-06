@@ -34,7 +34,7 @@ public final class Futures {
      * @param result The future result.
      * @return The completed future.
      */
-    public static <T> CompletableFuture<T> completedFuture(T result) {
+    public static <T> CompletableFuture<T> completedFuture(final T result) {
         return CompletableFuture.completedFuture(result);
     }
 
@@ -44,8 +44,8 @@ public final class Futures {
      * @param executor The executor on which to complete the future.
      * @return The completed future.
      */
-    public static <T> CompletableFuture<T> completedFutureAsync(T result, Executor executor) {
-        CompletableFuture<T> future = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> completedFutureAsync(final T result, final Executor executor) {
+        final CompletableFuture<T> future = new CompletableFuture<>();
         executor.execute(() -> future.complete(result));
         return future;
     }
@@ -55,8 +55,8 @@ public final class Futures {
      * @param t The future exception.
      * @return The exceptionally completed future.
      */
-    public static <T> CompletableFuture<T> exceptionalFuture(Throwable t) {
-        CompletableFuture<T> future = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> exceptionalFuture(final Throwable t) {
+        final CompletableFuture<T> future = new CompletableFuture<>();
         future.completeExceptionally(t);
         return future;
     }
@@ -67,8 +67,8 @@ public final class Futures {
      * @param executor The executor on which to complete the future.
      * @return The exceptionally completed future.
      */
-    public static <T> CompletableFuture<T> exceptionalFutureAsync(Throwable t, Executor executor) {
-        CompletableFuture<T> future = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> exceptionalFutureAsync(final Throwable t, final Executor executor) {
+        final CompletableFuture<T> future = new CompletableFuture<>();
         executor.execute(() -> {
             future.completeExceptionally(t);
         });
@@ -91,8 +91,8 @@ public final class Futures {
      * @param <T> the future value type
      * @return a wrapped future to be completed on the given executor
      */
-    public static <T> CompletableFuture<T> asyncFuture(CompletableFuture<T> future, Executor executor) {
-        CompletableFuture<T> newFuture = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> asyncFuture(final CompletableFuture<T> future, final Executor executor) {
+        final CompletableFuture<T> newFuture = new CompletableFuture<>();
         future.whenComplete((result, error) -> {
             executor.execute(() -> {
                 if (error == null) {
@@ -119,12 +119,12 @@ public final class Futures {
      * @return a new completable future to be completed using the provided {@code executor} once the provided
      * {@code future} is complete
      */
-    public static <T> CompletableFuture<T> blockingAwareFuture(CompletableFuture<T> future, Executor executor) {
+    public static <T> CompletableFuture<T> blockingAwareFuture(final CompletableFuture<T> future, final Executor executor) {
         if (future.isDone()) {
             return future;
         }
 
-        BlockingAwareFuture<T> newFuture = new BlockingAwareFuture<T>();
+        final BlockingAwareFuture<T> newFuture = new BlockingAwareFuture<>();
         future.whenComplete((result, error) -> {
             if (newFuture.isBlocked()) {
                 if (error == null) {
@@ -150,7 +150,7 @@ public final class Futures {
      * @param <T> value type of CompletableFuture
      * @return a new CompletableFuture that is completed when all of the given CompletableFutures complete
      */
-    public static <T> CompletableFuture<List<T>> allOf(List<CompletableFuture<T>> futures) {
+    public static <T> CompletableFuture<List<T>> allOf(final List<CompletableFuture<T>> futures) {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()]))
             .thenApply(v -> futures.stream()
                 .map(CompletableFuture::join)
@@ -167,9 +167,9 @@ public final class Futures {
      * @param <T> value type of CompletableFuture
      * @return a new CompletableFuture that is completed when all of the given CompletableFutures complete
      */
-    public static <T> CompletableFuture<T> allOf(List<CompletableFuture<T>> futures,
-        BinaryOperator<T> reducer,
-        T emptyValue) {
+    public static <T> CompletableFuture<T> allOf(final List<CompletableFuture<T>> futures,
+        final BinaryOperator<T> reducer,
+        final T emptyValue) {
         return allOf(futures).thenApply(resultList -> resultList.stream().reduce(reducer).orElse(emptyValue));
     }
 
@@ -182,10 +182,10 @@ public final class Futures {
      * @param <T> value type of CompletableFuture
      * @return a new CompletableFuture
      */
-    public static <T> CompletableFuture<T> firstOf(List<CompletableFuture<T>> futures,
-        Match<T> positiveResultMatcher,
-        T negativeResult) {
-        CompletableFuture<T> responseFuture = new CompletableFuture<>();
+    public static <T> CompletableFuture<T> firstOf(final List<CompletableFuture<T>> futures,
+        final Match<T> positiveResultMatcher,
+        final T negativeResult) {
+        final CompletableFuture<T> responseFuture = new CompletableFuture<>();
         allOf(Lists.transform(futures, future -> future.thenAccept(r -> {
             if (positiveResultMatcher.matches(r)) {
                 responseFuture.complete(r);
