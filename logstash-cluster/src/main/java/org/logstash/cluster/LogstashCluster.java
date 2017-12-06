@@ -265,7 +265,6 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         private static final String DEFAULT_CLUSTER_NAME = "atomix";
         private static final int DEFAULT_NUM_BUCKETS = 128;
         private String name = DEFAULT_CLUSTER_NAME;
-        private int httpPort;
         private Node localNode;
         private Collection<Node> bootstrapNodes;
         private int numPartitions;
@@ -282,16 +281,6 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          */
         public Builder withClusterName(String name) {
             this.name = checkNotNull(name, "name cannot be null");
-            return this;
-        }
-
-        /**
-         * Sets the HTTP port.
-         * @param httpPort the HTTP port
-         * @return the Atomix builder
-         */
-        public Builder withHttpPort(int httpPort) {
-            this.httpPort = httpPort;
             return this;
         }
 
