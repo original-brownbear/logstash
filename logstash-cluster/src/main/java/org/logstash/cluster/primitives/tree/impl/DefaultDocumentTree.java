@@ -43,17 +43,17 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     private final Supplier<Long> versionSupplier;
 
     public DefaultDocumentTree() {
-        AtomicLong versionCounter = new AtomicLong(0);
+        final AtomicLong versionCounter = new AtomicLong(0);
         versionSupplier = versionCounter::incrementAndGet;
         root = new DefaultDocumentTreeNode<>(ROOT_PATH, null, versionSupplier.get(), Ordering.NATURAL, null);
     }
 
-    public DefaultDocumentTree(Supplier<Long> versionSupplier, Ordering ordering) {
+    public DefaultDocumentTree(final Supplier<Long> versionSupplier, final Ordering ordering) {
         root = new DefaultDocumentTreeNode<>(ROOT_PATH, null, versionSupplier.get(), ordering, null);
         this.versionSupplier = versionSupplier;
     }
 
-    DefaultDocumentTree(Supplier<Long> versionSupplier, DefaultDocumentTreeNode<V> root) {
+    DefaultDocumentTree(final Supplier<Long> versionSupplier, final DefaultDocumentTreeNode<V> root) {
         this.root = root;
         this.versionSupplier = versionSupplier;
     }
@@ -64,10 +64,10 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public Map<String, Versioned<V>> getChildren(DocumentPath path) {
-        DocumentTreeNode<V> node = getNode(path);
+    public Map<String, Versioned<V>> getChildren(final DocumentPath path) {
+        final DocumentTreeNode<V> node = getNode(path);
         if (node != null) {
-            Map<String, Versioned<V>> childrenValues = Maps.newLinkedHashMap();
+            final Map<String, Versioned<V>> childrenValues = Maps.newLinkedHashMap();
             node.children().forEachRemaining(n -> childrenValues.put(simpleName(n.path()), n.value()));
             return childrenValues;
         }
@@ -75,15 +75,15 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public Versioned<V> get(DocumentPath path) {
-        DocumentTreeNode<V> currentNode = getNode(path);
+    public Versioned<V> get(final DocumentPath path) {
+        final DocumentTreeNode<V> currentNode = getNode(path);
         return currentNode != null ? currentNode.value() : null;
     }
 
     @Override
-    public Versioned<V> set(DocumentPath path, V value) {
+    public Versioned<V> set(final DocumentPath path, final V value) {
         checkRootModification(path);
-        DefaultDocumentTreeNode<V> node = getNode(path);
+        final DefaultDocumentTreeNode<V> node = getNode(path);
         if (node != null) {
             return node.update(value, versionSupplier.get());
         } else {
@@ -93,14 +93,14 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public boolean create(DocumentPath path, V value) {
+    public boolean create(final DocumentPath path, final V value) {
         checkRootModification(path);
-        DocumentTreeNode<V> node = getNode(path);
+        final DocumentTreeNode<V> node = getNode(path);
         if (node != null) {
             return false;
         }
-        DocumentPath parentPath = path.parent();
-        DefaultDocumentTreeNode<V> parentNode = getNode(parentPath);
+        final DocumentPath parentPath = path.parent();
+        final DefaultDocumentTreeNode<V> parentNode = getNode(parentPath);
         if (parentNode == null) {
             throw new IllegalDocumentModificationException();
         }
@@ -109,17 +109,17 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public boolean createRecursive(DocumentPath path, V value) {
+    public boolean createRecursive(final DocumentPath path, final V value) {
         checkRootModification(path);
-        DocumentTreeNode<V> node = getNode(path);
+        final DocumentTreeNode<V> node = getNode(path);
         if (node != null) {
             return false;
         }
-        DocumentPath parentPath = path.parent();
+        final DocumentPath parentPath = path.parent();
         if (getNode(parentPath) == null) {
             createRecursive(parentPath, null);
         }
-        DefaultDocumentTreeNode<V> parentNode = getNode(parentPath);
+        final DefaultDocumentTreeNode<V> parentNode = getNode(parentPath);
         if (parentNode == null) {
             throw new IllegalDocumentModificationException();
         }
@@ -128,9 +128,9 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public boolean replace(DocumentPath path, V newValue, long version) {
+    public boolean replace(final DocumentPath path, final V newValue, final long version) {
         checkRootModification(path);
-        DocumentTreeNode<V> node = getNode(path);
+        final DocumentTreeNode<V> node = getNode(path);
         if (node != null && node.value() != null && node.value().version() == version) {
             set(path, newValue);
             return true;
@@ -139,12 +139,12 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public boolean replace(DocumentPath path, V newValue, V currentValue) {
+    public boolean replace(final DocumentPath path, final V newValue, final V currentValue) {
         checkRootModification(path);
         if (Objects.equals(newValue, currentValue)) {
             return false;
         }
-        DocumentTreeNode<V> node = getNode(path);
+        final DocumentTreeNode<V> node = getNode(path);
         if (node != null && Objects.equals(Versioned.valueOrNull(node.value()), currentValue)) {
             set(path, newValue);
             return true;
@@ -153,22 +153,22 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public Versioned<V> removeNode(DocumentPath path) {
+    public Versioned<V> removeNode(final DocumentPath path) {
         checkRootModification(path);
-        DefaultDocumentTreeNode<V> nodeToRemove = getNode(path);
+        final DefaultDocumentTreeNode<V> nodeToRemove = getNode(path);
         if (nodeToRemove == null) {
             throw new NoSuchDocumentPathException();
         }
         if (nodeToRemove.hasChildren()) {
             throw new IllegalDocumentModificationException();
         }
-        DefaultDocumentTreeNode<V> parent = (DefaultDocumentTreeNode<V>) nodeToRemove.parent();
+        final DefaultDocumentTreeNode<V> parent = (DefaultDocumentTreeNode<V>) nodeToRemove.parent();
         parent.removeChild(simpleName(path));
         return nodeToRemove.value();
     }
 
     @Override
-    public void removeListener(DocumentTreeListener<V> listener) {
+    public void removeListener(final DocumentTreeListener<V> listener) {
         // TODO Auto-generated method stub
     }
 
@@ -178,18 +178,18 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     }
 
     @Override
-    public void addListener(DocumentPath path, DocumentTreeListener<V> listener) {
+    public void addListener(final DocumentPath path, final DocumentTreeListener<V> listener) {
         // TODO Auto-generated method stub
     }
 
-    private static void checkRootModification(DocumentPath path) {
+    private static void checkRootModification(final DocumentPath path) {
         if (ROOT_PATH.equals(path)) {
             throw new IllegalDocumentModificationException();
         }
     }
 
-    private DefaultDocumentTreeNode<V> getNode(DocumentPath path) {
-        Iterator<String> pathElements = path.pathElements().iterator();
+    private DefaultDocumentTreeNode<V> getNode(final DocumentPath path) {
+        final Iterator<String> pathElements = path.pathElements().iterator();
         DefaultDocumentTreeNode<V> currentNode = root;
         Preconditions.checkState("root".equals(pathElements.next()), "Path should start with root");
         while (pathElements.hasNext() && currentNode != null) {
@@ -198,7 +198,7 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
         return currentNode;
     }
 
-    private static String simpleName(DocumentPath path) {
+    private static String simpleName(final DocumentPath path) {
         return path.pathElements().get(path.pathElements().size() - 1);
     }
 

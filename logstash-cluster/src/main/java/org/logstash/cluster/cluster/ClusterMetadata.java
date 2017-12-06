@@ -15,13 +15,12 @@
  */
 package org.logstash.cluster.cluster;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 import org.logstash.cluster.cluster.impl.DefaultNode;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Cluster metadata.
@@ -31,11 +30,12 @@ public class ClusterMetadata {
     private final String name;
     private final Node localNode;
     private final Collection<Node> bootstrapNodes;
+
     protected ClusterMetadata(
         String name,
         Node localNode,
         Collection<Node> bootstrapNodes) {
-        this.name = checkNotNull(name, "name cannot be null");
+        this.name = Preconditions.checkNotNull(name, "name cannot be null");
         this.localNode = ((DefaultNode) localNode).setType(bootstrapNodes.contains(localNode) ? Node.Type.CORE : Node.Type.CLIENT);
         this.bootstrapNodes = bootstrapNodes.stream()
             .map(node -> ((DefaultNode) node).setType(Node.Type.CORE))
@@ -76,7 +76,7 @@ public class ClusterMetadata {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("name", name)
             .add("localNode", localNode)
             .toString();
@@ -98,7 +98,7 @@ public class ClusterMetadata {
          * @throws NullPointerException if the name is null
          */
         public Builder withClusterName(String name) {
-            this.name = checkNotNull(name, "name cannot be null");
+            this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
 
@@ -108,7 +108,7 @@ public class ClusterMetadata {
          * @return the cluster metadata builder
          */
         public Builder withLocalNode(Node localNode) {
-            this.localNode = checkNotNull(localNode, "localNode cannot be null");
+            this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
 
@@ -119,7 +119,7 @@ public class ClusterMetadata {
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
         public Builder withBootstrapNodes(Node... bootstrapNodes) {
-            return withBootstrapNodes(Arrays.asList(checkNotNull(bootstrapNodes)));
+            return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
         /**
@@ -129,7 +129,7 @@ public class ClusterMetadata {
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
         public Builder withBootstrapNodes(Collection<Node> bootstrapNodes) {
-            this.bootstrapNodes = checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
+            this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }
 
