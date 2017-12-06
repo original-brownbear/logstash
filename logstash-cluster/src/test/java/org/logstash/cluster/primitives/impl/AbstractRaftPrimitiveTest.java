@@ -1,27 +1,10 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.impl;
 
 import com.google.common.collect.Lists;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
@@ -34,6 +17,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
 import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.messaging.TestClusterCommunicationServiceFactory;
 import org.logstash.cluster.messaging.TestRaftClientCommunicator;
@@ -51,10 +36,15 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.storage.StorageLevel;
 
 /**
- * Base class for various Atomix tests.
+ * Base class for various tests.
  * @param <T> the Raft primitive type being tested
  */
 public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive> {
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    protected Path basePath;
 
     protected TestClusterCommunicationServiceFactory communicationServiceFactory;
     protected List<RaftMember> members = Lists.newCopyOnWriteArrayList();
@@ -136,7 +126,8 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
     }
 
     @Before
-    public void prepare() {
+    public void prepare() throws IOException {
+        basePath = temporaryFolder.newFolder().toPath();
         members.clear();
         clients.clear();
         servers.clear();
@@ -192,7 +183,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
                 communicationServiceFactory.newCommunicationService(NodeId.from(member.memberId().id()))))
             .withStorage(RaftStorage.builder()
                 .withStorageLevel(StorageLevel.MEMORY)
-                .withDirectory(new File(String.format("target/primitives/%s", member.memberId())))
+                .withDirectory(basePath.resolve("primitives").resolve(member.memberId().id()).toFile())
                 .withSerializer(Serializer.using(RaftTestNamespaces.RAFT_STORAGE))
                 .withMaxSegmentSize(1024 * 1024)
                 .build())
@@ -228,7 +219,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
             }
         });
 
-        Path directory = Paths.get("target/primitives/");
+        final Path directory = basePath.resolve("primitives");
         if (Files.exists(directory)) {
             try {
                 Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
