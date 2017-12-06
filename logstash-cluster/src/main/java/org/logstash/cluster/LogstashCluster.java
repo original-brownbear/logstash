@@ -66,8 +66,6 @@ import org.logstash.cluster.primitives.queue.WorkQueueBuilder;
 import org.logstash.cluster.primitives.set.DistributedSetBuilder;
 import org.logstash.cluster.primitives.tree.DocumentTreeBuilder;
 import org.logstash.cluster.primitives.value.AtomicValueBuilder;
-import org.logstash.cluster.rest.ManagedRestService;
-import org.logstash.cluster.rest.impl.VertxRestService;
 import org.logstash.cluster.utils.Managed;
 import org.logstash.cluster.utils.concurrent.SingleThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
@@ -86,7 +84,6 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
     private final ManagedClusterCommunicationService clusterCommunicator;
     private final ManagedClusterEventService clusterEventService;
     private final ManagedPartitionService partitions;
-    private final ManagedRestService restService;
     private final PrimitiveService primitives;
     private final AtomicBoolean open = new AtomicBoolean();
     private final ThreadContext context = new SingleThreadContext("atomix-%d");
@@ -97,14 +94,12 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         ManagedClusterCommunicationService clusterCommunicator,
         ManagedClusterEventService clusterEventService,
         ManagedPartitionService partitions,
-        ManagedRestService restService,
         PrimitiveService primitives) {
         this.cluster = checkNotNull(cluster, "cluster cannot be null");
         this.messagingService = checkNotNull(messagingService, "messagingService cannot be null");
         this.clusterCommunicator = checkNotNull(clusterCommunicator, "clusterCommunicator cannot be null");
         this.clusterEventService = checkNotNull(clusterEventService, "clusterEventService cannot be null");
         this.partitions = checkNotNull(partitions, "partitions cannot be null");
-        this.restService = restService; // ManagedRestService can be null
         this.primitives = checkNotNull(primitives, "primitives cannot be null");
     }
 
@@ -220,7 +215,6 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
             .thenComposeAsync(v -> clusterCommunicator.open(), context)
             .thenComposeAsync(v -> clusterEventService.open(), context)
             .thenComposeAsync(v -> partitions.open(), context)
-            .thenComposeAsync(v -> restService != null ? restService.open() : CompletableFuture.completedFuture(null), context)
             .thenApplyAsync(v -> {
                 open.set(true);
                 LOGGER.info("Started");
@@ -235,8 +229,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
 
     @Override
     public CompletableFuture<Void> close() {
-        return restService.close()
-            .thenComposeAsync(v -> partitions.close(), context)
+        return partitions.close()
             .thenComposeAsync(v -> clusterCommunicator.close(), context)
             .thenComposeAsync(v -> clusterEventService.close(), context)
             .thenComposeAsync(v -> cluster.close(), context)
@@ -397,14 +390,12 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
             ManagedClusterEventService clusterEventService = buildClusterEventService(clusterService, clusterCommunicator);
             ManagedPartitionService partitionService = buildPartitionService(clusterCommunicator);
             PrimitiveService primitives = buildPrimitiveService(partitionService);
-            ManagedRestService restService = buildRestService(clusterService, clusterCommunicator, clusterEventService, primitives);
             return new LogstashCluster(
                 clusterService,
                 messagingService,
                 clusterCommunicator,
                 clusterEventService,
                 partitionService,
-                restService,
                 primitives);
         }
 
@@ -480,7 +471,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
                 for (int j = 0; j < partitionSize; j++) {
                     set.add(sorted.get((i + j) % numPartitions).id());
                 }
-                partitions.add(new PartitionMetadata(PartitionId.from((i + 1)), set));
+                partitions.add(new PartitionMetadata(PartitionId.from(i + 1), set));
             }
             return partitions;
         }
@@ -494,15 +485,5 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
             return new FederatedPrimitiveService(members, numBuckets);
         }
 
-        /**
-         * Builds a REST service.
-         */
-        private ManagedRestService buildRestService(
-            ClusterService clusterService,
-            ClusterCommunicationService communicationService,
-            ClusterEventService eventService,
-            PrimitiveService primitiveService) {
-            return httpPort > 0 ? new VertxRestService(localNode.endpoint().host().getHostAddress(), httpPort, clusterService, communicationService, eventService, primitiveService) : null;
-        }
     }
 }
