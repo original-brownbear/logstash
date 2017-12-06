@@ -178,7 +178,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link RaftLeaderElectorOperations.Run} commit.
+     * Applies an {@link Run} commit.
      * @param commit commit entry
      * @return topic leader. If no previous leader existed this is the node that just entered the race.
      */
@@ -283,7 +283,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link RaftLeaderElectorOperations.Anoint} commit.
+     * Applies an {@link Anoint} commit.
      * @param commit anoint commit
      * @return {@code true} if changes were made and the transfer occurred; {@code false} if it did not.
      */
@@ -312,7 +312,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link RaftLeaderElectorOperations.Promote} commit.
+     * Applies an {@link Promote} commit.
      * @param commit promote commit
      * @return {@code true} if changes desired end state is achieved.
      */
@@ -351,7 +351,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link RaftLeaderElectorOperations.Evict} commit.
+     * Applies an {@link Evict} commit.
      * @param commit evict commit
      */
     protected void evict(Commit<? extends Evict> commit) {
