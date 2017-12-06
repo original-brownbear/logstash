@@ -67,7 +67,7 @@ public class RaftProxyConnection {
     private final ThreadContext context;
     private MemberId member;
 
-    public RaftProxyConnection(RaftClientProtocol protocol, MemberSelector selector, ThreadContext context, LoggerContext loggerContext) {
+    public RaftProxyConnection(final RaftClientProtocol protocol, final MemberSelector selector, final ThreadContext context, final LoggerContext loggerContext) {
         this.protocol = checkNotNull(protocol, "protocol cannot be null");
         this.selector = checkNotNull(selector, "selector cannot be null");
         this.context = checkNotNull(context, "context cannot be null");
@@ -86,7 +86,7 @@ public class RaftProxyConnection {
      * @param leader the selector leader
      * @param servers the selector servers
      */
-    public void reset(MemberId leader, Collection<MemberId> servers) {
+    public void reset(final MemberId leader, final Collection<MemberId> servers) {
         selector.reset(leader, servers);
     }
 
@@ -111,8 +111,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<OpenSessionResponse> openSession(OpenSessionRequest request) {
-        CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
+    public CompletableFuture<OpenSessionResponse> openSession(final OpenSessionRequest request) {
+        final CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::openSession, next(), future);
         } else {
@@ -126,8 +126,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<CloseSessionResponse> closeSession(CloseSessionRequest request) {
-        CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
+    public CompletableFuture<CloseSessionResponse> closeSession(final CloseSessionRequest request) {
+        final CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::closeSession, next(), future);
         } else {
@@ -141,8 +141,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<KeepAliveResponse> keepAlive(KeepAliveRequest request) {
-        CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
+    public CompletableFuture<KeepAliveResponse> keepAlive(final KeepAliveRequest request) {
+        final CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::keepAlive, next(), future);
         } else {
@@ -156,8 +156,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<QueryResponse> query(QueryRequest request) {
-        CompletableFuture<QueryResponse> future = new CompletableFuture<>();
+    public CompletableFuture<QueryResponse> query(final QueryRequest request) {
+        final CompletableFuture<QueryResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::query, next(), future);
         } else {
@@ -171,8 +171,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<CommandResponse> command(CommandRequest request) {
-        CompletableFuture<CommandResponse> future = new CompletableFuture<>();
+    public CompletableFuture<CommandResponse> command(final CommandRequest request) {
+        final CompletableFuture<CommandResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::command, next(), future);
         } else {
@@ -186,8 +186,8 @@ public class RaftProxyConnection {
      * @param request the request to send
      * @return a future to be completed with the response
      */
-    public CompletableFuture<MetadataResponse> metadata(MetadataRequest request) {
-        CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
+    public CompletableFuture<MetadataResponse> metadata(final MetadataRequest request) {
+        final CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
         if (context.isCurrentContext()) {
             sendRequest(request, protocol::metadata, next(), future);
         } else {
@@ -199,7 +199,7 @@ public class RaftProxyConnection {
     /**
      * Sends the given request attempt to the cluster.
      */
-    protected <T extends RaftRequest, U extends RaftResponse> void sendRequest(T request, BiFunction<MemberId, T, CompletableFuture<U>> sender, MemberId member, CompletableFuture<U> future) {
+    protected <T extends RaftRequest, U extends RaftResponse> void sendRequest(final T request, final BiFunction<MemberId, T, CompletableFuture<U>> sender, final MemberId member, final CompletableFuture<U> future) {
         if (member != null) {
             log.trace("Sending {} to {}", request, member);
             sender.apply(member, request).whenCompleteAsync((r, e) -> {
@@ -218,7 +218,7 @@ public class RaftProxyConnection {
      * Resends a request due to a request failure, resetting the connection if necessary.
      */
     @SuppressWarnings("unchecked")
-    protected <T extends RaftRequest> void retryRequest(Throwable cause, T request, BiFunction sender, MemberId member, CompletableFuture future) {
+    protected <T extends RaftRequest> void retryRequest(final Throwable cause, final T request, final BiFunction sender, final MemberId member, final CompletableFuture future) {
         // If the connection has not changed, reset it and connect to the next server.
         if (this.member == member) {
             log.trace("Resetting connection. Reason: {}", cause.getMessage());
@@ -233,7 +233,7 @@ public class RaftProxyConnection {
      * Handles a response from the cluster.
      */
     @SuppressWarnings("unchecked")
-    protected <T extends RaftRequest> void handleResponse(T request, BiFunction sender, MemberId member, RaftResponse response, Throwable error, CompletableFuture future) {
+    protected <T extends RaftRequest> void handleResponse(final T request, final BiFunction sender, final MemberId member, final RaftResponse response, Throwable error, final CompletableFuture future) {
         if (error == null) {
             if (COMPLETE_PREDICATE.test(response)) {
                 log.trace("Received {} from {}", response, member);
