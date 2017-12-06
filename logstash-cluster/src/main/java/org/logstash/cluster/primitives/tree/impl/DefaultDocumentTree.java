@@ -17,12 +17,12 @@
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Maps;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import org.logstash.cluster.primitives.Ordering;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTree;
