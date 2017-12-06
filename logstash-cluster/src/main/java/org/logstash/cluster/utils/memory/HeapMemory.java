@@ -225,7 +225,7 @@ public class HeapMemory implements Memory {
      * Returns the native Unsafe memory object.
      * @return The native Unsafe memory object.
      */
-    public Unsafe unsafe() {
+    public static Unsafe unsafe() {
         return NativeMemory.UNSAFE;
     }
 
@@ -241,7 +241,7 @@ public class HeapMemory implements Memory {
      * Returns the array base offset.
      * @return The array base offset.
      */
-    public final int offset() {
+    public static int offset() {
         return ARRAY_BASE_OFFSET;
     }
 

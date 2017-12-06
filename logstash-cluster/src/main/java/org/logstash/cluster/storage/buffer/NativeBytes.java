@@ -113,7 +113,7 @@ public abstract class NativeBytes extends AbstractBytes {
 
     @Override
     public Bytes zero(int offset, int length) {
-        memory.unsafe().setMemory(memory.address(offset), length, (byte) 0);
+        NativeMemory.unsafe().setMemory(memory.address(offset), length, (byte) 0);
         return this;
     }
 
@@ -127,9 +127,9 @@ public abstract class NativeBytes extends AbstractBytes {
             bytes = ((WrappedBytes) bytes).root();
 
         if (bytes instanceof NativeBytes) {
-            memory.unsafe().copyMemory(((NativeBytes) bytes).memory.address(offset), memory.address(position), length);
+            NativeMemory.unsafe().copyMemory(((NativeBytes) bytes).memory.address(offset), memory.address(position), length);
         } else if (bytes instanceof UnsafeHeapBytes) {
-            memory.unsafe().copyMemory(((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), null, memory.address(position), length);
+            NativeMemory.unsafe().copyMemory(((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), null, memory.address(position), length);
         } else {
             for (int i = 0; i < length; i++) {
                 memory.putByte(position + i, (byte) bytes.readByte(offset + i));
@@ -143,7 +143,7 @@ public abstract class NativeBytes extends AbstractBytes {
         checkWrite(position, length);
         if (bytes.length < length)
             throw new IllegalArgumentException("length is greater than provided byte array length");
-        memory.unsafe().copyMemory(bytes, HeapMemory.ARRAY_BASE_OFFSET + offset, null, memory.address(position), length);
+        NativeMemory.unsafe().copyMemory(bytes, HeapMemory.ARRAY_BASE_OFFSET + offset, null, memory.address(position), length);
         return this;
     }
 
@@ -200,9 +200,9 @@ public abstract class NativeBytes extends AbstractBytes {
             bytes = ((WrappedBytes) bytes).root();
 
         if (bytes instanceof NativeBytes) {
-            memory.unsafe().copyMemory(memory.address(position), ((NativeBytes) bytes).memory.address(), length);
+            NativeMemory.unsafe().copyMemory(memory.address(position), ((NativeBytes) bytes).memory.address(), length);
         } else if (bytes instanceof UnsafeHeapBytes) {
-            memory.unsafe().copyMemory(null, memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
+            NativeMemory.unsafe().copyMemory(null, memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
         } else {
             for (int i = 0; i < length; i++) {
                 bytes.writeByte(offset + i, memory.getByte(position + i));
@@ -214,7 +214,7 @@ public abstract class NativeBytes extends AbstractBytes {
     @Override
     public Bytes read(int position, byte[] bytes, int offset, int length) {
         checkRead(position, length);
-        memory.unsafe().copyMemory(null, memory.address(position), bytes, HeapMemory.ARRAY_BASE_OFFSET + offset, length);
+        NativeMemory.unsafe().copyMemory(null, memory.address(position), bytes, HeapMemory.ARRAY_BASE_OFFSET + offset, length);
         return this;
     }
 

@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
  */
 @Path("/v1/messages")
 public class MessagesResource {
-    private static final Logger LOGGER = LoggerFactory.getLogger(EventsResource.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MessagesResource.class);
     private static final int UUID_STRING_LENGTH = UUID.randomUUID().toString().length();
 
     @POST

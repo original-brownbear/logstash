@@ -108,7 +108,7 @@ public class UnsafeHeapBytes extends AbstractBytes {
 
     @Override
     public Bytes zero(int offset, int length) {
-        memory.unsafe().setMemory(memory.array(), memory.address(offset), length, (byte) 0);
+        HeapMemory.unsafe().setMemory(memory.array(), memory.address(offset), length, (byte) 0);
         return this;
     }
 
@@ -119,9 +119,9 @@ public class UnsafeHeapBytes extends AbstractBytes {
             throw new IllegalArgumentException("length is greater than provided byte array size");
 
         if (bytes instanceof UnsafeHeapBytes) {
-            memory.unsafe().copyMemory(((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), memory.array(), memory.address(position), length);
+            HeapMemory.unsafe().copyMemory(((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), memory.array(), memory.address(position), length);
         } else if (bytes instanceof NativeBytes) {
-            memory.unsafe().copyMemory(null, ((NativeBytes) bytes).memory.address(offset), memory.array(), memory.address(position), length);
+            HeapMemory.unsafe().copyMemory(null, ((NativeBytes) bytes).memory.address(offset), memory.array(), memory.address(position), length);
         } else {
             for (int i = 0; i < length; i++) {
                 memory.putByte(position + i, (byte) bytes.readByte(offset + i));
@@ -135,7 +135,7 @@ public class UnsafeHeapBytes extends AbstractBytes {
         checkWrite(position, length);
         if (bytes.length < length)
             throw new IllegalArgumentException("length is greater than provided byte array length");
-        memory.unsafe().copyMemory(bytes, memory.address(offset), memory.array(), memory.address(position), length);
+        HeapMemory.unsafe().copyMemory(bytes, memory.address(offset), memory.array(), memory.address(position), length);
         return this;
     }
 
@@ -192,9 +192,9 @@ public class UnsafeHeapBytes extends AbstractBytes {
     public Bytes read(int position, Bytes bytes, int offset, int length) {
         checkRead(position, length);
         if (bytes instanceof UnsafeHeapBytes) {
-            memory.unsafe().copyMemory(memory.array(), memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
+            HeapMemory.unsafe().copyMemory(memory.array(), memory.address(position), ((UnsafeHeapBytes) bytes).memory.array(), ((UnsafeHeapBytes) bytes).memory.address(offset), length);
         } else if (bytes instanceof NativeBytes) {
-            memory.unsafe().copyMemory(memory.array(), memory.address(position), null, ((NativeBytes) bytes).memory.address(offset), length);
+            HeapMemory.unsafe().copyMemory(memory.array(), memory.address(position), null, ((NativeBytes) bytes).memory.address(offset), length);
         } else {
             for (int i = 0; i < length; i++) {
                 bytes.writeByte(offset + i, memory.getByte(position + i));
@@ -206,7 +206,7 @@ public class UnsafeHeapBytes extends AbstractBytes {
     @Override
     public Bytes read(int position, byte[] bytes, int offset, int length) {
         checkRead(position, length);
-        memory.unsafe().copyMemory(memory.array(), memory.address(position), bytes, memory.address(offset), length);
+        HeapMemory.unsafe().copyMemory(memory.array(), memory.address(position), bytes, memory.address(offset), length);
         return this;
     }
 

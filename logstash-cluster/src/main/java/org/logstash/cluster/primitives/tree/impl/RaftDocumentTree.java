@@ -210,7 +210,7 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
     public CompletableFuture<Void> addListener(DocumentPath path, DocumentTreeListener<byte[]> listener) {
         Preconditions.checkNotNull(path);
         Preconditions.checkNotNull(listener);
-        RaftDocumentTree.InternalListener internalListener = new RaftDocumentTree.InternalListener(path, listener, MoreExecutors.directExecutor());
+        RaftDocumentTree.InternalListener internalListener = new InternalListener(path, listener, MoreExecutors.directExecutor());
         // TODO: Support API that takes an executor
         if (!eventListeners.containsKey(listener)) {
             return proxy.invoke(RaftDocumentTreeOperations.ADD_LISTENER, SERIALIZER::encode, new RaftDocumentTreeOperations.Listen(path))
@@ -231,7 +231,7 @@ public class RaftDocumentTree extends AbstractRaftPrimitive implements AsyncDocu
         events.forEach(event -> eventListeners.values().forEach(listener -> listener.event(event)));
     }
 
-    private class InternalListener implements DocumentTreeListener<byte[]> {
+    private static class InternalListener implements DocumentTreeListener<byte[]> {
 
         private final DocumentPath path;
         private final DocumentTreeListener<byte[]> listener;

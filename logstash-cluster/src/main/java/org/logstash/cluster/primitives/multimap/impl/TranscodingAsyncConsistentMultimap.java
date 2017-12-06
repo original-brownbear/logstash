@@ -286,7 +286,7 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
         return backingMap.close();
     }
 
-    private class MultisetCollector<T> implements Collector<T,
+    private static class MultisetCollector<T> implements Collector<T,
         ImmutableMultiset.Builder<T>,
         Multiset<T>> {
 

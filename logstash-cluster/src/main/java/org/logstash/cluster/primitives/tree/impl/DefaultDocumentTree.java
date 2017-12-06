@@ -45,11 +45,11 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
     public DefaultDocumentTree() {
         AtomicLong versionCounter = new AtomicLong(0);
         versionSupplier = versionCounter::incrementAndGet;
-        root = new DefaultDocumentTreeNode<V>(ROOT_PATH, null, versionSupplier.get(), Ordering.NATURAL, null);
+        root = new DefaultDocumentTreeNode<>(ROOT_PATH, null, versionSupplier.get(), Ordering.NATURAL, null);
     }
 
     public DefaultDocumentTree(Supplier<Long> versionSupplier, Ordering ordering) {
-        root = new DefaultDocumentTreeNode<V>(ROOT_PATH, null, versionSupplier.get(), ordering, null);
+        root = new DefaultDocumentTreeNode<>(ROOT_PATH, null, versionSupplier.get(), ordering, null);
         this.versionSupplier = versionSupplier;
     }
 
@@ -182,7 +182,7 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
         // TODO Auto-generated method stub
     }
 
-    private void checkRootModification(DocumentPath path) {
+    private static void checkRootModification(DocumentPath path) {
         if (ROOT_PATH.equals(path)) {
             throw new IllegalDocumentModificationException();
         }
@@ -198,7 +198,7 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
         return currentNode;
     }
 
-    private String simpleName(DocumentPath path) {
+    private static String simpleName(DocumentPath path) {
         return path.pathElements().get(path.pathElements().size() - 1);
     }
 

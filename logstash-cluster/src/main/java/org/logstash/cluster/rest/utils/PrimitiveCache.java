@@ -34,7 +34,7 @@ public class PrimitiveCache {
         this.primitives = primitives;
         this.cache = CacheBuilder.newBuilder()
             .maximumSize(cacheSize)
-            .removalListener(this::closePrimitive)
+            .removalListener(PrimitiveCache::closePrimitive)
             .build();
     }
 
@@ -57,7 +57,7 @@ public class PrimitiveCache {
     /**
      * Closes a primitive when it's expired from the cache.
      */
-    private void closePrimitive(RemovalNotification<String, ? extends AsyncPrimitive> notification) {
+    private static void closePrimitive(RemovalNotification<String, ? extends AsyncPrimitive> notification) {
         notification.getValue().close();
     }
 }

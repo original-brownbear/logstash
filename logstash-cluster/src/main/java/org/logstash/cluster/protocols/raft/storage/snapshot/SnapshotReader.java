@@ -185,7 +185,7 @@ public class SnapshotReader implements BufferInput<SnapshotReader> {
     @Override
     public void close() {
         buffer.close();
-        snapshot.closeReader(this);
+        Snapshot.closeReader(this);
     }
 
     /**

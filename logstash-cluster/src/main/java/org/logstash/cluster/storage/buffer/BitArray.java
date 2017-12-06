@@ -81,14 +81,14 @@ public class BitArray implements AutoCloseable {
     /**
      * Returns the offset of the long that stores the bit for the given index.
      */
-    private int offset(long index) {
+    private static int offset(long index) {
         return (int) (index / 64) * 8;
     }
 
     /**
      * Returns the position of the bit for the given index.
      */
-    private long position(long index) {
+    private static long position(long index) {
         return index % 64;
     }
 

@@ -759,7 +759,7 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Pending snapshot.
      */
-    private class PendingSnapshot {
+    private static class PendingSnapshot {
         private final CompletableFuture<Void> future = new CompletableFuture<>();
         private volatile Snapshot snapshot;
 

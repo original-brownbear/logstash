@@ -33,7 +33,7 @@ public class VectorClock<T extends Identifier> implements Clock<VectorTimestamp<
     private final Map<T, VectorTimestamp<T>> vector = new HashMap<>();
 
     public VectorClock(T localIdentifier) {
-        this(new VectorTimestamp<T>(localIdentifier, 0));
+        this(new VectorTimestamp<>(localIdentifier, 0));
     }
 
     public VectorClock(VectorTimestamp<T> localTimestamp) {

@@ -105,8 +105,8 @@ public class UnsafeHeapBuffer extends AbstractBuffer {
 
     @Override
     protected void compact(int from, int to, int length) {
-        bytes.memory.unsafe().copyMemory(bytes.memory.array(), bytes.memory.address(from), bytes.memory.array(), bytes.memory.address(to), length);
-        bytes.memory.unsafe().setMemory(bytes.memory.array(), bytes.memory.address(from), length, (byte) 0);
+        HeapMemory.unsafe().copyMemory(bytes.memory.array(), bytes.memory.address(from), bytes.memory.array(), bytes.memory.address(to), length);
+        HeapMemory.unsafe().setMemory(bytes.memory.array(), bytes.memory.address(from), length, (byte) 0);
     }
 
     @Override

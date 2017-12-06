@@ -169,7 +169,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         Function<R, byte[]> encoder,
         Executor executor) {
         messagingService.registerHandler(subject.toString(),
-            new InternalMessageResponder<M, R>(decoder, encoder, m -> {
+            new InternalMessageResponder<>(decoder, encoder, m -> {
                 CompletableFuture<R> responseFuture = new CompletableFuture<>();
                 executor.execute(() -> {
                     try {
@@ -215,7 +215,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         return messagingService.sendAsync(node.endpoint(), subject.toString(), payload);
     }
 
-    private class InternalMessageResponder<M, R> implements BiFunction<Endpoint, byte[], CompletableFuture<byte[]>> {
+    private static class InternalMessageResponder<M, R> implements BiFunction<Endpoint, byte[], CompletableFuture<byte[]>> {
         private final Function<byte[], M> decoder;
         private final Function<R, byte[]> encoder;
         private final Function<M, CompletableFuture<R>> handler;
@@ -234,7 +234,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         }
     }
 
-    private class InternalMessageConsumer<M> implements BiConsumer<Endpoint, byte[]> {
+    private static class InternalMessageConsumer<M> implements BiConsumer<Endpoint, byte[]> {
         private final Function<byte[], M> decoder;
         private final Consumer<M> consumer;
 

@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.server;
 
 import java.io.File;
@@ -21,12 +6,11 @@ import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import net.sourceforge.argparse4j.ArgumentParsers;
-import net.sourceforge.argparse4j.inf.Argument;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.ArgumentType;
 import net.sourceforge.argparse4j.inf.Namespace;
-import org.logstash.cluster.Atomix;
+import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.messaging.Endpoint;
@@ -34,30 +18,19 @@ import org.logstash.cluster.messaging.netty.NettyMessagingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Atomix server.
- */
-public class AtomixServer {
-    private static final Logger LOGGER = LoggerFactory.getLogger(AtomixServer.class);
+public class LsClusterServer {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LsClusterServer.class);
 
     public static void main(String[] args) throws Exception {
-        ArgumentType<Node> nodeType = new ArgumentType<Node>() {
-            @Override
-            public Node convert(ArgumentParser argumentParser, Argument argument, String value) throws ArgumentParserException {
-                String[] address = parseAddress(value);
-                return Node.builder()
-                    .withId(parseNodeId(address))
-                    .withEndpoint(parseEndpoint(address))
-                    .build();
-            }
+        ArgumentType<Node> nodeType = (argumentParser, argument, value) -> {
+            String[] address = parseAddress(value);
+            return Node.builder()
+                .withId(parseNodeId(address))
+                .withEndpoint(parseEndpoint(address))
+                .build();
         };
 
-        ArgumentType<File> fileType = new ArgumentType<File>() {
-            @Override
-            public File convert(ArgumentParser argumentParser, Argument argument, String value) throws ArgumentParserException {
-                return new File(value);
-            }
-        };
+        ArgumentType<File> fileType = (argumentParser, argument, value) -> new File(value);
 
         ArgumentParser parser = ArgumentParsers.newArgumentParser("AtomixServer")
             .defaultHelp(true)
@@ -111,7 +84,7 @@ public class AtomixServer {
         LOGGER.info("Bootstrap: {}", bootstrap);
         LOGGER.info("Data: {}", dataDir);
 
-        Atomix atomix = Atomix.builder()
+        LogstashCluster atomix = LogstashCluster.builder()
             .withLocalNode(localNode)
             .withBootstrapNodes(bootstrap)
             .withDataDir(dataDir)
@@ -122,9 +95,9 @@ public class AtomixServer {
 
         LOGGER.info("Server listening at {}:{}", localNode.endpoint().host().getHostAddress(), httpPort);
 
-        synchronized (Atomix.class) {
+        synchronized (LogstashCluster.class) {
             while (atomix.isOpen()) {
-                Atomix.class.wait();
+                LogstashCluster.class.wait();
             }
         }
     }

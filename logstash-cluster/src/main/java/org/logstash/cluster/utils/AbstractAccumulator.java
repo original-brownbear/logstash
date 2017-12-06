@@ -125,7 +125,7 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
      * Cancels the specified task if it has not run or is not running.
      * @param taskRef task reference
      */
-    private void cancelTask(AtomicReference<TimerTask> taskRef) {
+    private static void cancelTask(AtomicReference<TimerTask> taskRef) {
         swapAndCancelTask(taskRef, null);
     }
 
@@ -134,7 +134,7 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
      * @param taskRef task reference
      * @param newTask new task
      */
-    private void swapAndCancelTask(AtomicReference<TimerTask> taskRef,
+    private static void swapAndCancelTask(AtomicReference<TimerTask> taskRef,
         TimerTask newTask) {
         TimerTask oldTask = taskRef.getAndSet(newTask);
         if (oldTask != null) {

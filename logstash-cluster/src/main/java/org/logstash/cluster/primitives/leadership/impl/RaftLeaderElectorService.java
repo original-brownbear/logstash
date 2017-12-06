@@ -200,7 +200,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     private void notifyLeadershipChange(Leadership<byte[]> previousLeadership, Leadership<byte[]> newLeadership) {
-        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<byte[]>(Type.CHANGE, previousLeadership, newLeadership)));
+        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<>(Type.CHANGE, previousLeadership, newLeadership)));
     }
 
     private void notifyLeadershipChanges(List<LeadershipEvent> changes) {

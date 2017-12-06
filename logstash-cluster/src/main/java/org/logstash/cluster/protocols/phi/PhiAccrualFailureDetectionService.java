@@ -116,7 +116,7 @@ public class PhiAccrualFailureDetectionService<T extends Identifier>
         FailureDetectionEvent.State currentState = nodeStates.get(peer);
         if (!Objects.equals(currentState, newState)) {
             nodeStates.put(peer, newState);
-            post(new FailureDetectionEvent<T>(FailureDetectionEvent.Type.STATE_CHANGE, peer, currentState, newState));
+            post(new FailureDetectionEvent<>(FailureDetectionEvent.Type.STATE_CHANGE, peer, currentState, newState));
         }
     }
 

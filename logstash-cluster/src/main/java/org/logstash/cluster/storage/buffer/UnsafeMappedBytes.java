@@ -85,7 +85,7 @@ public class UnsafeMappedBytes extends NativeBytes {
      * Copies the bytes to a new byte array.
      * @return A new {@link UnsafeMappedBytes} instance backed by a copy of this instance's memory.
      */
-    public UnsafeMappedBytes copy() {
+    public static UnsafeMappedBytes copy() {
         throw new UnsupportedOperationException("copy");
     }
 
