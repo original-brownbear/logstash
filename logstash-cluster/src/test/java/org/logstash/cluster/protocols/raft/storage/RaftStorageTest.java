@@ -16,7 +16,9 @@
 package org.logstash.cluster.protocols.raft.storage;
 
 import java.io.File;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -25,10 +27,13 @@ import static org.junit.Assert.assertTrue;
 /**
  * Raft storage test.
  */
-public class RaftStorageTest {
+public final class RaftStorageTest {
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
-    public void testDefaultConfiguration() throws Exception {
+    public void testDefaultConfiguration() {
         RaftStorage storage = RaftStorage.builder().build();
         assertEquals("atomix", storage.prefix());
         assertEquals(new File(System.getProperty("user.dir")), storage.directory());
@@ -42,9 +47,10 @@ public class RaftStorageTest {
 
     @Test
     public void testCustomConfiguration() throws Exception {
+        final File directory = temporaryFolder.newFolder();
         RaftStorage storage = RaftStorage.builder()
             .withPrefix("foo")
-            .withDirectory(new File(System.getProperty("user.dir"), "foo"))
+            .withDirectory(directory)
             .withMaxSegmentSize(1024 * 1024)
             .withMaxEntriesPerSegment(1024)
             .withDynamicCompaction(false)
@@ -53,7 +59,7 @@ public class RaftStorageTest {
             .withRetainStaleSnapshots()
             .build();
         assertEquals("foo", storage.prefix());
-        assertEquals(new File(System.getProperty("user.dir"), "foo"), storage.directory());
+        assertEquals(directory, storage.directory());
         assertEquals(1024 * 1024, storage.maxLogSegmentSize());
         assertEquals(1024, storage.maxLogEntriesPerSegment());
         assertEquals(.5, storage.freeDiskBuffer(), .01);
