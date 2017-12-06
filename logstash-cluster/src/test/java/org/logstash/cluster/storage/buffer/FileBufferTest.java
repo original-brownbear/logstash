@@ -16,9 +16,11 @@
 package org.logstash.cluster.storage.buffer;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
-import org.junit.AfterClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -29,24 +31,31 @@ import static org.junit.Assert.assertTrue;
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class FileBufferTest extends BufferTest {
-    @AfterClass
-    public static void afterTest() {
-        FileTesting.cleanFiles();
-    }
+
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Override
     protected Buffer createBuffer(int capacity) {
-        return FileBuffer.allocate(FileTesting.createFile(), capacity);
+        try {
+            return FileBuffer.allocate(temporaryFolder.newFile(), capacity);
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     @Override
     protected Buffer createBuffer(int capacity, int maxCapacity) {
-        return FileBuffer.allocate(FileTesting.createFile(), capacity, maxCapacity);
+        try {
+            return FileBuffer.allocate(temporaryFolder.newFile(), capacity, maxCapacity);
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     @Test
-    public void testFileToHeapBuffer() {
-        File file = FileTesting.createFile();
+    public void testFileToHeapBuffer() throws IOException {
+        File file = temporaryFolder.newFile();
         try (FileBuffer buffer = FileBuffer.allocate(file, 16)) {
             buffer.writeLong(10).writeLong(11).flip();
             byte[] bytes = new byte[16];
@@ -61,8 +70,8 @@ public class FileBufferTest extends BufferTest {
      * Rests reopening a file that has been closed.
      */
     @Test
-    public void testPersist() {
-        File file = FileTesting.createFile();
+    public void testPersist() throws IOException {
+        File file = temporaryFolder.newFile();
         try (FileBuffer buffer = FileBuffer.allocate(file, 16)) {
             buffer.writeLong(10).writeLong(11).flip();
             assertEquals(buffer.readLong(), 10);
@@ -78,8 +87,8 @@ public class FileBufferTest extends BufferTest {
      * Tests deleting a file.
      */
     @Test
-    public void testDelete() {
-        File file = FileTesting.createFile();
+    public void testDelete() throws IOException {
+        File file = temporaryFolder.newFile();
         FileBuffer buffer = FileBuffer.allocate(file, 16);
         buffer.writeLong(10).writeLong(11).flip();
         assertEquals(buffer.readLong(), 10);
