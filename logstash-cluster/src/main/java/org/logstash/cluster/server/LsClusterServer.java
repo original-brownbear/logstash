@@ -53,8 +53,7 @@ public final class LsClusterServer {
         parser.addArgument("--data-dir", "-d")
             .type(fileType)
             .metavar("FILE")
-            .required(false)
-            .setDefault(new File(System.getProperty("user.dir"), "data"))
+            .required(true)
             .help("The server data directory");
 
         Namespace namespace = null;
@@ -72,24 +71,20 @@ public final class LsClusterServer {
         }
 
         File dataDir = namespace.get("data_dir");
-        Integer httpPort = namespace.getInt("http_port");
 
         LOGGER.info("Node: {}", localNode);
         LOGGER.info("Bootstrap: {}", bootstrap);
         LOGGER.info("Data: {}", dataDir);
 
-        LogstashCluster atomix = LogstashCluster.builder()
+        LogstashCluster server = LogstashCluster.builder()
             .withLocalNode(localNode)
             .withBootstrapNodes(bootstrap)
             .withDataDir(dataDir)
             .build();
 
-        atomix.open().join();
-
-        LOGGER.info("Server listening at {}:{}", localNode.endpoint().host().getHostAddress(), httpPort);
-
+        server.open().join();
         synchronized (LogstashCluster.class) {
-            while (atomix.isOpen()) {
+            while (server.isOpen()) {
                 LogstashCluster.class.wait();
             }
         }
