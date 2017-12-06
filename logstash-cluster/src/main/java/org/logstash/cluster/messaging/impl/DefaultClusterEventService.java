@@ -207,7 +207,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
                 Node node = clusterService.getNode(s.nodeId());
                 return node != null && node.state() == Node.State.ACTIVE && !s.isTombstone();
             })
-            .map(s -> s.nodeId())
+            .map(Subscription::nodeId)
             .collect(Collectors.toList());
     }
 

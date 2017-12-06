@@ -39,8 +39,6 @@ public class MessageDecoder extends ReplayingDecoder<DecoderState> {
 
     private InternalMessage.Type type;
     private int preamble;
-    private long logicalTime;
-    private long logicalCounter;
     private long messageId;
     private int contentLength;
     private byte[] content;

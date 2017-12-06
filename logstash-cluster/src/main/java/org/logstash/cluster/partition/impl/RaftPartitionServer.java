@@ -32,8 +32,7 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.utils.Managed;
 import org.slf4j.Logger;
-
-import static org.slf4j.LoggerFactory.getLogger;
+import org.slf4j.LoggerFactory;
 
 /**
  * {@link Partition} server.
@@ -43,7 +42,7 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
     private static final int MAX_SEGMENT_SIZE = 1024 * 1024 * 64;
     private static final long ELECTION_TIMEOUT_MILLIS = 2500;
     private static final long HEARTBEAT_INTERVAL_MILLIS = 250;
-    private final Logger log = getLogger(getClass());
+    private final Logger log = LoggerFactory.getLogger(getClass());
     private final MemberId localMemberId;
     private final RaftPartition partition;
     private final ClusterCommunicationService clusterCommunicator;
