@@ -15,9 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.storage;
 
-import org.junit.Test;
-
 import java.io.File;
+import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -28,37 +27,37 @@ import static org.junit.Assert.assertTrue;
  */
 public class RaftStorageTest {
 
-  @Test
-  public void testDefaultConfiguration() throws Exception {
-    RaftStorage storage = RaftStorage.builder().build();
-    assertEquals("atomix", storage.prefix());
-    assertEquals(new File(System.getProperty("user.dir")), storage.directory());
-    assertEquals(1024 * 1024 * 32, storage.maxLogSegmentSize());
-    assertEquals(1024 * 1024, storage.maxLogEntriesPerSegment());
-    assertTrue(storage.dynamicCompaction());
-    assertEquals(.2, storage.freeDiskBuffer(), .01);
-    assertFalse(storage.isFlushOnCommit());
-    assertFalse(storage.isRetainStaleSnapshots());
-  }
+    @Test
+    public void testDefaultConfiguration() throws Exception {
+        RaftStorage storage = RaftStorage.builder().build();
+        assertEquals("atomix", storage.prefix());
+        assertEquals(new File(System.getProperty("user.dir")), storage.directory());
+        assertEquals(1024 * 1024 * 32, storage.maxLogSegmentSize());
+        assertEquals(1024 * 1024, storage.maxLogEntriesPerSegment());
+        assertTrue(storage.dynamicCompaction());
+        assertEquals(.2, storage.freeDiskBuffer(), .01);
+        assertFalse(storage.isFlushOnCommit());
+        assertFalse(storage.isRetainStaleSnapshots());
+    }
 
-  @Test
-  public void testCustomConfiguration() throws Exception {
-    RaftStorage storage = RaftStorage.builder()
-        .withPrefix("foo")
-        .withDirectory(new File(System.getProperty("user.dir"), "foo"))
-        .withMaxSegmentSize(1024 * 1024)
-        .withMaxEntriesPerSegment(1024)
-        .withDynamicCompaction(false)
-        .withFreeDiskBuffer(.5)
-        .withFlushOnCommit()
-        .withRetainStaleSnapshots()
-        .build();
-    assertEquals("foo", storage.prefix());
-    assertEquals(new File(System.getProperty("user.dir"), "foo"), storage.directory());
-    assertEquals(1024 * 1024, storage.maxLogSegmentSize());
-    assertEquals(1024, storage.maxLogEntriesPerSegment());
-    assertEquals(.5, storage.freeDiskBuffer(), .01);
-    assertTrue(storage.isFlushOnCommit());
-    assertTrue(storage.isRetainStaleSnapshots());
-  }
+    @Test
+    public void testCustomConfiguration() throws Exception {
+        RaftStorage storage = RaftStorage.builder()
+            .withPrefix("foo")
+            .withDirectory(new File(System.getProperty("user.dir"), "foo"))
+            .withMaxSegmentSize(1024 * 1024)
+            .withMaxEntriesPerSegment(1024)
+            .withDynamicCompaction(false)
+            .withFreeDiskBuffer(.5)
+            .withFlushOnCommit()
+            .withRetainStaleSnapshots()
+            .build();
+        assertEquals("foo", storage.prefix());
+        assertEquals(new File(System.getProperty("user.dir"), "foo"), storage.directory());
+        assertEquals(1024 * 1024, storage.maxLogSegmentSize());
+        assertEquals(1024, storage.maxLogEntriesPerSegment());
+        assertEquals(.5, storage.freeDiskBuffer(), .01);
+        assertTrue(storage.isFlushOnCommit());
+        assertTrue(storage.isRetainStaleSnapshots());
+    }
 }

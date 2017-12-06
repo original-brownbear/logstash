@@ -44,18 +44,6 @@ public class FileSnapshotStoreTest extends AbstractSnapshotStoreTest {
     private String testId;
 
     /**
-     * Returns a new snapshot store.
-     */
-    protected SnapshotStore createSnapshotStore() {
-        RaftStorage storage = RaftStorage.builder()
-            .withPrefix("test")
-            .withDirectory(new File(String.format("target/test-logs/%s", testId)))
-            .withStorageLevel(StorageLevel.DISK)
-            .build();
-        return new SnapshotStore(storage);
-    }
-
-    /**
      * Tests storing and loading snapshots.
      */
     @Test
@@ -84,6 +72,18 @@ public class FileSnapshotStoreTest extends AbstractSnapshotStoreTest {
         try (SnapshotReader reader = snapshot.openReader()) {
             assertEquals(reader.readLong(), 10);
         }
+    }
+
+    /**
+     * Returns a new snapshot store.
+     */
+    protected SnapshotStore createSnapshotStore() {
+        RaftStorage storage = RaftStorage.builder()
+            .withPrefix("test")
+            .withDirectory(new File(String.format("target/test-logs/%s", testId)))
+            .withStorageLevel(StorageLevel.DISK)
+            .build();
+        return new SnapshotStore(storage);
     }
 
     /**

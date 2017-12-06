@@ -108,18 +108,6 @@ public class TestClusterCommunicationService implements ManagedClusterCommunicat
         return node.handle(subject, encoder.apply(message)).thenApply(decoder);
     }
 
-    private CompletableFuture<byte[]> handle(MessageSubject subject, byte[] message) {
-        Function<byte[], CompletableFuture<byte[]>> subscriber = subscribers.get(subject);
-        if (subscriber != null) {
-            return subscriber.apply(message);
-        }
-        return Futures.exceptionalFuture(new MessagingException.NoRemoteHandler());
-    }
-
-    private boolean isSubscriber(MessageSubject subject) {
-        return subscribers.containsKey(subject);
-    }
-
     @Override
     public <M, R> CompletableFuture<Void> addSubscriber(
         MessageSubject subject,
@@ -185,5 +173,17 @@ public class TestClusterCommunicationService implements ManagedClusterCommunicat
     @Override
     public void removeSubscriber(MessageSubject subject) {
         subscribers.remove(subject);
+    }
+
+    private CompletableFuture<byte[]> handle(MessageSubject subject, byte[] message) {
+        Function<byte[], CompletableFuture<byte[]>> subscriber = subscribers.get(subject);
+        if (subscriber != null) {
+            return subscriber.apply(message);
+        }
+        return Futures.exceptionalFuture(new MessagingException.NoRemoteHandler());
+    }
+
+    private boolean isSubscriber(MessageSubject subject) {
+        return subscribers.containsKey(subject);
     }
 }

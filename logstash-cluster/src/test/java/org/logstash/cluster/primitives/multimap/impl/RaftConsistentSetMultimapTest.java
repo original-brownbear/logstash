@@ -113,6 +113,15 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         map.destroy().join();
     }
 
+    private RaftConsistentSetMultimap createResource(String mapName) {
+        try {
+            RaftConsistentSetMultimap map = newPrimitive(mapName);
+            return map;
+        } catch (Throwable e) {
+            throw new RuntimeException(e.toString());
+        }
+    }
+
     /**
      * Contains tests for value, key and entry.
      */
@@ -305,6 +314,33 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
     }
 
     /**
+     * Returns two arrays contain the same set of elements,
+     * regardless of order.
+     * @param o1 first collection
+     * @param o2 second collection
+     * @return true if they contain the same elements
+     */
+    private boolean byteArrayCollectionIsEqual(
+        Collection<? extends byte[]> o1, Collection<? extends byte[]> o2) {
+        if (o1 == null || o2 == null || o1.size() != o2.size()) {
+            return false;
+        }
+        for (byte[] array1 : o1) {
+            boolean matched = false;
+            for (byte[] array2 : o2) {
+                if (Arrays.equals(array1, array2)) {
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Tests the get, keySet, keys, values, and entries implementations as well
      * as a trivial test of the asMap functionality (throws error).
      */
@@ -390,42 +426,6 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
             .thenAccept(result -> assertTrue(result.isEmpty())).join();
 
         map.destroy().join();
-    }
-
-    private RaftConsistentSetMultimap createResource(String mapName) {
-        try {
-            RaftConsistentSetMultimap map = newPrimitive(mapName);
-            return map;
-        } catch (Throwable e) {
-            throw new RuntimeException(e.toString());
-        }
-    }
-
-    /**
-     * Returns two arrays contain the same set of elements,
-     * regardless of order.
-     * @param o1 first collection
-     * @param o2 second collection
-     * @return true if they contain the same elements
-     */
-    private boolean byteArrayCollectionIsEqual(
-        Collection<? extends byte[]> o1, Collection<? extends byte[]> o2) {
-        if (o1 == null || o2 == null || o1.size() != o2.size()) {
-            return false;
-        }
-        for (byte[] array1 : o1) {
-            boolean matched = false;
-            for (byte[] array2 : o2) {
-                if (Arrays.equals(array1, array2)) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**

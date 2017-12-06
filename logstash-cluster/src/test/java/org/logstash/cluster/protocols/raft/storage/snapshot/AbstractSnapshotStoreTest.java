@@ -29,11 +29,6 @@ import static org.junit.Assert.assertNull;
 public abstract class AbstractSnapshotStoreTest {
 
     /**
-     * Returns a new snapshot store.
-     */
-    protected abstract SnapshotStore createSnapshotStore();
-
-    /**
      * Tests writing a snapshot.
      */
     @Test
@@ -81,5 +76,10 @@ public abstract class AbstractSnapshotStoreTest {
             assertEquals(reader.readLong(), 12);
         }
     }
+
+    /**
+     * Returns a new snapshot store.
+     */
+    protected abstract SnapshotStore createSnapshotStore();
 
 }

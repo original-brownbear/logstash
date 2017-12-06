@@ -109,6 +109,32 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         return CommunicationStrategy.LEADER;
     }
 
+    /**
+     * Creates a Raft client.
+     */
+    private RaftClient createClient() {
+        MemberId memberId = nextMemberId();
+        RaftClient client = RaftClient.builder()
+            .withMemberId(memberId)
+            .withProtocol(new TestRaftClientCommunicator(
+                "partition-1",
+                Serializer.using(RaftTestNamespaces.RAFT_PROTOCOL),
+                communicationServiceFactory.newCommunicationService(NodeId.from(memberId.id()))))
+            .build();
+
+        client.connect(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).join();
+        clients.add(client);
+        return client;
+    }
+
+    /**
+     * Returns the next unique member identifier.
+     * @return The next unique member identifier.
+     */
+    private MemberId nextMemberId() {
+        return MemberId.from(String.valueOf(++nextId));
+    }
+
     @Before
     public void prepare() {
         members.clear();
@@ -116,6 +142,65 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         servers.clear();
         communicationServiceFactory = new TestClusterCommunicationServiceFactory();
         createServers(3);
+    }
+
+    /**
+     * Creates a set of Raft servers.
+     */
+    protected List<RaftServer> createServers(int nodes) {
+        List<RaftServer> servers = new ArrayList<>();
+
+        for (int i = 0; i < nodes; i++) {
+            members.add(nextMember(RaftMember.Type.ACTIVE));
+        }
+
+        CountDownLatch latch = new CountDownLatch(nodes);
+        for (int i = 0; i < nodes; i++) {
+            RaftServer server = createServer(members.get(i));
+            server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList()))
+                .thenRun(latch::countDown);
+            servers.add(server);
+        }
+
+        try {
+            latch.await(30000, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        return servers;
+    }
+
+    /**
+     * Returns the next server address.
+     * @param type The startup member type.
+     * @return The next server address.
+     */
+    private RaftMember nextMember(RaftMember.Type type) {
+        return new TestMember(nextMemberId(), type);
+    }
+
+    /**
+     * Creates a Raft server.
+     */
+    private RaftServer createServer(RaftMember member) {
+        RaftServer.Builder builder = RaftServer.builder(member.memberId())
+            .withType(member.getType())
+            .withProtocol(new TestRaftServerCommunicator(
+                "partition-1",
+                Serializer.using(RaftTestNamespaces.RAFT_PROTOCOL),
+                communicationServiceFactory.newCommunicationService(NodeId.from(member.memberId().id()))))
+            .withStorage(RaftStorage.builder()
+                .withStorageLevel(StorageLevel.MEMORY)
+                .withDirectory(new File(String.format("target/primitives/%s", member.memberId())))
+                .withSerializer(Serializer.using(RaftTestNamespaces.RAFT_STORAGE))
+                .withMaxSegmentSize(1024 * 1024)
+                .build())
+            .addService("test", this::createService);
+
+        RaftServer server = builder.build();
+        servers.add(server);
+        return server;
     }
 
     @After
@@ -162,91 +247,6 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
             } catch (IOException e) {
             }
         }
-    }
-
-    /**
-     * Returns the next unique member identifier.
-     * @return The next unique member identifier.
-     */
-    private MemberId nextMemberId() {
-        return MemberId.from(String.valueOf(++nextId));
-    }
-
-    /**
-     * Returns the next server address.
-     * @param type The startup member type.
-     * @return The next server address.
-     */
-    private RaftMember nextMember(RaftMember.Type type) {
-        return new TestMember(nextMemberId(), type);
-    }
-
-    /**
-     * Creates a set of Raft servers.
-     */
-    protected List<RaftServer> createServers(int nodes) {
-        List<RaftServer> servers = new ArrayList<>();
-
-        for (int i = 0; i < nodes; i++) {
-            members.add(nextMember(RaftMember.Type.ACTIVE));
-        }
-
-        CountDownLatch latch = new CountDownLatch(nodes);
-        for (int i = 0; i < nodes; i++) {
-            RaftServer server = createServer(members.get(i));
-            server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList()))
-                .thenRun(latch::countDown);
-            servers.add(server);
-        }
-
-        try {
-            latch.await(30000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-
-        return servers;
-    }
-
-    /**
-     * Creates a Raft server.
-     */
-    private RaftServer createServer(RaftMember member) {
-        RaftServer.Builder builder = RaftServer.builder(member.memberId())
-            .withType(member.getType())
-            .withProtocol(new TestRaftServerCommunicator(
-                "partition-1",
-                Serializer.using(RaftTestNamespaces.RAFT_PROTOCOL),
-                communicationServiceFactory.newCommunicationService(NodeId.from(member.memberId().id()))))
-            .withStorage(RaftStorage.builder()
-                .withStorageLevel(StorageLevel.MEMORY)
-                .withDirectory(new File(String.format("target/primitives/%s", member.memberId())))
-                .withSerializer(Serializer.using(RaftTestNamespaces.RAFT_STORAGE))
-                .withMaxSegmentSize(1024 * 1024)
-                .build())
-            .addService("test", this::createService);
-
-        RaftServer server = builder.build();
-        servers.add(server);
-        return server;
-    }
-
-    /**
-     * Creates a Raft client.
-     */
-    private RaftClient createClient() {
-        MemberId memberId = nextMemberId();
-        RaftClient client = RaftClient.builder()
-            .withMemberId(memberId)
-            .withProtocol(new TestRaftClientCommunicator(
-                "partition-1",
-                Serializer.using(RaftTestNamespaces.RAFT_PROTOCOL),
-                communicationServiceFactory.newCommunicationService(NodeId.from(memberId.id()))))
-            .build();
-
-        client.connect(members.stream().map(RaftMember::memberId).collect(Collectors.toList())).join();
-        clients.add(client);
-        return client;
     }
 
     /**

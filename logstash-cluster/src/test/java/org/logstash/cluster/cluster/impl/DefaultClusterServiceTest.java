@@ -48,22 +48,6 @@ public class DefaultClusterServiceTest {
         }
     }
 
-    private ClusterMetadata buildClusterMetadata(int nodeId, int... bootstrapNodes) {
-        ClusterMetadata.Builder metadataBuilder = ClusterMetadata.builder()
-            .withLocalNode(Node.builder()
-                .withId(NodeId.from(String.valueOf(nodeId)))
-                .withEndpoint(new Endpoint(localhost, nodeId))
-                .build());
-        List<Node> bootstrap = new ArrayList<>();
-        for (int bootstrapNode : bootstrapNodes) {
-            bootstrap.add(Node.builder()
-                .withId(NodeId.from(String.valueOf(bootstrapNode)))
-                .withEndpoint(new Endpoint(localhost, bootstrapNode))
-                .build());
-        }
-        return metadataBuilder.withBootstrapNodes(bootstrap).build();
-    }
-
     @Test
     public void testClusterService() throws Exception {
         TestMessagingServiceFactory messagingServiceFactory = new TestMessagingServiceFactory();
@@ -169,5 +153,21 @@ public class DefaultClusterServiceTest {
         assertEquals(State.ACTIVE, clusterService2.getNode(NodeId.from("2")).state());
         assertEquals(State.ACTIVE, clusterService2.getNode(NodeId.from("3")).state());
         assertNull(clusterService2.getNode(NodeId.from("4")));
+    }
+
+    private ClusterMetadata buildClusterMetadata(int nodeId, int... bootstrapNodes) {
+        ClusterMetadata.Builder metadataBuilder = ClusterMetadata.builder()
+            .withLocalNode(Node.builder()
+                .withId(NodeId.from(String.valueOf(nodeId)))
+                .withEndpoint(new Endpoint(localhost, nodeId))
+                .build());
+        List<Node> bootstrap = new ArrayList<>();
+        for (int bootstrapNode : bootstrapNodes) {
+            bootstrap.add(Node.builder()
+                .withId(NodeId.from(String.valueOf(bootstrapNode)))
+                .withEndpoint(new Endpoint(localhost, bootstrapNode))
+                .build());
+        }
+        return metadataBuilder.withBootstrapNodes(bootstrap).build();
     }
 }

@@ -81,19 +81,6 @@ public abstract class AbstractLogTest {
         .register(byte[].class)
         .build());
 
-    protected abstract StorageLevel storageLevel();
-
-    protected RaftLog createLog() {
-        return RaftLog.builder()
-            .withName("test")
-            .withDirectory(PATH.toFile())
-            .withSerializer(serializer)
-            .withStorageLevel(storageLevel())
-            .withMaxEntriesPerSegment(MAX_ENTRIES_PER_SEGMENT)
-            .withMaxSegmentSize(MAX_SEGMENT_SIZE)
-            .build();
-    }
-
     @Test
     @SuppressWarnings("unchecked")
     public void testLogWriteRead() throws Exception {
@@ -212,6 +199,19 @@ public abstract class AbstractLogTest {
         assertEquals(reader.getCurrentIndex(), 2);
         assertFalse(reader.hasNext());
     }
+
+    protected RaftLog createLog() {
+        return RaftLog.builder()
+            .withName("test")
+            .withDirectory(PATH.toFile())
+            .withSerializer(serializer)
+            .withStorageLevel(storageLevel())
+            .withMaxEntriesPerSegment(MAX_ENTRIES_PER_SEGMENT)
+            .withMaxSegmentSize(MAX_SEGMENT_SIZE)
+            .build();
+    }
+
+    protected abstract StorageLevel storageLevel();
 
     @Test
     public void testResetTruncateZero() throws Exception {

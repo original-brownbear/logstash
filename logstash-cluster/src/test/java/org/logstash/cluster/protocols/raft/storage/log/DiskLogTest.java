@@ -21,8 +21,8 @@ import org.logstash.cluster.storage.StorageLevel;
  * Disk log test.
  */
 public class DiskLogTest extends PersistentLogTest {
-  @Override
-  protected StorageLevel storageLevel() {
-    return StorageLevel.DISK;
-  }
+    @Override
+    protected StorageLevel storageLevel() {
+        return StorageLevel.DISK;
+    }
 }

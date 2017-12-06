@@ -58,6 +58,29 @@ public class RaftSessionRegistryTest {
         assertSame(session1, sessionManager.getSession(1));
     }
 
+    private RaftSessionContext createSession(long sessionId) {
+        DefaultServiceContext context = mock(DefaultServiceContext.class);
+        when(context.serviceType()).thenReturn(ServiceType.from("test"));
+        when(context.serviceName()).thenReturn("test");
+        when(context.serviceId()).thenReturn(ServiceId.from(1));
+        when(context.executor()).thenReturn(mock(ThreadContext.class));
+
+        RaftContext server = mock(RaftContext.class);
+        when(server.getProtocol()).thenReturn(mock(RaftServerProtocol.class));
+
+        return new RaftSessionContext(
+            SessionId.from(sessionId),
+            MemberId.from("1"),
+            "test",
+            ServiceType.from("test"),
+            ReadConsistency.LINEARIZABLE,
+            100,
+            5000,
+            context,
+            server,
+            mock(ThreadContextFactory.class));
+    }
+
     @Test
     public void testUnregisterSession() throws Exception {
         RaftSessionRegistry sessionManager = new RaftSessionRegistry();
@@ -101,29 +124,6 @@ public class RaftSessionRegistryTest {
         assertFalse(listener.eventReceived());
     }
 
-    private RaftSessionContext createSession(long sessionId) {
-        DefaultServiceContext context = mock(DefaultServiceContext.class);
-        when(context.serviceType()).thenReturn(ServiceType.from("test"));
-        when(context.serviceName()).thenReturn("test");
-        when(context.serviceId()).thenReturn(ServiceId.from(1));
-        when(context.executor()).thenReturn(mock(ThreadContext.class));
-
-        RaftContext server = mock(RaftContext.class);
-        when(server.getProtocol()).thenReturn(mock(RaftServerProtocol.class));
-
-        return new RaftSessionContext(
-            SessionId.from(sessionId),
-            MemberId.from("1"),
-            "test",
-            ServiceType.from("test"),
-            ReadConsistency.LINEARIZABLE,
-            100,
-            5000,
-            context,
-            server,
-            mock(ThreadContextFactory.class));
-    }
-
     private class TestSessionListener implements RaftSessionListener {
         private final BlockingQueue<String> queue = new ArrayBlockingQueue<>(1);
 
@@ -146,12 +146,12 @@ public class RaftSessionRegistryTest {
             return !queue.isEmpty();
         }
 
-        public String event() throws InterruptedException {
-            return queue.take();
-        }
-
         public boolean isOpened() throws InterruptedException {
             return event().equals("open");
+        }
+
+        public String event() throws InterruptedException {
+            return queue.take();
         }
 
         public boolean isClosed() throws InterruptedException {
