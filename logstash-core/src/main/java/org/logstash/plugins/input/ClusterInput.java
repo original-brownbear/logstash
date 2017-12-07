@@ -1,20 +1,19 @@
 package org.logstash.plugins.input;
 
 import java.io.Closeable;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.LogstashClusterConfig;
-import org.logstash.ext.JavaQueue;
+import org.logstash.cluster.primitives.queue.Task;
+import org.logstash.cluster.primitives.queue.WorkQueue;
+import org.logstash.ext.EventQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
-
-    private final BlockingQueue<EnqueueEvent> tasks = new LinkedTransferQueue<>();
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -22,30 +21,30 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private final JavaQueue queue;
+    private final LogstashCluster cluster;
 
-    private final ClusterInput.TaskService taskService;
+    private final EventQueue queue;
 
-    public ClusterInput(final JavaQueue queue, final LogstashClusterConfig config) {
+    private final WorkQueue<EnqueueEvent> tasks;
+
+    public ClusterInput(final EventQueue queue, final LogstashClusterConfig config)
+        throws ExecutionException, InterruptedException {
         this.queue = queue;
-        this.taskService = new ClusterInput.TaskService(tasks, config);
+        cluster = LogstashCluster.builder().withLocalNode(config.localNode())
+            .withBootstrapNodes(config.getBootstrap()).withDataDir(config.getDataDir()).build().open().get();
+        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue").build();
     }
 
     @Override
     public void run() {
-        try {
-            while (running.get()) {
-                final EnqueueEvent task = tasks.poll(200L, TimeUnit.MILLISECONDS);
-                if (task != null) {
-                    task.enqueue(queue);
-                }
+        while (running.get()) {
+            final Task<EnqueueEvent> task = tasks.take();
+            if (task != null) {
+                task.payload().enqueue(queue);
+                tasks.complete(task.taskId());
             }
-        } catch (final InterruptedException ex) {
-            running.set(false);
-            throw new IllegalStateException(ex);
-        } finally {
-            stopped.countDown();
         }
+        cluster.close().thenRun(stopped::countDown);
     }
 
     public void stop() {
@@ -62,7 +61,6 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void close() {
-        taskService.close();
         stop();
         awaitStop();
         executor.shutdown();
@@ -75,33 +73,4 @@ public final class ClusterInput implements Runnable, Closeable {
         }
     }
 
-    private static final class TaskService implements Runnable, Closeable {
-
-        private final BlockingQueue<EnqueueEvent> tasks;
-
-        private final LogstashCluster cluster;
-
-        TaskService(final BlockingQueue<EnqueueEvent> tasks, final LogstashClusterConfig config) {
-            this.tasks = tasks;
-            cluster = LogstashCluster.builder().withLocalNode(config.localNode())
-                .withBootstrapNodes(config.getBootstrap()).withDataDir(config.getDataDir()).build();
-        }
-
-        @Override
-        public void run() {
-            cluster.open().join();
-            while (cluster.isOpen()) {
-                try {
-                    TimeUnit.SECONDS.sleep(1L);
-                } catch (final InterruptedException ex) {
-                    throw new IllegalStateException(ex);
-                }
-            }
-        }
-
-        @Override
-        public void close() {
-            cluster.close().join();
-        }
-    }
 }
