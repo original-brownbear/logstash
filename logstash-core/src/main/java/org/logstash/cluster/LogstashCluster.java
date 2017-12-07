@@ -71,13 +71,11 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
     private final AtomicBoolean open = new AtomicBoolean();
     private final ThreadContext context = new SingleThreadContext("atomix-%d");
 
-    private LogstashCluster(
-        ManagedClusterService cluster,
-        ManagedMessagingService messagingService,
-        ManagedClusterCommunicationService clusterCommunicator,
-        ManagedClusterEventService clusterEventService,
-        ManagedPartitionService partitions,
-        PrimitiveService primitives) {
+    private LogstashCluster(final ManagedClusterService cluster,
+        final ManagedMessagingService messagingService,
+        final ManagedClusterCommunicationService clusterCommunicator,
+        final ManagedClusterEventService clusterEventService,
+        final ManagedPartitionService partitions, final PrimitiveService primitives) {
         this.cluster = Preconditions.checkNotNull(cluster, "cluster cannot be null");
         this.messagingService = Preconditions.checkNotNull(messagingService, "messagingService cannot be null");
         this.clusterCommunicator = Preconditions.checkNotNull(clusterCommunicator, "clusterCommunicator cannot be null");
@@ -86,8 +84,8 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         this.primitives = Preconditions.checkNotNull(primitives, "primitives cannot be null");
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static LogstashCluster.Builder builder() {
+        return new LogstashCluster.Builder();
     }
 
     public ClusterService getClusterService() {
@@ -187,7 +185,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
     }
 
     @Override
-    public Set<String> getPrimitiveNames(DistributedPrimitive.Type primitiveType) {
+    public Set<String> getPrimitiveNames(final DistributedPrimitive.Type primitiveType) {
         return primitives.getPrimitiveNames(primitiveType);
     }
 
@@ -262,7 +260,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the name is null
          */
-        public Builder withClusterName(String name) {
+        public LogstashCluster.Builder withClusterName(final String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -272,7 +270,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param localNode the local node metadata
          * @return the cluster metadata builder
          */
-        public Builder withLocalNode(Node localNode) {
+        public LogstashCluster.Builder withLocalNode(final Node localNode) {
             this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
@@ -283,7 +281,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(Node... bootstrapNodes) {
+        public LogstashCluster.Builder withBootstrapNodes(final Node... bootstrapNodes) {
             return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
@@ -293,7 +291,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(Collection<Node> bootstrapNodes) {
+        public LogstashCluster.Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
             this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }
@@ -304,7 +302,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the number of partitions is not positive
          */
-        public Builder withNumPartitions(int numPartitions) {
+        public LogstashCluster.Builder withNumPartitions(final int numPartitions) {
             Preconditions.checkArgument(numPartitions > 0, "numPartitions must be positive");
             this.numPartitions = numPartitions;
             return this;
@@ -316,7 +314,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the partition size is not positive
          */
-        public Builder withPartitionSize(int partitionSize) {
+        public LogstashCluster.Builder withPartitionSize(final int partitionSize) {
             Preconditions.checkArgument(partitionSize > 0, "partitionSize must be positive");
             this.partitionSize = partitionSize;
             return this;
@@ -328,7 +326,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the number of buckets within each partition is not positive
          */
-        public Builder withNumBuckets(int numBuckets) {
+        public LogstashCluster.Builder withNumBuckets(final int numBuckets) {
             Preconditions.checkArgument(numBuckets > 0, "numBuckets must be positive");
             this.numBuckets = numBuckets;
             return this;
@@ -339,7 +337,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param partitions the partitions
          * @return the cluster metadata builder
          */
-        public Builder withPartitions(Collection<PartitionMetadata> partitions) {
+        public LogstashCluster.Builder withPartitions(final Collection<PartitionMetadata> partitions) {
             this.partitions = Preconditions.checkNotNull(partitions, "partitions cannot be null");
             return this;
         }
@@ -349,19 +347,19 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param dataDir the path to the replica's data directory
          * @return the replica builder
          */
-        public Builder withDataDir(File dataDir) {
+        public LogstashCluster.Builder withDataDir(final File dataDir) {
             this.dataDir = Preconditions.checkNotNull(dataDir, "dataDir cannot be null");
             return this;
         }
 
         @Override
         public LogstashCluster build() {
-            ManagedMessagingService messagingService = buildMessagingService();
-            ManagedClusterService clusterService = buildClusterService(messagingService);
-            ManagedClusterCommunicationService clusterCommunicator = buildClusterCommunicationService(clusterService, messagingService);
-            ManagedClusterEventService clusterEventService = buildClusterEventService(clusterService, clusterCommunicator);
-            ManagedPartitionService partitionService = buildPartitionService(clusterCommunicator);
-            PrimitiveService primitives = buildPrimitiveService(partitionService);
+            final ManagedMessagingService messagingService = buildMessagingService();
+            final ManagedClusterService clusterService = buildClusterService(messagingService);
+            final ManagedClusterCommunicationService clusterCommunicator = buildClusterCommunicationService(clusterService, messagingService);
+            final ManagedClusterEventService clusterEventService = buildClusterEventService(clusterService, clusterCommunicator);
+            final ManagedPartitionService partitionService = buildPartitionService(clusterCommunicator);
+            final PrimitiveService primitives = buildPrimitiveService(partitionService);
             return new LogstashCluster(
                 clusterService,
                 messagingService,
@@ -384,7 +382,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         /**
          * Builds a cluster service.
          */
-        private ManagedClusterService buildClusterService(MessagingService messagingService) {
+        private ManagedClusterService buildClusterService(final MessagingService messagingService) {
             return new DefaultClusterService(ClusterMetadata.builder()
                 .withLocalNode(localNode)
                 .withBootstrapNodes(bootstrapNodes)
@@ -395,7 +393,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * Builds a cluster communication service.
          */
         private static ManagedClusterCommunicationService buildClusterCommunicationService(
-            ClusterService clusterService, MessagingService messagingService) {
+            final ClusterService clusterService, final MessagingService messagingService) {
             return new DefaultClusterCommunicationService(clusterService, messagingService);
         }
 
@@ -403,16 +401,16 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * Builds a cluster event service.
          */
         private static ManagedClusterEventService buildClusterEventService(
-            ClusterService clusterService, ClusterCommunicationService clusterCommunicator) {
+            final ClusterService clusterService, final ClusterCommunicationService clusterCommunicator) {
             return new DefaultClusterEventService(clusterService, clusterCommunicator);
         }
 
         /**
          * Builds a partition service.
          */
-        private ManagedPartitionService buildPartitionService(ClusterCommunicationService clusterCommunicator) {
-            File partitionsDir = new File(this.dataDir, "partitions");
-            Collection<RaftPartition> partitions = buildPartitions().stream()
+        private ManagedPartitionService buildPartitionService(final ClusterCommunicationService clusterCommunicator) {
+            final File partitionsDir = new File(this.dataDir, "partitions");
+            final Collection<RaftPartition> partitions = buildPartitions().stream()
                 .map(p -> new RaftPartition(localNode.id(), p, clusterCommunicator, new File(partitionsDir, p.id().toString())))
                 .collect(Collectors.toList());
             return new DefaultPartitionService(partitions);
@@ -434,12 +432,12 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
                 partitionSize = Math.min(bootstrapNodes.size(), 3);
             }
 
-            List<Node> sorted = new ArrayList<>(bootstrapNodes);
+            final List<Node> sorted = new ArrayList<>(bootstrapNodes);
             sorted.sort(Comparator.comparing(Node::id));
 
-            Set<PartitionMetadata> partitions = Sets.newHashSet();
+            final Set<PartitionMetadata> partitions = Sets.newHashSet();
             for (int i = 0; i < numPartitions; i++) {
-                Set<NodeId> set = new HashSet<>(partitionSize);
+                final Set<NodeId> set = new HashSet<>(partitionSize);
                 for (int j = 0; j < partitionSize; j++) {
                     set.add(sorted.get((i + j) % numPartitions).id());
                 }
@@ -451,8 +449,8 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         /**
          * Builds a primitive service.
          */
-        private PrimitiveService buildPrimitiveService(PartitionService partitionService) {
-            Map<Integer, DistributedPrimitiveCreator> members = new HashMap<>();
+        private PrimitiveService buildPrimitiveService(final PartitionService partitionService) {
+            final Map<Integer, DistributedPrimitiveCreator> members = new HashMap<>();
             partitionService.getPartitions().forEach(p -> members.put(p.id().id(), partitionService.getPrimitiveCreator(p.id())));
             return new FederatedPrimitiveService(members, numBuckets);
         }
