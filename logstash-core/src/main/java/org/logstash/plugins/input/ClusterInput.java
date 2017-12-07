@@ -1,7 +1,6 @@
 package org.logstash.plugins.input;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -25,8 +24,11 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final JavaQueue queue;
 
-    public ClusterInput(final JavaQueue queue) {
+    private final ClusterInput.TaskService taskService;
+
+    public ClusterInput(final JavaQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
+        this.taskService = new ClusterInput.TaskService(tasks, config);
     }
 
     @Override
@@ -59,9 +61,11 @@ public final class ClusterInput implements Runnable, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
-        running.set(false);
-        executor.shutdownNow();
+    public void close() {
+        taskService.close();
+        stop();
+        awaitStop();
+        executor.shutdown();
         try {
             if (!executor.awaitTermination(2L, TimeUnit.MINUTES)) {
                 throw new IllegalStateException("Failed to stop task service");
@@ -85,12 +89,19 @@ public final class ClusterInput implements Runnable, Closeable {
 
         @Override
         public void run() {
-
+            cluster.open().join();
+            while (cluster.isOpen()) {
+                try {
+                    TimeUnit.SECONDS.sleep(1L);
+                } catch (final InterruptedException ex) {
+                    throw new IllegalStateException(ex);
+                }
+            }
         }
 
         @Override
-        public void close() throws IOException {
-
+        public void close() {
+            cluster.close().join();
         }
     }
 }
