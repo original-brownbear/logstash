@@ -17,10 +17,8 @@ package org.logstash.cluster.messaging.netty;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.Uninterruptibles;
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.InetAddress;
-import java.net.ServerSocket;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.UUID;
@@ -37,6 +35,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.logstash.TestUtils;
 import org.logstash.cluster.messaging.Endpoint;
 import org.logstash.cluster.messaging.ManagedMessagingService;
 
@@ -59,29 +58,19 @@ public final class NettyMessagingServiceTest {
 
     @Before
     public void setUp() {
-        ep1 = new Endpoint(InetAddress.getLoopbackAddress(), findAvailablePort());
+        ep1 = new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort());
         netty1 = (ManagedMessagingService) NettyMessagingService.builder()
             .withEndpoint(ep1)
             .build()
             .open()
             .join();
-        ep2 = new Endpoint(InetAddress.getLoopbackAddress(), findAvailablePort());
+        ep2 = new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort());
         netty2 = (ManagedMessagingService) NettyMessagingService.builder()
             .withEndpoint(ep2)
             .build()
             .open()
             .join();
-        invalidEndPoint = new Endpoint(InetAddress.getLoopbackAddress(), findAvailablePort());
-    }
-
-    private static int findAvailablePort() {
-        try {
-            try (ServerSocket socket = new ServerSocket(0)) {
-                return socket.getLocalPort();
-            }
-        } catch (final IOException ex) {
-            throw new IllegalStateException(ex);
-        }
+        invalidEndPoint = new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort());
     }
 
     @After

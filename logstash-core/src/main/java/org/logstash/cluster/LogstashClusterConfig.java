@@ -22,7 +22,7 @@ public final class LogstashClusterConfig {
         this.node = new DefaultNode(
             NodeId.from(bind.toString()), new Endpoint(bind.getAddress(), bind.getPort())
         );
-        this.bootstrap = bootstrap;
+        this.bootstrap = bootstrap.isEmpty() ? Collections.singleton(node) : bootstrap;
         this.dataDir = dataDir;
     }
 

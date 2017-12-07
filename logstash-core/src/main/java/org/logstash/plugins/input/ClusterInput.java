@@ -2,7 +2,6 @@ package org.logstash.plugins.input;
 
 import java.io.Closeable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -27,11 +26,14 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final WorkQueue<EnqueueEvent> tasks;
 
-    public ClusterInput(final EventQueue queue, final LogstashClusterConfig config)
-        throws ExecutionException, InterruptedException {
+    public ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
         cluster = LogstashCluster.builder().withLocalNode(config.localNode())
-            .withBootstrapNodes(config.getBootstrap()).withDataDir(config.getDataDir()).build().open().get();
+            .withBootstrapNodes(config.getBootstrap())
+            .withDataDir(config.getDataDir())
+            .withNumPartitions(1)
+            .build()
+            .open().join();
         tasks = cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue").build();
     }
 
@@ -44,7 +46,6 @@ public final class ClusterInput implements Runnable, Closeable {
                 tasks.complete(task.taskId());
             }
         }
-        cluster.close().thenRun(stopped::countDown);
     }
 
     public void stop() {
@@ -62,6 +63,8 @@ public final class ClusterInput implements Runnable, Closeable {
     @Override
     public void close() {
         stop();
+        tasks.close();
+        cluster.close().thenRun(stopped::countDown);
         awaitStop();
         executor.shutdown();
         try {
