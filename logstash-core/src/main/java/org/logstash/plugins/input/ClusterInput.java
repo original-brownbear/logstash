@@ -6,12 +6,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.LogstashClusterServer;
 import org.logstash.cluster.primitives.queue.Task;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.ext.EventQueue;
+import org.logstash.ext.JavaQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
 
@@ -28,6 +30,10 @@ public final class ClusterInput implements Runnable, Closeable {
     private final EventQueue queue;
 
     private final WorkQueue<EnqueueEvent> tasks;
+
+    public ClusterInput(final IRubyObject queue, final LogstashClusterConfig config) {
+        this(new JavaQueue(queue), config);
+    }
 
     public ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
