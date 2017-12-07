@@ -9,6 +9,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.logstash.cluster.LogstashCluster;
+import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.ext.JavaQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
@@ -73,8 +75,12 @@ public final class ClusterInput implements Runnable, Closeable {
 
         private final BlockingQueue<EnqueueEvent> tasks;
 
-        TaskService(final BlockingQueue<EnqueueEvent> tasks) {
+        private final LogstashCluster cluster;
+
+        TaskService(final BlockingQueue<EnqueueEvent> tasks, final LogstashClusterConfig config) {
             this.tasks = tasks;
+            cluster = LogstashCluster.builder().withLocalNode(config.localNode())
+                .withBootstrapNodes(config.getBootstrap()).withDataDir(config.getDataDir()).build();
         }
 
         @Override
