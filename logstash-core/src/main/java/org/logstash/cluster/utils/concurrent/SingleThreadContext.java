@@ -1,20 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.utils.concurrent;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -29,14 +15,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
-
 /**
  * Single threaded context.
  * <p>
  * This is a basic {@link ThreadContext} implementation that uses a
  * {@link ScheduledExecutorService} to schedule events on the context thread.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class SingleThreadContext implements ThreadContext {
     protected static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadContext.class);
@@ -80,7 +63,7 @@ public class SingleThreadContext implements ThreadContext {
 
     private SingleThreadContext(Thread thread, ScheduledExecutorService executor) {
         this.executor = executor;
-        checkState(thread instanceof AtomixThread, "not a Catalyst thread");
+        Preconditions.checkState(thread instanceof AtomixThread, "not a Catalyst thread");
         ((AtomixThread) thread).setContext(this);
     }
 
@@ -103,7 +86,9 @@ public class SingleThreadContext implements ThreadContext {
     public Scheduled schedule(Duration delay, Runnable runnable) {
         ScheduledFuture<?> future = executor.schedule(runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
         return () -> future.cancel(false);
-    }    @Override
+    }
+
+    @Override
     public void execute(Runnable command) {
         wrappedExecutor.execute(command);
     }
@@ -118,7 +103,5 @@ public class SingleThreadContext implements ThreadContext {
     public void close() {
         executor.shutdownNow();
     }
-
-
 
 }

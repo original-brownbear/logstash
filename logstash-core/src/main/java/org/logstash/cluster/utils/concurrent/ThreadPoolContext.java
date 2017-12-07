@@ -1,20 +1,6 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.utils.concurrent;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.LinkedList;
 import java.util.concurrent.Executor;
@@ -23,8 +9,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Thread pool context.
@@ -58,7 +42,7 @@ public class ThreadPoolContext implements ThreadContext {
      * @param parent The thread pool on which to execute events.
      */
     public ThreadPoolContext(ScheduledExecutorService parent) {
-        this.parent = checkNotNull(parent, "parent cannot be null");
+        this.parent = Preconditions.checkNotNull(parent, "parent cannot be null");
 
         // This code was shamelessly stolededed from Vert.x:
         // https://github.com/eclipse/vert.x/blob/master/src/main/java/io/vertx/core/impl/OrderedExecutorFactory.java
@@ -88,7 +72,9 @@ public class ThreadPoolContext implements ThreadContext {
     public Scheduled schedule(Duration delay, Runnable runnable) {
         ScheduledFuture<?> future = parent.schedule(() -> executor.execute(runnable), delay.toMillis(), TimeUnit.MILLISECONDS);
         return () -> future.cancel(false);
-    }    @Override
+    }
+
+    @Override
     public void execute(Runnable command) {
         executor.execute(command);
     }
@@ -103,7 +89,5 @@ public class ThreadPoolContext implements ThreadContext {
     public void close() {
         // Do nothing.
     }
-
-
 
 }
