@@ -35,6 +35,7 @@ public final class ClusterInputTest {
         final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         final LogstashClusterConfig config = new LogstashClusterConfig(
+            "node1",
             new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
             Collections.emptyList(), temporaryFolder.newFolder()
         );
@@ -55,8 +56,8 @@ public final class ClusterInputTest {
             try {
                 cluster = LogstashClusterServer.fromConfig(
                     new LogstashClusterConfig(
-                        new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
-                        Collections.singleton(config.localNode()),
+                        "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
+                        TestUtils.freePort()), Collections.singleton(config.localNode()),
                         temporaryFolder.newFolder()
                     )
                 );

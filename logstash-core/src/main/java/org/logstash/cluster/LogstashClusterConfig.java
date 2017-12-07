@@ -17,10 +17,10 @@ public final class LogstashClusterConfig {
 
     private final File dataDir;
 
-    public LogstashClusterConfig(final InetSocketAddress bind, final Collection<Node> bootstrap,
-        final File dataDir) {
+    public LogstashClusterConfig(final String id, final InetSocketAddress bind,
+        final Collection<Node> bootstrap, final File dataDir) {
         this.node = new DefaultNode(
-            NodeId.from(bind.toString()), new Endpoint(bind.getAddress(), bind.getPort())
+            NodeId.from(id), new Endpoint(bind.getAddress(), bind.getPort())
         );
         this.bootstrap = bootstrap.isEmpty() ? Collections.singleton(node) : bootstrap;
         this.dataDir = dataDir;
