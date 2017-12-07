@@ -16,7 +16,7 @@ import org.logstash.TestUtils;
 import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.primitives.queue.WorkQueue;
-import org.logstash.cluster.serializer.JavaSerializer;
+import org.logstash.cluster.serializer.Serializer;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -67,7 +67,7 @@ public final class ClusterInputTest {
                 assertThat(cluster.getWorkQueueNames(), contains("logstashWorkQueue"));
                 final WorkQueue<EnqueueEvent> tasks =
                     cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue")
-                        .withSerializer(new JavaSerializer()).build();
+                        .withSerializer(Serializer.JAVA).build();
                 tasks.addOne(
                     events -> events.push(
                         new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
