@@ -1,18 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.queue.impl;
 
 import com.google.common.base.MoreObjects;
@@ -35,9 +20,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.logstash.cluster.primitives.queue.Task;
 import org.logstash.cluster.primitives.queue.WorkQueueStats;
-import org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.Add;
-import org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.Complete;
-import org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.Take;
 import org.logstash.cluster.protocols.raft.service.AbstractRaftService;
 import org.logstash.cluster.protocols.raft.service.Commit;
 import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
@@ -48,15 +30,6 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueEvents.TASK_AVAILABLE;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.ADD;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.CLEAR;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.COMPLETE;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.REGISTER;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.STATS;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.TAKE;
-import static org.logstash.cluster.primitives.queue.impl.RaftWorkQueueOperations.UNREGISTER;
-
 /**
  * State machine for {@link RaftWorkQueue} resource.
  */
@@ -66,7 +39,7 @@ public class RaftWorkQueueService extends AbstractRaftService {
         .register(KryoNamespaces.BASIC)
         .register(RaftWorkQueueOperations.NAMESPACE)
         .register(RaftWorkQueueEvents.NAMESPACE)
-        .register(TaskAssignment.class)
+        .register(RaftWorkQueueService.TaskAssignment.class)
         .register(new HashMap().keySet().getClass())
         .register(ArrayDeque.class)
         .build());
@@ -74,11 +47,11 @@ public class RaftWorkQueueService extends AbstractRaftService {
     private final AtomicLong totalCompleted = new AtomicLong(0);
 
     private Queue<Task<byte[]>> unassignedTasks = Queues.newArrayDeque();
-    private Map<String, TaskAssignment> assignments = Maps.newHashMap();
+    private Map<String, RaftWorkQueueService.TaskAssignment> assignments = Maps.newHashMap();
     private Map<Long, RaftSession> registeredWorkers = Maps.newHashMap();
 
     @Override
-    public void snapshot(SnapshotWriter writer) {
+    public void snapshot(final SnapshotWriter writer) {
         writer.writeObject(Sets.newHashSet(registeredWorkers.keySet()), SERIALIZER::encode);
         writer.writeObject(assignments, SERIALIZER::encode);
         writer.writeObject(unassignedTasks, SERIALIZER::encode);
@@ -86,9 +59,9 @@ public class RaftWorkQueueService extends AbstractRaftService {
     }
 
     @Override
-    public void install(SnapshotReader reader) {
+    public void install(final SnapshotReader reader) {
         registeredWorkers = Maps.newHashMap();
-        for (Long sessionId : reader.<Set<Long>>readObject(SERIALIZER::decode)) {
+        for (final Long sessionId : reader.<Set<Long>>readObject(SERIALIZER::decode)) {
             registeredWorkers.put(sessionId, sessions().getSession(sessionId));
         }
         assignments = reader.readObject(SERIALIZER::decode);
@@ -97,34 +70,34 @@ public class RaftWorkQueueService extends AbstractRaftService {
     }
 
     @Override
-    protected void configure(RaftServiceExecutor executor) {
-        executor.register(STATS, this::stats, SERIALIZER::encode);
-        executor.register(REGISTER, this::register);
-        executor.register(UNREGISTER, this::unregister);
-        executor.register(ADD, SERIALIZER::decode, this::add);
-        executor.register(TAKE, SERIALIZER::decode, this::take, SERIALIZER::encode);
-        executor.register(COMPLETE, SERIALIZER::decode, this::complete);
-        executor.register(CLEAR, this::clear);
+    protected void configure(final RaftServiceExecutor executor) {
+        executor.register(RaftWorkQueueOperations.STATS, this::stats, SERIALIZER::encode);
+        executor.register(RaftWorkQueueOperations.REGISTER, this::register);
+        executor.register(RaftWorkQueueOperations.UNREGISTER, this::unregister);
+        executor.register(RaftWorkQueueOperations.ADD, SERIALIZER::decode, this::add);
+        executor.register(RaftWorkQueueOperations.TAKE, SERIALIZER::decode, this::take, SERIALIZER::encode);
+        executor.register(RaftWorkQueueOperations.COMPLETE, SERIALIZER::decode, this::complete);
+        executor.register(RaftWorkQueueOperations.CLEAR, this::clear);
     }
 
     @Override
-    public void onExpire(RaftSession session) {
+    public void onExpire(final RaftSession session) {
         evictWorker(session.sessionId().id());
     }
 
     @Override
-    public void onClose(RaftSession session) {
+    public void onClose(final RaftSession session) {
         evictWorker(session.sessionId().id());
     }
 
-    private void evictWorker(long sessionId) {
+    private void evictWorker(final long sessionId) {
         registeredWorkers.remove(sessionId);
 
         // TODO: Maintain an index of tasks by session for efficient access.
-        Iterator<Map.Entry<String, TaskAssignment>> iter = assignments.entrySet().iterator();
+        final Iterator<Map.Entry<String, RaftWorkQueueService.TaskAssignment>> iter = assignments.entrySet().iterator();
         while (iter.hasNext()) {
-            Map.Entry<String, TaskAssignment> entry = iter.next();
-            TaskAssignment assignment = entry.getValue();
+            final Map.Entry<String, RaftWorkQueueService.TaskAssignment> entry = iter.next();
+            final RaftWorkQueueService.TaskAssignment assignment = entry.getValue();
             if (assignment.sessionId() == sessionId) {
                 unassignedTasks.add(assignment.task());
                 iter.remove();
@@ -132,7 +105,7 @@ public class RaftWorkQueueService extends AbstractRaftService {
         }
     }
 
-    protected WorkQueueStats stats(Commit<Void> commit) {
+    protected WorkQueueStats stats(final Commit<Void> commit) {
         return WorkQueueStats.builder()
             .withTotalCompleted(totalCompleted.get())
             .withTotalPending(unassignedTasks.size())
@@ -140,27 +113,27 @@ public class RaftWorkQueueService extends AbstractRaftService {
             .build();
     }
 
-    protected void clear(Commit<Void> commit) {
+    protected void clear(final Commit<Void> commit) {
         unassignedTasks.clear();
         assignments.clear();
         registeredWorkers.clear();
         totalCompleted.set(0);
     }
 
-    protected void register(Commit<Void> commit) {
+    protected void register(final Commit<Void> commit) {
         registeredWorkers.put(commit.session().sessionId().id(), commit.session());
     }
 
-    protected void unregister(Commit<Void> commit) {
+    protected void unregister(final Commit<Void> commit) {
         registeredWorkers.remove(commit.session().sessionId().id());
     }
 
-    protected void add(Commit<? extends Add> commit) {
-        Collection<byte[]> items = commit.value().items();
+    protected void add(final Commit<? extends RaftWorkQueueOperations.Add> commit) {
+        final Collection<byte[]> items = commit.value().items();
 
-        AtomicInteger itemIndex = new AtomicInteger(0);
+        final AtomicInteger itemIndex = new AtomicInteger(0);
         items.forEach(item -> {
-            String taskId = String.format("%d:%d:%d", commit.session().sessionId().id(),
+            final String taskId = String.format("%d:%d:%d", commit.session().sessionId().id(),
                 commit.index(),
                 itemIndex.getAndIncrement());
             unassignedTasks.add(new Task<>(taskId, item));
@@ -168,22 +141,22 @@ public class RaftWorkQueueService extends AbstractRaftService {
 
         // Send an event to all sessions that have expressed interest in task processing
         // and are not actively processing a task.
-        registeredWorkers.values().forEach(session -> session.publish(TASK_AVAILABLE));
+        registeredWorkers.values().forEach(session -> session.publish(RaftWorkQueueEvents.TASK_AVAILABLE));
         // FIXME: This generates a lot of event traffic.
     }
 
-    protected Collection<Task<byte[]>> take(Commit<? extends Take> commit) {
+    protected Collection<Task<byte[]>> take(final Commit<? extends RaftWorkQueueOperations.Take> commit) {
         try {
             if (unassignedTasks.isEmpty()) {
                 return ImmutableList.of();
             }
-            long sessionId = commit.session().sessionId().id();
-            int maxTasks = commit.value().maxTasks();
+            final long sessionId = commit.session().sessionId().id();
+            final int maxTasks = commit.value().maxTasks();
             return IntStream.range(0, Math.min(maxTasks, unassignedTasks.size()))
                 .mapToObj(i -> {
                     Task<byte[]> task = unassignedTasks.poll();
                     String taskId = task.taskId();
-                    TaskAssignment assignment = new TaskAssignment(sessionId, task);
+                    RaftWorkQueueService.TaskAssignment assignment = new RaftWorkQueueService.TaskAssignment(sessionId, task);
 
                     // bookkeeping
                     assignments.put(taskId, assignment);
@@ -191,24 +164,24 @@ public class RaftWorkQueueService extends AbstractRaftService {
                     return task;
                 })
                 .collect(Collectors.toCollection(ArrayList::new));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger().warn("State machine update failed", e);
             throw Throwables.propagate(e);
         }
     }
 
-    protected void complete(Commit<? extends Complete> commit) {
-        long sessionId = commit.session().sessionId().id();
+    protected void complete(final Commit<? extends RaftWorkQueueOperations.Complete> commit) {
+        final long sessionId = commit.session().sessionId().id();
         try {
             commit.value().taskIds().forEach(taskId -> {
-                TaskAssignment assignment = assignments.get(taskId);
+                final RaftWorkQueueService.TaskAssignment assignment = assignments.get(taskId);
                 if (assignment != null && assignment.sessionId() == sessionId) {
                     assignments.remove(taskId);
                     // bookkeeping
                     totalCompleted.incrementAndGet();
                 }
             });
-        } catch (Exception e) {
+        } catch (final Exception e) {
             logger().warn("State machine update failed", e);
             throw Throwables.propagate(e);
         }
@@ -218,7 +191,7 @@ public class RaftWorkQueueService extends AbstractRaftService {
         private final long sessionId;
         private final Task<byte[]> task;
 
-        public TaskAssignment(long sessionId, Task<byte[]> task) {
+        public TaskAssignment(final long sessionId, final Task<byte[]> task) {
             this.sessionId = sessionId;
             this.task = task;
         }
