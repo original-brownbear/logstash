@@ -1,31 +1,14 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.leadership;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import java.util.function.Function;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Topic leader.
  * <p>
- * Identified by the {@link NodeId node identifier} and a monotonically increasing term number.
+ * Identified by the {@link org.logstash.cluster.cluster.NodeId node identifier} and a monotonically increasing term number.
  * The term number is incremented by one every time a new node is elected as leader.
  * Also available is the system clock time at the instant when this node was elected as leader.
  * Keep in mind though that as with any system clock based time stamps this particular information
@@ -37,10 +20,10 @@ public class Leader<T> {
     private final long termStartTime;
 
     public Leader(T id, long term, long termStartTime) {
-        this.id = checkNotNull(id);
-        checkArgument(term >= 0, "term must be non-negative");
+        this.id = Preconditions.checkNotNull(id);
+        Preconditions.checkArgument(term >= 0, "term must be non-negative");
         this.term = term;
-        checkArgument(termStartTime >= 0, "termStartTime must be non-negative");
+        Preconditions.checkArgument(termStartTime >= 0, "termStartTime must be non-negative");
         this.termStartTime = termStartTime;
     }
 

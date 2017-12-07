@@ -29,7 +29,7 @@ import org.logstash.cluster.utils.Match;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
- * {@link io.atomix.primitives.map.AsyncConsistentTreeMap} Resource
+ * {@link org.logstash.cluster.primitives.map.AsyncConsistentTreeMap} Resource
  * state machine operations.
  */
 public enum RaftConsistentTreeMapOperations implements OperationId {

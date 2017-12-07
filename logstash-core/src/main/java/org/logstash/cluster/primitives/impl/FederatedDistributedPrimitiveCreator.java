@@ -1,21 +1,7 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.impl;
 
 import com.google.common.base.Charsets;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -52,8 +38,6 @@ import org.logstash.cluster.primitives.tree.impl.PartitionedAsyncDocumentTree;
 import org.logstash.cluster.primitives.value.AsyncAtomicValue;
 import org.logstash.cluster.serializer.Serializer;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * {@code DistributedPrimitiveCreator} that federates responsibility for creating
  * distributed primitives to a collection of other {@link DistributedPrimitiveCreator creators}.
@@ -69,15 +53,15 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
 
     public FederatedDistributedPrimitiveCreator(Map<Integer, DistributedPrimitiveCreator> members, int buckets) {
         this.members = Maps.newTreeMap();
-        this.members.putAll(checkNotNull(members));
+        this.members.putAll(Preconditions.checkNotNull(members));
         this.sortedMemberPartitionIds = Lists.newArrayList(members.keySet());
         this.buckets = buckets;
     }
 
     @Override
     public <K, V> AsyncConsistentMap<K, V> newAsyncConsistentMap(String name, Serializer serializer) {
-        checkNotNull(name);
-        checkNotNull(serializer);
+        Preconditions.checkNotNull(name);
+        Preconditions.checkNotNull(serializer);
         Map<Integer, AsyncConsistentMap<byte[], byte[]>> maps =
             Maps.transformValues(members,
                 partition -> DistributedPrimitives.newTranscodingMap(
@@ -150,8 +134,8 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
 
     @Override
     public <V> AsyncDocumentTree<V> newAsyncDocumentTree(String name, Serializer serializer, Ordering ordering) {
-        checkNotNull(name);
-        checkNotNull(serializer);
+        Preconditions.checkNotNull(name);
+        Preconditions.checkNotNull(serializer);
         Map<Integer, AsyncDocumentTree<V>> trees =
             Maps.transformValues(members, part -> part.<V>newAsyncDocumentTree(name, serializer, ordering));
         Hasher<DocumentPath> hasher = key -> {

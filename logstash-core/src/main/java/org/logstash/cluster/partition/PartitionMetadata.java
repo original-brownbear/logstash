@@ -1,10 +1,9 @@
 package org.logstash.cluster.partition;
 
+import com.google.common.base.MoreObjects;
 import java.util.Collection;
 import java.util.Objects;
 import org.logstash.cluster.cluster.NodeId;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * A partition or shard is a group of controller nodes that are work together to maintain state.
@@ -51,7 +50,7 @@ public class PartitionMetadata {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id)
             .add("members", members)
             .toString();

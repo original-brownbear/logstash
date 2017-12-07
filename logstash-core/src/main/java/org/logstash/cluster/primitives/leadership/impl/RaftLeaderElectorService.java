@@ -1,18 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.leadership.impl;
 
 import com.google.common.base.MoreObjects;
@@ -47,16 +32,6 @@ import org.logstash.cluster.protocols.raft.storage.snapshot.SnapshotWriter;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorEvents.CHANGE;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.ADD_LISTENER;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.ANOINT;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.EVICT;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.GET_LEADERSHIP;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.PROMOTE;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.REMOVE_LISTENER;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.RUN;
-import static org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.WITHDRAW;
 
 /**
  * State machine for {@link RaftLeaderElector} resource.
@@ -105,16 +80,16 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     @Override
     protected void configure(RaftServiceExecutor executor) {
         // Notification
-        executor.register(ADD_LISTENER, this::listen);
-        executor.register(REMOVE_LISTENER, this::unlisten);
+        executor.register(RaftLeaderElectorOperations.ADD_LISTENER, this::listen);
+        executor.register(RaftLeaderElectorOperations.REMOVE_LISTENER, this::unlisten);
         // Commands
-        executor.register(RUN, SERIALIZER::decode, this::run, SERIALIZER::encode);
-        executor.register(WITHDRAW, SERIALIZER::decode, this::withdraw);
-        executor.register(ANOINT, SERIALIZER::decode, this::anoint, SERIALIZER::encode);
-        executor.register(PROMOTE, SERIALIZER::decode, this::promote, SERIALIZER::encode);
-        executor.register(EVICT, SERIALIZER::decode, this::evict);
+        executor.register(RaftLeaderElectorOperations.RUN, SERIALIZER::decode, this::run, SERIALIZER::encode);
+        executor.register(RaftLeaderElectorOperations.WITHDRAW, SERIALIZER::decode, this::withdraw);
+        executor.register(RaftLeaderElectorOperations.ANOINT, SERIALIZER::decode, this::anoint, SERIALIZER::encode);
+        executor.register(RaftLeaderElectorOperations.PROMOTE, SERIALIZER::decode, this::promote, SERIALIZER::encode);
+        executor.register(RaftLeaderElectorOperations.EVICT, SERIALIZER::decode, this::evict);
         // Queries
-        executor.register(GET_LEADERSHIP, this::getLeadership, SERIALIZER::encode);
+        executor.register(RaftLeaderElectorOperations.GET_LEADERSHIP, this::getLeadership, SERIALIZER::encode);
     }
 
     @Override
@@ -207,7 +182,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         if (changes.isEmpty()) {
             return;
         }
-        listeners.values().forEach(session -> session.publish(CHANGE, SERIALIZER::encode, changes));
+        listeners.values().forEach(session -> session.publish(RaftLeaderElectorEvents.CHANGE, SERIALIZER::encode, changes));
     }
 
     private Leadership<byte[]> leadership() {

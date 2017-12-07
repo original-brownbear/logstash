@@ -25,5 +25,4 @@ public interface MemoryAllocator<T extends Memory> {
      * @return The reallocated memory.
      */
     T reallocate(T memory, int size);
-
 }

@@ -1,22 +1,7 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
 /**
- * Support for periodically persisting {@link RaftService} snapshots to disk.
+ * Support for periodically persisting {@link org.logstash.cluster.protocols.raft.service.RaftService} snapshots to disk.
  * <p>
  * To store a state machine's state, simply implement the {@link #snapshot(SnapshotWriter)} method and write the
  * complete state machine state to the snapshot via the {@link SnapshotWriter}. Raft will periodically invoke
@@ -65,7 +50,7 @@ public interface Snapshottable {
     /**
      * Takes a snapshot of the state machine state.
      * <p>
-     * This method will be called each time the underlying {@link RaftLog Log}
+     * This method will be called each time the underlying {@link org.logstash.cluster.protocols.raft.storage.log.RaftLog Log}
      * rotates segments. Once the snapshot has been written, the snapshot will be stored on disk and eventually
      * completed. Note that snapshots are normally not immediately completed upon completion of this method as
      * servers must wait for certain conditions to be met before persisting a snapshot. Therefore, state machines

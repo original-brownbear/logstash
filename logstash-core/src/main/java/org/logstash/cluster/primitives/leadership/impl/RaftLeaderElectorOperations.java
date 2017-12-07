@@ -1,18 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.leadership.impl;
 
 import com.google.common.base.MoreObjects;
@@ -44,11 +29,11 @@ public enum RaftLeaderElectorOperations implements OperationId {
         .register(NodeId.class)
         .register(Leadership.class)
         .register(Leader.class)
-        .register(Run.class)
-        .register(Withdraw.class)
-        .register(Anoint.class)
-        .register(Promote.class)
-        .register(Evict.class)
+        .register(RaftLeaderElectorOperations.Run.class)
+        .register(RaftLeaderElectorOperations.Withdraw.class)
+        .register(RaftLeaderElectorOperations.Anoint.class)
+        .register(RaftLeaderElectorOperations.Promote.class)
+        .register(RaftLeaderElectorOperations.Evict.class)
         .build(RaftLeaderElectorOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
@@ -78,7 +63,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
     /**
      * Election operation that uses an instance identifier.
      */
-    public abstract static class ElectionChangeOperation extends ElectionOperation {
+    public abstract static class ElectionChangeOperation extends RaftLeaderElectorOperations.ElectionOperation {
         private byte[] id;
 
         public ElectionChangeOperation() {
@@ -108,7 +93,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
      * Enter and run for leadership.
      */
     @SuppressWarnings("serial")
-    public static class Run extends ElectionChangeOperation {
+    public static class Run extends RaftLeaderElectorOperations.ElectionChangeOperation {
         public Run() {
         }
 
@@ -121,7 +106,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
      * Command for withdrawing a candidate from an election.
      */
     @SuppressWarnings("serial")
-    public static class Withdraw extends ElectionChangeOperation {
+    public static class Withdraw extends RaftLeaderElectorOperations.ElectionChangeOperation {
         private Withdraw() {
         }
 
@@ -134,7 +119,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
      * Command for administratively anoint a node as leader.
      */
     @SuppressWarnings("serial")
-    public static class Anoint extends ElectionChangeOperation {
+    public static class Anoint extends RaftLeaderElectorOperations.ElectionChangeOperation {
         private Anoint() {
         }
 
@@ -147,7 +132,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
      * Command for administratively promote a node as top candidate.
      */
     @SuppressWarnings("serial")
-    public static class Promote extends ElectionChangeOperation {
+    public static class Promote extends RaftLeaderElectorOperations.ElectionChangeOperation {
         private Promote() {
         }
 
@@ -160,7 +145,7 @@ public enum RaftLeaderElectorOperations implements OperationId {
      * Command for administratively evicting a node from all leadership topics.
      */
     @SuppressWarnings("serial")
-    public static class Evict extends ElectionChangeOperation {
+    public static class Evict extends RaftLeaderElectorOperations.ElectionChangeOperation {
         public Evict() {
         }
 

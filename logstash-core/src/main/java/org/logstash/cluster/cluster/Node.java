@@ -1,26 +1,10 @@
-/*
- * Copyright 2014-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.cluster;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.cluster.impl.DefaultNode;
 import org.logstash.cluster.messaging.Endpoint;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents a controller instance as a member in a cluster.
@@ -31,8 +15,8 @@ public abstract class Node {
     private final Endpoint endpoint;
 
     protected Node(NodeId id, Endpoint endpoint) {
-        this.id = checkNotNull(id, "id cannot be null");
-        this.endpoint = checkNotNull(endpoint, "endpoint cannot be null");
+        this.id = Preconditions.checkNotNull(id, "id cannot be null");
+        this.endpoint = Preconditions.checkNotNull(endpoint, "endpoint cannot be null");
     }
 
     /**
@@ -83,7 +67,7 @@ public abstract class Node {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id)
             .add("endpoint", endpoint)
             .toString();
@@ -135,7 +119,7 @@ public abstract class Node {
          * @return the node builder
          */
         public Builder withId(NodeId id) {
-            this.id = checkNotNull(id, "id cannot be null");
+            this.id = Preconditions.checkNotNull(id, "id cannot be null");
             return this;
         }
 
@@ -145,7 +129,7 @@ public abstract class Node {
          * @return the node builder
          */
         public Builder withEndpoint(Endpoint endpoint) {
-            this.endpoint = checkNotNull(endpoint, "endpoint cannot be null");
+            this.endpoint = Preconditions.checkNotNull(endpoint, "endpoint cannot be null");
             return this;
         }
     }

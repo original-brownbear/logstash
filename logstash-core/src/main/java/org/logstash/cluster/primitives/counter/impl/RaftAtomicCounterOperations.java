@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.counter.impl;
 
 import org.logstash.cluster.protocols.raft.operation.OperationId;
@@ -35,11 +20,11 @@ public enum RaftAtomicCounterOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Get.class)
-        .register(Set.class)
-        .register(CompareAndSet.class)
-        .register(AddAndGet.class)
-        .register(GetAndAdd.class)
+        .register(RaftAtomicCounterOperations.Get.class)
+        .register(RaftAtomicCounterOperations.Set.class)
+        .register(RaftAtomicCounterOperations.CompareAndSet.class)
+        .register(RaftAtomicCounterOperations.AddAndGet.class)
+        .register(RaftAtomicCounterOperations.GetAndAdd.class)
         .build(RaftAtomicCounterOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
@@ -68,13 +53,13 @@ public enum RaftAtomicCounterOperations implements OperationId {
     /**
      * Get query.
      */
-    public static class Get extends ValueOperation {
+    public static class Get extends RaftAtomicCounterOperations.ValueOperation {
     }
 
     /**
      * Set command.
      */
-    public static class Set extends ValueOperation {
+    public static class Set extends RaftAtomicCounterOperations.ValueOperation {
         private Long value;
 
         public Set() {
@@ -101,7 +86,7 @@ public enum RaftAtomicCounterOperations implements OperationId {
     /**
      * Compare and set command.
      */
-    public static class CompareAndSet extends ValueOperation {
+    public static class CompareAndSet extends RaftAtomicCounterOperations.ValueOperation {
         private Long expect;
         private Long update;
 
@@ -138,7 +123,7 @@ public enum RaftAtomicCounterOperations implements OperationId {
     /**
      * Delta command.
      */
-    public abstract static class DeltaOperation extends ValueOperation {
+    public abstract static class DeltaOperation extends RaftAtomicCounterOperations.ValueOperation {
         private long delta;
 
         public DeltaOperation() {
@@ -160,7 +145,7 @@ public enum RaftAtomicCounterOperations implements OperationId {
     /**
      * Get and add command.
      */
-    public static class GetAndAdd extends DeltaOperation {
+    public static class GetAndAdd extends RaftAtomicCounterOperations.DeltaOperation {
         public GetAndAdd() {
         }
 
@@ -172,7 +157,7 @@ public enum RaftAtomicCounterOperations implements OperationId {
     /**
      * Add and get command.
      */
-    public static class AddAndGet extends DeltaOperation {
+    public static class AddAndGet extends RaftAtomicCounterOperations.DeltaOperation {
         public AddAndGet() {
         }
 

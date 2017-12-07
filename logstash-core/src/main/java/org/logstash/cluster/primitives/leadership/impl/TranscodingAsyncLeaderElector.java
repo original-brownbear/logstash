@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.leadership.impl;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -23,8 +24,6 @@ import org.logstash.cluster.primitives.leadership.AsyncLeaderElector;
 import org.logstash.cluster.primitives.leadership.Leadership;
 import org.logstash.cluster.primitives.leadership.LeadershipEvent;
 import org.logstash.cluster.primitives.leadership.LeadershipEventListener;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Transcoding document tree.
@@ -105,7 +104,7 @@ public class TranscodingAsyncLeaderElector<V1, V2> implements AsyncLeaderElector
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("backingTree", backingElector)
             .toString();
     }

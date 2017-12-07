@@ -1,20 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.cluster.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -43,16 +29,14 @@ import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.utils.concurrent.Threads;
 import org.slf4j.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.slf4j.LoggerFactory.getLogger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default cluster implementation.
  */
 public class DefaultClusterService implements ManagedClusterService {
 
-    private static final Logger LOGGER = getLogger(DefaultClusterService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusterService.class);
 
     private static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
     private static final int DEFAULT_PHI_FAILURE_THRESHOLD = 10;
@@ -78,7 +62,7 @@ public class DefaultClusterService implements ManagedClusterService {
     private ScheduledFuture<?> heartbeatFuture;
 
     public DefaultClusterService(ClusterMetadata clusterMetadata, MessagingService messagingService) {
-        this.messagingService = checkNotNull(messagingService, "messagingService cannot be null");
+        this.messagingService = Preconditions.checkNotNull(messagingService, "messagingService cannot be null");
         this.localNode = (DefaultNode) clusterMetadata.localNode();
         if (clusterMetadata.bootstrapNodes().contains(localNode)) {
             localNode.setType(Node.Type.CORE);
