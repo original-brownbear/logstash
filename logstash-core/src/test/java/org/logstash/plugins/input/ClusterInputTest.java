@@ -53,7 +53,7 @@ public final class ClusterInputTest {
             exec.execute(input);
             LogstashClusterServer cluster = null;
             try {
-                cluster = getClient(
+                cluster = LogstashClusterServer.fromConfig(
                     new LogstashClusterConfig(
                         new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
                         Collections.singleton(config.localNode()),
@@ -76,14 +76,5 @@ public final class ClusterInputTest {
                 }
             }
         }
-    }
-
-    private static LogstashClusterServer getClient(final LogstashClusterConfig config) {
-        return LogstashClusterServer.builder().withLocalNode(config.localNode())
-            .withBootstrapNodes(config.getBootstrap())
-            .withDataDir(config.getDataDir())
-            .withNumPartitions(1)
-            .build()
-            .open().join();
     }
 }

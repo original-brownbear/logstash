@@ -86,6 +86,15 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
         this.primitives = Preconditions.checkNotNull(primitives, "primitives cannot be null");
     }
 
+    public static LogstashClusterServer fromConfig(final LogstashClusterConfig config) {
+        return LogstashClusterServer.builder().withLocalNode(config.localNode())
+            .withBootstrapNodes(config.getBootstrap())
+            .withDataDir(config.getDataDir())
+            .withNumPartitions(1)
+            .build()
+            .open().join();
+    }
+
     public static LogstashClusterServer.Builder builder() {
         return new LogstashClusterServer.Builder();
     }

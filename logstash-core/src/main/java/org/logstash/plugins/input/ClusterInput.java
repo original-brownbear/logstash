@@ -37,12 +37,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     public ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
-        cluster = LogstashClusterServer.builder().withLocalNode(config.localNode())
-            .withBootstrapNodes(config.getBootstrap())
-            .withDataDir(config.getDataDir())
-            .withNumPartitions(1)
-            .build()
-            .open().join();
+        cluster = LogstashClusterServer.fromConfig(config);
         tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
             .withSerializer(Serializer.JAVA).build();
     }
