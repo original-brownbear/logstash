@@ -52,7 +52,7 @@ public interface RaftClient {
      */
     @SuppressWarnings("unchecked")
     static Builder builder() {
-        return builder(Collections.<MemberId>emptyList());
+        return builder(Collections.emptyList());
     }
 
     /**

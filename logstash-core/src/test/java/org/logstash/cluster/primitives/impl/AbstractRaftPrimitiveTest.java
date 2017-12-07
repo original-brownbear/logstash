@@ -44,13 +44,13 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
-    protected Path basePath;
+    private Path basePath;
 
-    protected TestClusterCommunicationServiceFactory communicationServiceFactory;
-    protected List<RaftMember> members = Lists.newCopyOnWriteArrayList();
-    protected List<RaftClient> clients = Lists.newCopyOnWriteArrayList();
-    protected List<RaftServer> servers = Lists.newCopyOnWriteArrayList();
-    protected int nextId;
+    private TestClusterCommunicationServiceFactory communicationServiceFactory;
+    private List<RaftMember> members = Lists.newCopyOnWriteArrayList();
+    private List<RaftClient> clients = Lists.newCopyOnWriteArrayList();
+    private List<RaftServer> servers = Lists.newCopyOnWriteArrayList();
+    private int nextId;
 
     /**
      * Creates the primitive service.
@@ -63,9 +63,9 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * @param name the primitive name
      * @return the primitive instance
      */
-    protected T newPrimitive(String name) {
-        RaftClient client = createClient();
-        RaftProxy proxy = client.newProxyBuilder()
+    protected T newPrimitive(final String name) {
+        final RaftClient client = createClient();
+        final RaftProxy proxy = client.newProxyBuilder()
             .withName(name)
             .withServiceType("test")
             .withReadConsistency(readConsistency())
@@ -87,7 +87,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * Returns the proxy read consistency.
      * @return the primitive read consistency
      */
-    protected ReadConsistency readConsistency() {
+    private ReadConsistency readConsistency() {
         return ReadConsistency.LINEARIZABLE;
     }
 
@@ -95,7 +95,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * Returns the proxy communication strategy.
      * @return the primitive communication strategy
      */
-    protected CommunicationStrategy communicationStrategy() {
+    private CommunicationStrategy communicationStrategy() {
         return CommunicationStrategy.LEADER;
     }
 
@@ -103,8 +103,8 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * Creates a Raft client.
      */
     private RaftClient createClient() {
-        MemberId memberId = nextMemberId();
-        RaftClient client = RaftClient.builder()
+        final MemberId memberId = nextMemberId();
+        final RaftClient client = RaftClient.builder()
             .withMemberId(memberId)
             .withProtocol(new TestRaftClientCommunicator(
                 "partition-1",
@@ -138,16 +138,16 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
     /**
      * Creates a set of Raft servers.
      */
-    protected List<RaftServer> createServers(int nodes) {
-        List<RaftServer> servers = new ArrayList<>();
+    private List<RaftServer> createServers(final int nodes) {
+        final List<RaftServer> servers = new ArrayList<>();
 
         for (int i = 0; i < nodes; i++) {
             members.add(nextMember(RaftMember.Type.ACTIVE));
         }
 
-        CountDownLatch latch = new CountDownLatch(nodes);
+        final CountDownLatch latch = new CountDownLatch(nodes);
         for (int i = 0; i < nodes; i++) {
-            RaftServer server = createServer(members.get(i));
+            final RaftServer server = createServer(members.get(i));
             server.bootstrap(members.stream().map(RaftMember::memberId).collect(Collectors.toList()))
                 .thenRun(latch::countDown);
             servers.add(server);
@@ -155,7 +155,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
 
         try {
             latch.await(30000, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException e) {
+        } catch (final InterruptedException e) {
             throw new RuntimeException(e);
         }
 
@@ -167,15 +167,15 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * @param type The startup member type.
      * @return The next server address.
      */
-    private RaftMember nextMember(RaftMember.Type type) {
+    private RaftMember nextMember(final RaftMember.Type type) {
         return new TestMember(nextMemberId(), type);
     }
 
     /**
      * Creates a Raft server.
      */
-    private RaftServer createServer(RaftMember member) {
-        RaftServer.Builder builder = RaftServer.builder(member.memberId())
+    private RaftServer createServer(final RaftMember member) {
+        final RaftServer.Builder builder = RaftServer.builder(member.memberId())
             .withType(member.getType())
             .withProtocol(new TestRaftServerCommunicator(
                 "partition-1",
@@ -189,7 +189,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
                 .build())
             .addService("test", this::createService);
 
-        RaftServer server = builder.build();
+        final RaftServer server = builder.build();
         servers.add(server);
         return server;
     }
@@ -206,7 +206,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         clients.forEach(c -> {
             try {
                 c.close().get(10, TimeUnit.SECONDS);
-            } catch (Exception e) {
+            } catch (final Exception e) {
             }
         });
 
@@ -215,7 +215,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
                 if (s.isRunning()) {
                     s.shutdown().get(10, TimeUnit.SECONDS);
                 }
-            } catch (Exception e) {
+            } catch (final Exception e) {
             }
         });
 
@@ -224,18 +224,18 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
             try {
                 Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
                     @Override
-                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
                         Files.delete(file);
                         return FileVisitResult.CONTINUE;
                     }
 
                     @Override
-                    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    public FileVisitResult postVisitDirectory(final Path dir, final IOException exc) throws IOException {
                         Files.delete(dir);
                         return FileVisitResult.CONTINUE;
                     }
                 });
-            } catch (IOException e) {
+            } catch (final IOException e) {
             }
         }
     }
@@ -247,7 +247,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         private final MemberId memberId;
         private final Type type;
 
-        public TestMember(MemberId memberId, Type type) {
+        TestMember(final MemberId memberId, final Type type) {
             this.memberId = memberId;
             this.type = type;
         }
@@ -268,12 +268,12 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public void addTypeChangeListener(Consumer<Type> listener) {
+        public void addTypeChangeListener(final Consumer<Type> listener) {
 
         }
 
         @Override
-        public void removeTypeChangeListener(Consumer<Type> listener) {
+        public void removeTypeChangeListener(final Consumer<Type> listener) {
 
         }
 
@@ -288,7 +288,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public CompletableFuture<Void> promote(Type type) {
+        public CompletableFuture<Void> promote(final Type type) {
             return null;
         }
 
@@ -298,7 +298,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public CompletableFuture<Void> demote(Type type) {
+        public CompletableFuture<Void> demote(final Type type) {
             return null;
         }
 
