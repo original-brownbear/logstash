@@ -1,20 +1,6 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.utils;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,10 +9,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import org.logstash.cluster.utils.concurrent.Scheduled;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Maintains a sliding window of value counts. The sliding window counter is
@@ -37,7 +19,6 @@ import static com.google.common.base.Preconditions.checkArgument;
  */
 public final class SlidingWindowCounter {
     private static final int SLIDE_WINDOW_PERIOD_SECONDS = 1;
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final int windowSlots;
 
     private final List<AtomicLong> counters;
@@ -51,7 +32,7 @@ public final class SlidingWindowCounter {
      * @param windowSlots total number of window slots
      */
     public SlidingWindowCounter(int windowSlots, ThreadContext context) {
-        checkArgument(windowSlots > 0, "Window size must be a positive integer");
+        Preconditions.checkArgument(windowSlots > 0, "Window size must be a positive integer");
 
         this.windowSlots = windowSlots;
         this.headSlot = 0;
@@ -96,7 +77,7 @@ public final class SlidingWindowCounter {
      * @return total count for last N slots
      */
     public long get(int slots) {
-        checkArgument(slots <= windowSlots,
+        Preconditions.checkArgument(slots <= windowSlots,
             "Requested window must be less than the total window slots");
 
         long sum = 0;

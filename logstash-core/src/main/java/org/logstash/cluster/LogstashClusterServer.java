@@ -413,10 +413,15 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
          */
         private ManagedPartitionService buildPartitionService(final ClusterCommunicationService clusterCommunicator) {
             final File partitionsDir = new File(this.dataDir, "partitions");
-            final Collection<RaftPartition> partitions = buildPartitions().stream()
-                .map(p -> new RaftPartition(localNode.id(), p, clusterCommunicator, new File(partitionsDir, p.id().toString())))
-                .collect(Collectors.toList());
-            return new DefaultPartitionService(partitions);
+            return new DefaultPartitionService(
+                buildPartitions().stream()
+                    .map(
+                        p -> new RaftPartition(
+                            localNode.id(), p, clusterCommunicator, new File(partitionsDir,
+                            p.id().toString())
+                        )
+                    )
+                    .collect(Collectors.toList()));
         }
 
         /**
