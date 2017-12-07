@@ -199,7 +199,11 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
             .thenComposeAsync(v -> partitions.open(), context)
             .thenApplyAsync(v -> {
                 open.set(true);
-                LOGGER.info("Started");
+                LOGGER.info(
+                    "Logstash cluster node listening at {}:{}",
+                    cluster.getLocalNode().endpoint().host(),
+                    cluster.getLocalNode().endpoint().port()
+                );
                 return this;
             }, context);
     }
