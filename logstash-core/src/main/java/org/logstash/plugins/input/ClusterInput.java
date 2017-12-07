@@ -10,6 +10,7 @@ import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.primitives.queue.Task;
 import org.logstash.cluster.primitives.queue.WorkQueue;
+import org.logstash.cluster.serializer.JavaSerializer;
 import org.logstash.ext.EventQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
@@ -34,7 +35,8 @@ public final class ClusterInput implements Runnable, Closeable {
             .withNumPartitions(1)
             .build()
             .open().join();
-        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue").build();
+        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue")
+            .withSerializer(new JavaSerializer()).build();
     }
 
     @Override

@@ -7,12 +7,21 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.logstash.RubyUtil;
 import org.logstash.TestUtils;
+import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.cluster.primitives.queue.WorkQueue;
+import org.logstash.cluster.serializer.JavaSerializer;
 import org.logstash.ext.JrubyEventExtLibrary;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
 
 /**
  * Tests for {@link ClusterInput}.
@@ -43,6 +52,45 @@ public final class ClusterInputTest {
                  )
         ) {
             exec.execute(input);
+            LogstashCluster cluster = null;
+            try {
+                cluster = getClient(
+                    new LogstashClusterConfig(
+                        new InetSocketAddress(
+                            InetAddress.getLoopbackAddress(),
+                            TestUtils.freePort()
+                        ),
+                        Collections.singleton(config.localNode()),
+                        temporaryFolder.newFolder()
+                    )
+                );
+                assertThat(cluster.getWorkQueueNames(), contains("logstashWorkQueue"));
+                final WorkQueue<EnqueueEvent> tasks =
+                    cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue")
+                        .withSerializer(new JavaSerializer()).build();
+                tasks.addOne(
+                    events -> events.push(
+                        new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
+                    )
+                );
+                assertThat(
+                    queue.poll(10L, TimeUnit.SECONDS),
+                    instanceOf(JrubyEventExtLibrary.RubyEvent.class)
+                );
+            } finally {
+                if (cluster != null) {
+                    cluster.close().join();
+                }
+            }
         }
+    }
+
+    private static LogstashCluster getClient(final LogstashClusterConfig config) {
+        return LogstashCluster.builder().withLocalNode(config.localNode())
+            .withBootstrapNodes(config.getBootstrap())
+            .withDataDir(config.getDataDir())
+            .withNumPartitions(1)
+            .build()
+            .open().join();
     }
 }
