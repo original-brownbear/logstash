@@ -21,18 +21,17 @@ import org.slf4j.LoggerFactory;
 public final class LsClusterServer {
     private static final Logger LOGGER = LoggerFactory.getLogger(LsClusterServer.class);
 
-    public static void main(final String... args) throws Exception {
-        ArgumentType<Node> nodeType = (argumentParser, argument, value) -> {
-            String[] address = parseAddress(value);
+    public static void main(final String... args)
+        throws UnknownHostException, InterruptedException {
+        final ArgumentType<Node> nodeType = (argumentParser, argument, value) -> {
+            final String[] address = parseAddress(value);
             return Node.builder()
                 .withId(parseNodeId(address))
                 .withEndpoint(parseEndpoint(address))
                 .build();
         };
-
-        ArgumentType<File> fileType = (argumentParser, argument, value) -> new File(value);
-
-        ArgumentParser parser = ArgumentParsers.newFor("AtomixServer").build()
+        final ArgumentType<File> fileType = (argumentParser, argument, value) -> new File(value);
+        final ArgumentParser parser = ArgumentParsers.newFor("AtomixServer").build()
             .defaultHelp(true)
             .description("Atomix server");
         parser.addArgument("node")
@@ -41,7 +40,9 @@ public final class LsClusterServer {
             .metavar("NAME:HOST:PORT")
             .setDefault(Node.builder()
                 .withId(NodeId.from("local"))
-                .withEndpoint(new Endpoint(InetAddress.getByName("127.0.0.1"), NettyMessagingService.DEFAULT_PORT))
+                .withEndpoint(
+                    new Endpoint(InetAddress.getByName("127.0.0.1"), NettyMessagingService.DEFAULT_PORT)
+                )
                 .build())
             .help("The local node info");
         parser.addArgument("--bootstrap", "-b")
@@ -55,33 +56,27 @@ public final class LsClusterServer {
             .metavar("FILE")
             .required(true)
             .help("The server data directory");
-
-        Namespace namespace = null;
+        final Namespace namespace;
         try {
             namespace = parser.parseArgs(args);
-        } catch (ArgumentParserException e) {
+        } catch (final ArgumentParserException e) {
             parser.handleError(e);
-            System.exit(1);
+            throw new IllegalStateException(e);
         }
-
-        Node localNode = namespace.get("node");
+        final Node localNode = namespace.get("node");
         List<Node> bootstrap = namespace.getList("bootstrap");
         if (bootstrap == null) {
             bootstrap = Collections.singletonList(localNode);
         }
-
-        File dataDir = namespace.get("data_dir");
-
+        final File dataDir = namespace.get("data_dir");
         LOGGER.info("Node: {}", localNode);
         LOGGER.info("Bootstrap: {}", bootstrap);
         LOGGER.info("Data: {}", dataDir);
-
-        LogstashCluster server = LogstashCluster.builder()
+        final LogstashCluster server = LogstashCluster.builder()
             .withLocalNode(localNode)
             .withBootstrapNodes(bootstrap)
             .withDataDir(dataDir)
             .build();
-
         server.open().join();
         synchronized (LogstashCluster.class) {
             while (server.isOpen()) {
@@ -90,21 +85,21 @@ public final class LsClusterServer {
         }
     }
 
-    static String[] parseAddress(String address) {
-        String[] parsed = address.split(":");
+    static String[] parseAddress(final String address) {
+        final String[] parsed = address.split(":");
         if (parsed.length > 3) {
             throw new IllegalArgumentException("Malformed address " + address);
         }
         return parsed;
     }
 
-    static NodeId parseNodeId(String[] address) {
+    static NodeId parseNodeId(final String[] address) {
         if (address.length == 3) {
             return NodeId.from(address[0]);
         } else if (address.length == 2) {
             try {
                 InetAddress.getByName(address[0]);
-            } catch (UnknownHostException e) {
+            } catch (final UnknownHostException e) {
                 return NodeId.from(address[0]);
             }
             return NodeId.from(parseEndpoint(address).toString());
@@ -112,13 +107,13 @@ public final class LsClusterServer {
             try {
                 InetAddress.getByName(address[0]);
                 return NodeId.from(parseEndpoint(address).toString());
-            } catch (UnknownHostException e) {
+            } catch (final UnknownHostException e) {
                 return NodeId.from(address[0]);
             }
         }
     }
 
-    static Endpoint parseEndpoint(String[] address) {
+    static Endpoint parseEndpoint(final String[] address) {
         String host;
         int port;
         if (address.length == 3) {
@@ -128,7 +123,7 @@ public final class LsClusterServer {
             try {
                 host = address[0];
                 port = Integer.parseInt(address[1]);
-            } catch (NumberFormatException e) {
+            } catch (final NumberFormatException e) {
                 host = address[1];
                 port = NettyMessagingService.DEFAULT_PORT;
             }
@@ -136,15 +131,14 @@ public final class LsClusterServer {
             try {
                 InetAddress.getByName(address[0]);
                 host = address[0];
-            } catch (UnknownHostException e) {
+            } catch (final UnknownHostException e) {
                 host = "127.0.0.1";
             }
             port = NettyMessagingService.DEFAULT_PORT;
         }
-
         try {
             return new Endpoint(InetAddress.getByName(host), port);
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             throw new IllegalArgumentException("Failed to resolve host", e);
         }
     }

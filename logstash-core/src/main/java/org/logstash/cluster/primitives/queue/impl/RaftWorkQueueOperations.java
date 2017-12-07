@@ -1,18 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.queue.impl;
 
 import com.google.common.base.MoreObjects;
@@ -39,9 +24,9 @@ public enum RaftWorkQueueOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Add.class)
-        .register(Take.class)
-        .register(Complete.class)
+        .register(RaftWorkQueueOperations.Add.class)
+        .register(RaftWorkQueueOperations.Take.class)
+        .register(RaftWorkQueueOperations.Complete.class)
         .register(Task.class)
         .register(WorkQueueStats.class)
         .build(RaftWorkQueueOperations.class.getSimpleName());
@@ -73,7 +58,7 @@ public enum RaftWorkQueueOperations implements OperationId {
      * Command to add a collection of tasks to the queue.
      */
     @SuppressWarnings("serial")
-    public static class Add extends WorkQueueOperation {
+    public static class Add extends RaftWorkQueueOperations.WorkQueueOperation {
         private Collection<byte[]> items;
 
         private Add() {
@@ -99,7 +84,7 @@ public enum RaftWorkQueueOperations implements OperationId {
      * Command to take a task from the queue.
      */
     @SuppressWarnings("serial")
-    public static class Take extends WorkQueueOperation {
+    public static class Take extends RaftWorkQueueOperations.WorkQueueOperation {
         private int maxTasks;
 
         private Take() {
@@ -122,7 +107,7 @@ public enum RaftWorkQueueOperations implements OperationId {
     }
 
     @SuppressWarnings("serial")
-    public static class Complete extends WorkQueueOperation {
+    public static class Complete extends RaftWorkQueueOperations.WorkQueueOperation {
         private Collection<String> taskIds;
 
         private Complete() {
