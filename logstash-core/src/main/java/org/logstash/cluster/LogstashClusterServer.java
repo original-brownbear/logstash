@@ -24,6 +24,7 @@ import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.cluster.impl.DefaultClusterService;
 import org.logstash.cluster.messaging.ClusterCommunicationService;
 import org.logstash.cluster.messaging.ClusterEventService;
+import org.logstash.cluster.messaging.Endpoint;
 import org.logstash.cluster.messaging.ManagedClusterCommunicationService;
 import org.logstash.cluster.messaging.ManagedClusterEventService;
 import org.logstash.cluster.messaging.ManagedMessagingService;
@@ -199,11 +200,8 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
             .thenComposeAsync(v -> partitions.open(), context)
             .thenApplyAsync(v -> {
                 open.set(true);
-                LOGGER.info(
-                    "Logstash cluster node listening at {}:{}",
-                    cluster.getLocalNode().endpoint().host(),
-                    cluster.getLocalNode().endpoint().port()
-                );
+                final Endpoint local = cluster.getLocalNode().endpoint();
+                LOGGER.info("Logstash cluster node listening at {}:{}", local.host(), local.port());
                 return this;
             }, context);
     }
