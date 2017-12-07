@@ -7,6 +7,8 @@ class LogStash::Inputs::Cluster < LogStash::Inputs::Threadable
 
   config :port, :validate => :number, :default => 8099
 
+  config :host, :validate => :string, :default => "127.0.0.1"
+
   def register
 
   end
@@ -16,8 +18,8 @@ class LogStash::Inputs::Cluster < LogStash::Inputs::Threadable
   def run(queue)
     @wrapped_queue = org.logstash.plugins.input.ClusterInput.new(
         queue, org.logstash.cluster.LogstashClusterConfig.new(
-        java.net.InetSocketAddress.new("127.0.0.1", 8099), java.util.Collections.empty_list,
-        java.io.File.new("/tmp/data"))
+        java.net.InetSocketAddress.new(host, port), java.util.Collections.empty_list,
+        java.io.File.new("/tmp/lsqueue-data"))
     )
     @wrapped_queue.run
   end
