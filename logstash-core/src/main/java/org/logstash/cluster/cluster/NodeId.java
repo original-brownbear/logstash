@@ -27,7 +27,7 @@ public final class NodeId extends AbstractIdentifier<String> implements Comparab
      * @param id string identifier
      * @return node id
      */
-    public static NodeId from(String id) {
+    public static NodeId from(final String id) {
         return new NodeId(id);
     }
 

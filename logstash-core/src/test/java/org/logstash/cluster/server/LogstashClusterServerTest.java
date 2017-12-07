@@ -28,7 +28,7 @@ import static org.junit.Assert.fail;
 public class LogstashClusterServerTest {
 
     @Test
-    public void testParseAddress() throws Exception {
+    public void testParseAddress() {
         String[] address = LsClusterServer.parseAddress("a:b:c");
         assertEquals(3, address.length);
         try {
@@ -39,7 +39,7 @@ public class LogstashClusterServerTest {
     }
 
     @Test
-    public void testParseNodeId() throws Exception {
+    public void testParseNodeId() {
         assertEquals(NodeId.from(String.format("127.0.0.1:%d", NettyMessagingService.DEFAULT_PORT)), LsClusterServer.parseNodeId(new String[]{"127.0.0.1"}));
         assertEquals(NodeId.from("foo"), LsClusterServer.parseNodeId(new String[]{"foo"}));
         assertEquals(NodeId.from("127.0.0.1:1234"), LsClusterServer.parseNodeId(new String[]{"127.0.0.1", "1234"}));
@@ -48,7 +48,7 @@ public class LogstashClusterServerTest {
     }
 
     @Test
-    public void testParseEndpoint() throws Exception {
+    public void testParseEndpoint() {
         assertEquals(String.format("127.0.0.1:%d", NettyMessagingService.DEFAULT_PORT), LsClusterServer.parseEndpoint(new String[]{"foo"}).toString());
         assertEquals(String.format("127.0.0.1:%d", NettyMessagingService.DEFAULT_PORT), LsClusterServer.parseEndpoint(new String[]{"127.0.0.1"}).toString());
         assertEquals(String.format("127.0.0.1:%d", NettyMessagingService.DEFAULT_PORT), LsClusterServer.parseEndpoint(new String[]{"foo", "127.0.0.1"}).toString());
