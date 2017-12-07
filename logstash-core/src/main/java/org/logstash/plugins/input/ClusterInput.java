@@ -23,6 +23,8 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final CountDownLatch stopped = new CountDownLatch(1);
 
+    private final CountDownLatch done = new CountDownLatch(1);
+
     private final AtomicBoolean running = new AtomicBoolean(true);
 
     private final LogstashClusterServer cluster;
@@ -51,21 +53,28 @@ public final class ClusterInput implements Runnable, Closeable {
                 tasks.complete(task.taskId());
             }
         }
+        done.countDown();
     }
 
     @Override
     public void close() {
         running.set(false);
-        tasks.close();
-        cluster.close().thenRun(stopped::countDown);
-        awaitStop();
-        executor.shutdown();
         try {
-            if (!executor.awaitTermination(2L, TimeUnit.MINUTES)) {
-                throw new IllegalStateException("Failed to stop task service");
-            }
+            done.await();
         } catch (final InterruptedException ex) {
             throw new IllegalStateException(ex);
+        } finally {
+            tasks.close();
+            cluster.close().thenRun(stopped::countDown);
+            awaitStop();
+            executor.shutdownNow();
+            try {
+                if (!executor.awaitTermination(2L, TimeUnit.MINUTES)) {
+                    throw new IllegalStateException("Failed to stop task service");
+                }
+            } catch (final InterruptedException ex) {
+                throw new IllegalStateException(ex);
+            }
         }
     }
 
