@@ -2,7 +2,7 @@ require "logstash/plugin"
 require "logstash/inputs/threadable"
 require "logstash/namespace"
 
-class LogStash::Inputs::Cluster < LogStash::Inputs::Threadable
+class LogStash::Inputs::Cluster < LogStash::Inputs::Base
   config_name "cluster"
 
   config :port, :validate => :number, :default => 8099
