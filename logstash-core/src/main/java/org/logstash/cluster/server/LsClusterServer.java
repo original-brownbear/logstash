@@ -3,6 +3,7 @@ package org.logstash.cluster.server;
 import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import net.sourceforge.argparse4j.ArgumentParsers;
@@ -72,17 +73,19 @@ public final class LsClusterServer {
         LOGGER.info("Node: {}", localNode);
         LOGGER.info("Bootstrap: {}", bootstrap);
         LOGGER.info("Data: {}", dataDir);
-        final LogstashCluster server = LogstashCluster.builder()
-            .withLocalNode(localNode)
-            .withBootstrapNodes(bootstrap)
-            .withDataDir(dataDir)
-            .build();
-        server.open().join();
+        final LogstashCluster server = setup(localNode, bootstrap, dataDir);
+            server.open().join();
         synchronized (LogstashCluster.class) {
             while (server.isOpen()) {
                 LogstashCluster.class.wait();
             }
         }
+    }
+
+    public static LogstashCluster setup(final Node localNode, final Collection<Node> bootstrap,
+        final File dataDir) {
+        return LogstashCluster.builder().withLocalNode(localNode).withBootstrapNodes(bootstrap)
+            .withDataDir(dataDir).build();
     }
 
     static String[] parseAddress(final String address) {
