@@ -30,7 +30,7 @@ public class UnsafeDirectBytes extends NativeBytes {
     /**
      * Allocates a direct {@link java.nio.ByteBuffer} based byte array.
      * <p>
-     * When the array is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * When the array is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
      * {@code count} bytes of off-heap memory. Memory is accessed by the buffer directly via {@link sun.misc.Unsafe}.
      * @param size The count of the buffer to allocate (in bytes).
      * @return The native buffer.

@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.service;
 
 import java.util.function.Function;
@@ -29,11 +14,11 @@ public interface Commit<T> {
     /**
      * Returns the commit index.
      * <p>
-     * This is the index at which the committed {@link RaftOperation} was written in the Raft log.
-     * Raft guarantees that this index will be unique for {@link RaftOperation} commits and will be the same for all
+     * This is the index at which the committed {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} was written in the Raft log.
+     * Raft guarantees that this index will be unique for {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} commits and will be the same for all
      * instances of the given operation on all servers in the cluster.
      * <p>
-     * For {@link RaftOperation} operations, the returned {@code index} may actually be representative of the last committed
+     * For {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} operations, the returned {@code index} may actually be representative of the last committed
      * index in the Raft log since queries are not actually written to disk. Thus, query commits cannot be assumed
      * to have unique indexes.
      * @return The commit index.
@@ -44,7 +29,7 @@ public interface Commit<T> {
      * Returns the session that submitted the operation.
      * <p>
      * The returned {@link RaftSession} is representative of the session that submitted the operation
-     * that resulted in this {@link Commit}. The session can be used to {@link RaftSession#publish(RaftEvent)}
+     * that resulted in this {@link Commit}. The session can be used to {@link RaftSession#publish(org.logstash.cluster.protocols.raft.event.RaftEvent)}
      * event messages to the client.
      * @return The session that created the commit.
      */

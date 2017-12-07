@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.proxy;
 
 import java.time.Duration;
@@ -39,7 +24,7 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
      * Submits an empty operation to the Raft cluster, awaiting a void result.
      * @param operationId the operation identifier
      * @return A completable future to be completed with the operation result. The future is guaranteed to be completed after all
-     * {@link RaftOperation} submission futures that preceded it. The future will always be completed on the
+     * {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} submission futures that preceded it. The future will always be completed on the
      * @throws NullPointerException if {@code operation} is null
      */
     default CompletableFuture<Void> invoke(OperationId operationId) {
@@ -52,7 +37,7 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
      * @param decoder the operation result decoder
      * @param <R> the operation result type
      * @return A completable future to be completed with the operation result. The future is guaranteed to be completed after all
-     * {@link RaftOperation} submission futures that preceded it.
+     * {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} submission futures that preceded it.
      * @throws NullPointerException if {@code operation} is null
      */
     default <R> CompletableFuture<R> invoke(OperationId operationId, Function<byte[], R> decoder) {
@@ -65,7 +50,7 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
      * @param encoder the operation encoder
      * @param <T> the operation type
      * @return A completable future to be completed with the operation result. The future is guaranteed to be completed after all
-     * {@link RaftOperation} submission futures that preceded it.
+     * {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} submission futures that preceded it.
      * @throws NullPointerException if {@code operation} is null
      */
     default <T> CompletableFuture<Void> invoke(OperationId operationId, Function<T, byte[]> encoder, T operation) {
@@ -81,7 +66,7 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
      * @param <T> the operation type
      * @param <R> the operation result type
      * @return A completable future to be completed with the operation result. The future is guaranteed to be completed after all
-     * {@link RaftOperation} submission futures that preceded it.
+     * {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} submission futures that preceded it.
      * @throws NullPointerException if {@code operation} is null
      */
     default <T, R> CompletableFuture<R> invoke(OperationId operationId, Function<T, byte[]> encoder, T operation, Function<byte[], R> decoder) {

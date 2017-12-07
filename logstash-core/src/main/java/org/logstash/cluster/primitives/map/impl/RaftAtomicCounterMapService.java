@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.map.impl;
 
 import java.util.HashMap;
@@ -26,24 +11,7 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.ADD_AND_GET;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.CLEAR;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.DECREMENT_AND_GET;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.GET;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.GET_AND_ADD;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.GET_AND_DECREMENT;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.GET_AND_INCREMENT;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.INCREMENT_AND_GET;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.IS_EMPTY;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.PUT;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.PUT_IF_ABSENT;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.REMOVE;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.REMOVE_VALUE;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.REPLACE;
-import static org.logstash.cluster.primitives.map.impl.RaftAtomicCounterMapOperations.SIZE;
-
 /**
- * <p>
  * The counter map state is implemented as a snapshottable state machine. Snapshots are necessary
  * since incremental compaction is impractical for counters where the value of a counter is the sum
  * of all its increments. Note that this snapshotting large state machines may risk blocking of the
@@ -60,21 +28,21 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
-        executor.register(PUT, SERIALIZER::decode, this::put, SERIALIZER::encode);
-        executor.register(PUT_IF_ABSENT, SERIALIZER::decode, this::putIfAbsent, SERIALIZER::encode);
-        executor.register(GET, SERIALIZER::decode, this::get, SERIALIZER::encode);
-        executor.register(REPLACE, SERIALIZER::decode, this::replace, SERIALIZER::encode);
-        executor.register(REMOVE, SERIALIZER::decode, this::remove, SERIALIZER::encode);
-        executor.register(REMOVE_VALUE, SERIALIZER::decode, this::removeValue, SERIALIZER::encode);
-        executor.register(GET_AND_INCREMENT, SERIALIZER::decode, this::getAndIncrement, SERIALIZER::encode);
-        executor.register(GET_AND_DECREMENT, SERIALIZER::decode, this::getAndDecrement, SERIALIZER::encode);
-        executor.register(INCREMENT_AND_GET, SERIALIZER::decode, this::incrementAndGet, SERIALIZER::encode);
-        executor.register(DECREMENT_AND_GET, SERIALIZER::decode, this::decrementAndGet, SERIALIZER::encode);
-        executor.register(ADD_AND_GET, SERIALIZER::decode, this::addAndGet, SERIALIZER::encode);
-        executor.register(GET_AND_ADD, SERIALIZER::decode, this::getAndAdd, SERIALIZER::encode);
-        executor.register(SIZE, this::size, SERIALIZER::encode);
-        executor.register(IS_EMPTY, this::isEmpty, SERIALIZER::encode);
-        executor.register(CLEAR, this::clear);
+        executor.register(RaftAtomicCounterMapOperations.PUT, SERIALIZER::decode, this::put, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.PUT_IF_ABSENT, SERIALIZER::decode, this::putIfAbsent, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.GET, SERIALIZER::decode, this::get, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.REPLACE, SERIALIZER::decode, this::replace, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.REMOVE, SERIALIZER::decode, this::remove, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.REMOVE_VALUE, SERIALIZER::decode, this::removeValue, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.GET_AND_INCREMENT, SERIALIZER::decode, this::getAndIncrement, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.GET_AND_DECREMENT, SERIALIZER::decode, this::getAndDecrement, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.INCREMENT_AND_GET, SERIALIZER::decode, this::incrementAndGet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.DECREMENT_AND_GET, SERIALIZER::decode, this::decrementAndGet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.ADD_AND_GET, SERIALIZER::decode, this::addAndGet, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.GET_AND_ADD, SERIALIZER::decode, this::getAndAdd, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.SIZE, this::size, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.IS_EMPTY, this::isEmpty, SERIALIZER::encode);
+        executor.register(RaftAtomicCounterMapOperations.CLEAR, this::clear);
     }
 
     @Override
@@ -88,7 +56,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link Put} command which implements {@link RaftAtomicCounterMap#put(String, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.Put} command which implements {@link RaftAtomicCounterMap#put(String, long)}.
      * @param commit put commit
      * @return put result
      */
@@ -108,7 +76,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link PutIfAbsent} command which implements {@link RaftAtomicCounterMap#putIfAbsent(String, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.PutIfAbsent} command which implements {@link RaftAtomicCounterMap#putIfAbsent(String, long)}.
      * @param commit putIfAbsent commit
      * @return putIfAbsent result
      */
@@ -117,7 +85,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link Get} query which implements {@link RaftAtomicCounterMap#get(String)}}.
+     * Handles a {@link RaftConsistentMapOperations.Get} query which implements {@link RaftAtomicCounterMap#get(String)}}.
      * @param commit get commit
      * @return get result
      */
@@ -126,7 +94,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link Replace} command which implements {@link RaftAtomicCounterMap#replace(String, long, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.Replace} command which implements {@link RaftAtomicCounterMap#replace(String, long, long)}.
      * @param commit replace commit
      * @return replace result
      */
@@ -147,7 +115,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link Remove} command which implements {@link RaftAtomicCounterMap#remove(String)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.Remove} command which implements {@link RaftAtomicCounterMap#remove(String)}.
      * @param commit remove commit
      * @return remove result
      */
@@ -156,7 +124,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link RemoveValue} command which implements {@link RaftAtomicCounterMap#remove(String, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.RemoveValue} command which implements {@link RaftAtomicCounterMap#remove(String, long)}.
      * @param commit removeValue commit
      * @return removeValue result
      */
@@ -176,7 +144,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link GetAndIncrement} command which implements
+     * Handles a {@link RaftAtomicCounterMapOperations.GetAndIncrement} command which implements
      * {@link RaftAtomicCounterMap#getAndIncrement(String)}.
      * @param commit getAndIncrement commit
      * @return getAndIncrement result
@@ -188,7 +156,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link GetAndDecrement} command which implements
+     * Handles a {@link RaftAtomicCounterMapOperations.GetAndDecrement} command which implements
      * {@link RaftAtomicCounterMap#getAndDecrement(String)}.
      * @param commit getAndDecrement commit
      * @return getAndDecrement result
@@ -200,7 +168,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link IncrementAndGet} command which implements
+     * Handles a {@link RaftAtomicCounterMapOperations.IncrementAndGet} command which implements
      * {@link RaftAtomicCounterMap#incrementAndGet(String)}.
      * @param commit incrementAndGet commit
      * @return incrementAndGet result
@@ -212,7 +180,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link DecrementAndGet} command which implements
+     * Handles a {@link RaftAtomicCounterMapOperations.DecrementAndGet} command which implements
      * {@link RaftAtomicCounterMap#decrementAndGet(String)}.
      * @param commit decrementAndGet commit
      * @return decrementAndGet result
@@ -224,7 +192,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link AddAndGet} command which implements {@link RaftAtomicCounterMap#addAndGet(String, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.AddAndGet} command which implements {@link RaftAtomicCounterMap#addAndGet(String, long)}.
      * @param commit addAndGet commit
      * @return addAndGet result
      */
@@ -236,7 +204,7 @@ public class RaftAtomicCounterMapService extends AbstractRaftService {
     }
 
     /**
-     * Handles a {@link GetAndAdd} command which implements {@link RaftAtomicCounterMap#getAndAdd(String, long)}.
+     * Handles a {@link RaftAtomicCounterMapOperations.GetAndAdd} command which implements {@link RaftAtomicCounterMap#getAndAdd(String, long)}.
      * @param commit getAndAdd commit
      * @return getAndAdd result
      */

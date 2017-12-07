@@ -22,7 +22,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Log segment.
- * @author <a href="http://github.com/kuujo>Jordan Halterman</a>
+
  */
 public class JournalSegment<E> implements AutoCloseable {
     protected final JournalSegmentFile file;

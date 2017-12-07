@@ -1,21 +1,7 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.messaging.impl;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -37,9 +23,6 @@ import org.logstash.cluster.utils.concurrent.Futures;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Cluster communication service implementation.
  */
@@ -52,8 +35,8 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     private final AtomicBoolean open = new AtomicBoolean();
 
     public DefaultClusterCommunicationService(final ClusterService cluster, final MessagingService messagingService) {
-        this.cluster = checkNotNull(cluster, "clusterService cannot be null");
-        this.messagingService = checkNotNull(messagingService, "messagingService cannot be null");
+        this.cluster = Preconditions.checkNotNull(cluster, "clusterService cannot be null");
+        this.messagingService = Preconditions.checkNotNull(messagingService, "messagingService cannot be null");
         this.localNodeId = cluster.getLocalNode().id();
     }
 
@@ -154,7 +137,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
 
     private CompletableFuture<byte[]> sendAndReceive(final MessageSubject subject, final byte[] payload, final NodeId toNodeId) {
         final Node node = cluster.getNode(toNodeId);
-        checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
+        Preconditions.checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
         return messagingService.sendAndReceive(node.endpoint(), subject.toString(), payload);
     }
 
@@ -207,7 +190,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
 
     private CompletableFuture<Void> doUnicast(final MessageSubject subject, final byte[] payload, final NodeId toNodeId) {
         final Node node = cluster.getNode(toNodeId);
-        checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
+        Preconditions.checkArgument(node != null, "Unknown nodeId: %s", toNodeId);
         return messagingService.sendAsync(node.endpoint(), subject.toString(), payload);
     }
 

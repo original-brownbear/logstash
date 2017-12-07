@@ -32,7 +32,7 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 
 /**
- * Implementation of {@link io.atomix.primitives.map.AsyncConsistentTreeMap}.
+ * Implementation of {@link org.logstash.cluster.primitives.map.AsyncConsistentTreeMap}.
  */
 public class RaftConsistentTreeMap extends RaftConsistentMap implements AsyncConsistentTreeMap<String, byte[]> {
     private static final Serializer SERIALIZER = Serializer.using(KryoNamespace.builder()

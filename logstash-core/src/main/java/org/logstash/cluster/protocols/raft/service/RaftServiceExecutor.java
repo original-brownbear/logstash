@@ -1,19 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.protocols.raft.service;
 
 import java.util.function.Consumer;
@@ -31,11 +15,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * <p>
  * The state machine executor is responsible for managing input to and output from a {@link RaftService}.
  * As operations are committed to the Raft log, the executor is responsible for applying them to the state machine.
- * {@link OperationType#COMMAND commands} are guaranteed to be applied to the state machine in the order in which
+ * {@link org.logstash.cluster.protocols.raft.operation.OperationType#COMMAND commands} are guaranteed to be applied to the state machine in the order in which
  * they appear in the Raft log and always in the same thread, so state machines don't have to be thread safe.
- * {@link OperationType#QUERY queries} are not generally written to the Raft log and will instead be applied according
- * to their {@link ReadConsistency}.
- * <p>
+ * {@link org.logstash.cluster.protocols.raft.operation.OperationType#QUERY queries} are not generally written to the Raft log and will instead be applied according
+ * to their {@link org.logstash.cluster.protocols.raft.ReadConsistency}.
+ * </p>
  * State machines can use the executor to provide deterministic scheduling during the execution of command callbacks.
  * <pre>
  *   {@code
@@ -54,11 +38,12 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * Prior to the execution of a command, any expired scheduled callbacks will be executed based on the command's
  * logged timestamp.
  * <p>
- * It's important to note that callbacks can only be scheduled during {@link RaftOperation} operations or by recursive
+ * It's important to note that callbacks can only be scheduled during {@link org.logstash.cluster.protocols.raft.operation.RaftOperation} operations or by recursive
  * scheduling. If a state machine attempts to schedule a callback via the executor during the execution of a
  * query, a {@link IllegalStateException} will be thrown. This is because queries are usually only applied
  * on a single state machine within the cluster, and so scheduling callbacks in reaction to query execution would
  * not be deterministic.
+ * </p>
  * @see RaftService
  * @see ServiceContext
  */

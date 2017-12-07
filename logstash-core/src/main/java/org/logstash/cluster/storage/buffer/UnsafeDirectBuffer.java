@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.utils.concurrent.ReferenceManager;
 import org.logstash.cluster.utils.memory.DirectMemory;
 import org.logstash.cluster.utils.memory.Memory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Direct {@link java.nio.ByteBuffer} based buffer.
@@ -38,7 +37,7 @@ public class UnsafeDirectBuffer extends NativeBuffer {
     /**
      * Allocates a direct buffer with an initial capacity of {@code 4096} and a maximum capacity of {@link Long#MAX_VALUE}.
      * <p>
-     * When the buffer is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * When the buffer is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
      * {@code capacity} bytes of off-heap memory. The resulting buffer will be initialized with a capacity of {@code 4096}
      * and have a maximum capacity of {@link Long#MAX_VALUE}. The buffer's {@code capacity} will dynamically expand as
      * bytes are written to the buffer. The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
@@ -53,7 +52,7 @@ public class UnsafeDirectBuffer extends NativeBuffer {
     /**
      * Allocates a new direct buffer.
      * <p>
-     * When the buffer is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * When the buffer is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
      * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code initialCapacity}
      * and will be doubled up to {@code maxCapacity} as bytes are written to the buffer. The underlying {@link UnsafeDirectBytes}
      * will be initialized to the next power of {@code 2}.
@@ -66,14 +65,14 @@ public class UnsafeDirectBuffer extends NativeBuffer {
      * @see UnsafeDirectBuffer#allocate(int)
      */
     public static UnsafeDirectBuffer allocate(int initialCapacity, int maxCapacity) {
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        Preconditions.checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
         return new UnsafeDirectBuffer(new UnsafeDirectBytes(DirectMemory.allocate((int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity))), 0, initialCapacity, maxCapacity);
     }
 
     /**
      * Allocates a direct buffer with the given initial capacity.
      * <p>
-     * When the buffer is constructed, {@link io.atomix.utils.memory.DirectMemoryAllocator} will be used to allocate
+     * When the buffer is constructed, {@link org.logstash.cluster.utils.memory.DirectMemoryAllocator} will be used to allocate
      * {@code capacity} bytes of off-heap memory. The resulting buffer will have an initial capacity of {@code capacity}.
      * The underlying {@link UnsafeDirectBytes} will be initialized to the next power of {@code 2}.
      * @param initialCapacity The initial capacity of the buffer to allocate (in bytes).

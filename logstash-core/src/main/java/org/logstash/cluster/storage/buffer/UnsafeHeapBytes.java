@@ -32,7 +32,7 @@ public class UnsafeHeapBytes extends AbstractBytes {
     /**
      * Allocates a new heap byte array.
      * <p>
-     * When the array is constructed, {@link io.atomix.utils.memory.HeapMemoryAllocator} will be used to allocate
+     * When the array is constructed, {@link org.logstash.cluster.utils.memory.HeapMemoryAllocator} will be used to allocate
      * {@code count} bytes on the Java heap.
      * @param size The count of the buffer to allocate (in bytes).
      * @return The heap buffer.
