@@ -6,8 +6,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.logstash.cluster.LogstashCluster;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.cluster.LogstashClusterServer;
 import org.logstash.cluster.primitives.queue.Task;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.cluster.serializer.Serializer;
@@ -15,13 +15,15 @@ import org.logstash.ext.EventQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
 
+    public static final String P2P_QUEUE_NAME = "logstashWorkQueue";
+
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     private final CountDownLatch stopped = new CountDownLatch(1);
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private final LogstashCluster cluster;
+    private final LogstashClusterServer cluster;
 
     private final EventQueue queue;
 
@@ -29,13 +31,13 @@ public final class ClusterInput implements Runnable, Closeable {
 
     public ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
-        cluster = LogstashCluster.builder().withLocalNode(config.localNode())
+        cluster = LogstashClusterServer.builder().withLocalNode(config.localNode())
             .withBootstrapNodes(config.getBootstrap())
             .withDataDir(config.getDataDir())
             .withNumPartitions(1)
             .build()
             .open().join();
-        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName("logstashWorkQueue")
+        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
             .withSerializer(Serializer.JAVA).build();
     }
 
@@ -50,21 +52,9 @@ public final class ClusterInput implements Runnable, Closeable {
         }
     }
 
-    public void stop() {
-        running.set(false);
-    }
-
-    public void awaitStop() {
-        try {
-            stopped.await();
-        } catch (final InterruptedException ex) {
-            throw new IllegalStateException(ex);
-        }
-    }
-
     @Override
     public void close() {
-        stop();
+        running.set(false);
         tasks.close();
         cluster.close().thenRun(stopped::countDown);
         awaitStop();
@@ -78,4 +68,11 @@ public final class ClusterInput implements Runnable, Closeable {
         }
     }
 
+    private void awaitStop() {
+        try {
+            stopped.await();
+        } catch (final InterruptedException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
 }

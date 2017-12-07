@@ -59,9 +59,10 @@ import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class LogstashCluster implements PrimitiveService, Managed<LogstashCluster> {
+public final class LogstashClusterServer implements PrimitiveService, Managed<LogstashClusterServer> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LogstashCluster.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogstashClusterServer.class);
+
     private final ManagedClusterService cluster;
     private final ManagedMessagingService messagingService;
     private final ManagedClusterCommunicationService clusterCommunicator;
@@ -71,7 +72,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
     private final AtomicBoolean open = new AtomicBoolean();
     private final ThreadContext context = new SingleThreadContext("atomix-%d");
 
-    private LogstashCluster(final ManagedClusterService cluster,
+    private LogstashClusterServer(final ManagedClusterService cluster,
         final ManagedMessagingService messagingService,
         final ManagedClusterCommunicationService clusterCommunicator,
         final ManagedClusterEventService clusterEventService,
@@ -84,8 +85,8 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         this.primitives = Preconditions.checkNotNull(primitives, "primitives cannot be null");
     }
 
-    public static LogstashCluster.Builder builder() {
-        return new LogstashCluster.Builder();
+    public static LogstashClusterServer.Builder builder() {
+        return new LogstashClusterServer.Builder();
     }
 
     public ClusterService getClusterService() {
@@ -190,7 +191,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
     }
 
     @Override
-    public CompletableFuture<LogstashCluster> open() {
+    public CompletableFuture<LogstashClusterServer> open() {
         return messagingService.open()
             .thenComposeAsync(v -> cluster.open(), context)
             .thenComposeAsync(v -> clusterCommunicator.open(), context)
@@ -242,8 +243,8 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
         return partitions;
     }
 
-    public static class Builder implements org.logstash.cluster.utils.Builder<LogstashCluster> {
-        private static final String DEFAULT_CLUSTER_NAME = "atomix";
+    public static final class Builder implements org.logstash.cluster.utils.Builder<LogstashClusterServer> {
+        private static final String DEFAULT_CLUSTER_NAME = "logstashCluster";
         private static final int DEFAULT_NUM_BUCKETS = 128;
         private String name = DEFAULT_CLUSTER_NAME;
         private Node localNode;
@@ -260,7 +261,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the name is null
          */
-        public LogstashCluster.Builder withClusterName(final String name) {
+        public LogstashClusterServer.Builder withClusterName(final String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -270,7 +271,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param localNode the local node metadata
          * @return the cluster metadata builder
          */
-        public LogstashCluster.Builder withLocalNode(final Node localNode) {
+        public LogstashClusterServer.Builder withLocalNode(final Node localNode) {
             this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
@@ -281,7 +282,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public LogstashCluster.Builder withBootstrapNodes(final Node... bootstrapNodes) {
+        public LogstashClusterServer.Builder withBootstrapNodes(final Node... bootstrapNodes) {
             return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
@@ -291,7 +292,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public LogstashCluster.Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
+        public LogstashClusterServer.Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
             this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }
@@ -302,7 +303,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the number of partitions is not positive
          */
-        public LogstashCluster.Builder withNumPartitions(final int numPartitions) {
+        public LogstashClusterServer.Builder withNumPartitions(final int numPartitions) {
             Preconditions.checkArgument(numPartitions > 0, "numPartitions must be positive");
             this.numPartitions = numPartitions;
             return this;
@@ -314,7 +315,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the partition size is not positive
          */
-        public LogstashCluster.Builder withPartitionSize(final int partitionSize) {
+        public LogstashClusterServer.Builder withPartitionSize(final int partitionSize) {
             Preconditions.checkArgument(partitionSize > 0, "partitionSize must be positive");
             this.partitionSize = partitionSize;
             return this;
@@ -326,7 +327,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @return the cluster metadata builder
          * @throws IllegalArgumentException if the number of buckets within each partition is not positive
          */
-        public LogstashCluster.Builder withNumBuckets(final int numBuckets) {
+        public LogstashClusterServer.Builder withNumBuckets(final int numBuckets) {
             Preconditions.checkArgument(numBuckets > 0, "numBuckets must be positive");
             this.numBuckets = numBuckets;
             return this;
@@ -337,7 +338,7 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param partitions the partitions
          * @return the cluster metadata builder
          */
-        public LogstashCluster.Builder withPartitions(final Collection<PartitionMetadata> partitions) {
+        public LogstashClusterServer.Builder withPartitions(final Collection<PartitionMetadata> partitions) {
             this.partitions = Preconditions.checkNotNull(partitions, "partitions cannot be null");
             return this;
         }
@@ -347,20 +348,20 @@ public final class LogstashCluster implements PrimitiveService, Managed<Logstash
          * @param dataDir the path to the replica's data directory
          * @return the replica builder
          */
-        public LogstashCluster.Builder withDataDir(final File dataDir) {
+        public LogstashClusterServer.Builder withDataDir(final File dataDir) {
             this.dataDir = Preconditions.checkNotNull(dataDir, "dataDir cannot be null");
             return this;
         }
 
         @Override
-        public LogstashCluster build() {
+        public LogstashClusterServer build() {
             final ManagedMessagingService messagingService = buildMessagingService();
             final ManagedClusterService clusterService = buildClusterService(messagingService);
             final ManagedClusterCommunicationService clusterCommunicator = buildClusterCommunicationService(clusterService, messagingService);
             final ManagedClusterEventService clusterEventService = buildClusterEventService(clusterService, clusterCommunicator);
             final ManagedPartitionService partitionService = buildPartitionService(clusterCommunicator);
             final PrimitiveService primitives = buildPrimitiveService(partitionService);
-            return new LogstashCluster(
+            return new LogstashClusterServer(
                 clusterService,
                 messagingService,
                 clusterCommunicator,
