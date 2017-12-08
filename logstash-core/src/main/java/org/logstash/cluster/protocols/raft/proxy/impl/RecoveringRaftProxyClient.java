@@ -1,26 +1,14 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-import org.logstash.cluster.protocols.raft.RaftClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.event.RaftEvent;
 import org.logstash.cluster.protocols.raft.operation.RaftOperation;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
@@ -31,18 +19,14 @@ import org.logstash.cluster.utils.concurrent.Futures;
 import org.logstash.cluster.utils.concurrent.OrderedFuture;
 import org.logstash.cluster.utils.concurrent.Scheduled;
 import org.logstash.cluster.utils.concurrent.Scheduler;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Raft proxy that supports recovery.
  */
 public class RecoveringRaftProxyClient implements RaftProxyClient {
+
+    private static final Logger LOGGER = LogManager.getLogger(RecoveringRaftProxyClient.class);
+
     private static final SessionId DEFAULT_SESSION_ID = SessionId.from(0);
     private final String name;
     private final ServiceType serviceType;
@@ -50,7 +34,6 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
     private final Scheduler scheduler;
     private final Set<Consumer<RaftProxy.State>> stateChangeListeners = Sets.newCopyOnWriteArraySet();
     private final Set<Consumer<RaftEvent>> eventListeners = Sets.newCopyOnWriteArraySet();
-    private Logger log;
     private volatile OrderedFuture<RaftProxyClient> clientFuture;
     private volatile RaftProxyClient client;
     private volatile RaftProxy.State state = RaftProxy.State.SUSPENDED;
@@ -58,13 +41,10 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
     private volatile boolean open = false;
 
     public RecoveringRaftProxyClient(String clientId, String name, ServiceType serviceType, RaftProxyClient.Builder proxyClientBuilder, Scheduler scheduler) {
-        this.name = checkNotNull(name);
-        this.serviceType = checkNotNull(serviceType);
-        this.proxyClientBuilder = checkNotNull(proxyClientBuilder);
-        this.scheduler = checkNotNull(scheduler);
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftClient.class)
-            .addValue(clientId)
-            .build());
+        this.name = Preconditions.checkNotNull(name);
+        this.serviceType = Preconditions.checkNotNull(serviceType);
+        this.proxyClientBuilder = Preconditions.checkNotNull(proxyClientBuilder);
+        this.scheduler = Preconditions.checkNotNull(scheduler);
     }
 
     @Override
@@ -113,7 +93,7 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
      * Verifies that the client is open.
      */
     private void checkOpen() {
-        checkState(isOpen(), "client not open");
+        Preconditions.checkState(isOpen(), "client not open");
     }
 
     @Override
@@ -147,12 +127,12 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
                     onStateChange(RaftProxy.State.SUSPENDED);
                     recover();
                 } else {
-                    log.debug("State changed: {}", state);
+                    LOGGER.debug("State changed: {}", state);
                     this.state = state;
                     stateChangeListeners.forEach(l -> l.accept(state));
                 }
             } else {
-                log.debug("State changed: {}", state);
+                LOGGER.debug("State changed: {}", state);
                 this.state = state;
                 stateChangeListeners.forEach(l -> l.accept(state));
             }
@@ -173,18 +153,13 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
      */
     private CompletableFuture<RaftProxyClient> openClient() {
         if (open) {
-            log.debug("Opening proxy session");
+            LOGGER.debug("Opening proxy session");
 
             clientFuture = new OrderedFuture<>();
             openClient(clientFuture);
 
             return clientFuture.thenApply(client -> {
                 synchronized (this) {
-                    this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftProxy.class)
-                        .addValue(client.sessionId())
-                        .add("type", client.serviceType())
-                        .add("name", client.name())
-                        .build());
                     this.client = client;
                     client.addStateChangeListener(this::onStateChange);
                     eventListeners.forEach(client::addEventListener);
@@ -249,7 +224,7 @@ public class RecoveringRaftProxyClient implements RaftProxyClient {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("name", client.name())
             .add("serviceType", client.serviceType())
             .add("state", state)

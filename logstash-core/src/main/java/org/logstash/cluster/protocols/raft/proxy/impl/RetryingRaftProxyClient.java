@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
 import com.google.common.base.Throwables;
@@ -22,21 +7,22 @@ import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.operation.RaftOperation;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxyClient;
 import org.logstash.cluster.utils.concurrent.Futures;
 import org.logstash.cluster.utils.concurrent.Scheduler;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
 
 /**
  * Retrying Copycat session.
  */
 public class RetryingRaftProxyClient extends DelegatingRaftProxyClient {
-    private final Logger log;
+
+    private static final Logger LOGGER = LogManager.getLogger(RetryingRaftProxyClient.class);
+
     private final RaftProxyClient client;
     private final Scheduler scheduler;
     private final int maxRetries;
@@ -56,11 +42,6 @@ public class RetryingRaftProxyClient extends DelegatingRaftProxyClient {
         this.scheduler = scheduler;
         this.maxRetries = maxRetries;
         this.delayBetweenRetries = delayBetweenRetries;
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftProxy.class)
-            .addValue(client.sessionId())
-            .add("type", client.serviceType())
-            .add("name", client.name())
-            .build());
     }
 
     @Override
@@ -77,7 +58,7 @@ public class RetryingRaftProxyClient extends DelegatingRaftProxyClient {
         client.execute(operation).whenComplete((r, e) -> {
             if (e != null) {
                 if (attemptIndex < maxRetries + 1 && retryableCheck.test(Throwables.getRootCause(e))) {
-                    log.debug("Retry attempt ({} of {}). Failure due to {}", attemptIndex, maxRetries, Throwables.getRootCause(e).getClass());
+                    LOGGER.debug("Retry attempt ({} of {}). Failure due to {}", attemptIndex, maxRetries, Throwables.getRootCause(e).getClass());
                     scheduleRetry(operation, attemptIndex, future);
                 } else {
                     future.completeExceptionally(e);

@@ -1,21 +1,10 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.storage.system;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.io.File;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.serializer.Serializer;
@@ -23,11 +12,6 @@ import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.FileBuffer;
 import org.logstash.cluster.storage.buffer.HeapBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Manages persistence of server configurations.
@@ -39,13 +23,15 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * membership.
  */
 public class MetaStore implements AutoCloseable {
-    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final Logger LOGGER = LogManager.getLogger(MetaStore.class);
+
     private final Serializer serializer;
     private final FileBuffer metadataBuffer;
     private final Buffer configurationBuffer;
 
     public MetaStore(RaftStorage storage, Serializer serializer) {
-        this.serializer = checkNotNull(serializer, "serializer cannot be null");
+        this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
 
         if (!(storage.directory().isDirectory() || storage.directory().mkdirs())) {
             throw new IllegalArgumentException(String.format("Can't create storage directory [%s].", storage.directory()));
@@ -68,7 +54,7 @@ public class MetaStore implements AutoCloseable {
      * @param term The current server term.
      */
     public synchronized void storeTerm(long term) {
-        log.trace("Store term {}", term);
+        LOGGER.trace("Store term {}", term);
         metadataBuffer.writeLong(0, term).flush();
     }
 
@@ -85,7 +71,7 @@ public class MetaStore implements AutoCloseable {
      * @param vote The server vote.
      */
     public synchronized void storeVote(MemberId vote) {
-        log.trace("Store vote {}", vote);
+        LOGGER.trace("Store vote {}", vote);
         metadataBuffer.writeString(8, vote != null ? vote.id() : null).flush();
     }
 
@@ -103,7 +89,7 @@ public class MetaStore implements AutoCloseable {
      * @param configuration The current cluster configuration.
      */
     public synchronized void storeConfiguration(Configuration configuration) {
-        log.trace("Store configuration {}", configuration);
+        LOGGER.trace("Store configuration {}", configuration);
         byte[] bytes = serializer.encode(configuration);
         configurationBuffer.position(0)
             .writeByte(1)
@@ -131,7 +117,7 @@ public class MetaStore implements AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this).toString();
+        return MoreObjects.toStringHelper(this).toString();
     }
 
 }

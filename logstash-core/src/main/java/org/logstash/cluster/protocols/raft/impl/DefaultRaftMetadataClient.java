@@ -1,25 +1,10 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import org.logstash.cluster.protocols.raft.RaftClient;
 import org.logstash.cluster.protocols.raft.RaftMetadataClient;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.protocol.MetadataRequest;
@@ -32,9 +17,6 @@ import org.logstash.cluster.protocols.raft.proxy.impl.RaftProxyConnection;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.RaftSessionMetadata;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-import org.logstash.cluster.utils.logging.LoggerContext;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Default Raft metadata.
@@ -43,15 +25,11 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
     private final MemberSelectorManager selectorManager;
     private final RaftProxyConnection connection;
 
-    public DefaultRaftMetadataClient(String clientId, RaftClientProtocol protocol, MemberSelectorManager selectorManager, ThreadContext context) {
-        this.selectorManager = checkNotNull(selectorManager, "selectorManager cannot be null");
+    public DefaultRaftMetadataClient(final RaftClientProtocol protocol, final MemberSelectorManager selectorManager, final ThreadContext context) {
+        this.selectorManager = Preconditions.checkNotNull(selectorManager, "selectorManager cannot be null");
         this.connection = new RaftProxyConnection(
-            protocol,
-            selectorManager.createSelector(CommunicationStrategy.LEADER),
-            context,
-            LoggerContext.builder(RaftClient.class)
-                .addValue(clientId)
-                .build());
+            protocol, selectorManager.createSelector(CommunicationStrategy.LEADER), context
+        );
     }
 
     @Override
@@ -74,7 +52,7 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
      * @return A completable future to be completed with cluster metadata.
      */
     private CompletableFuture<MetadataResponse> getMetadata() {
-        CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
+        final CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
         connection.metadata(MetadataRequest.builder().build()).whenComplete((response, error) -> {
             if (error == null) {
                 if (response.status() == RaftResponse.Status.OK) {
@@ -90,7 +68,7 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
     }
 
     @Override
-    public CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType) {
+    public CompletableFuture<Set<RaftSessionMetadata>> getSessions(final ServiceType serviceType) {
         return getMetadata().thenApply(response -> response.sessions()
             .stream()
             .filter(s -> s.serviceType().id().equals(serviceType.id()))
@@ -98,7 +76,7 @@ public class DefaultRaftMetadataClient implements RaftMetadataClient {
     }
 
     @Override
-    public CompletableFuture<Set<RaftSessionMetadata>> getSessions(ServiceType serviceType, String serviceName) {
+    public CompletableFuture<Set<RaftSessionMetadata>> getSessions(final ServiceType serviceType, final String serviceName) {
         return getMetadata().thenApply(response -> response.sessions()
             .stream()
             .filter(s -> s.serviceType().id().equals(serviceType.id()) && s.serviceName().equals(serviceName))

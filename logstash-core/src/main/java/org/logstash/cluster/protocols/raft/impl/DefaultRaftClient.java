@@ -18,6 +18,7 @@ package org.logstash.cluster.protocols.raft.impl;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import org.apache.logging.log4j.LogManager;
 import org.logstash.cluster.protocols.raft.RaftClient;
 import org.logstash.cluster.protocols.raft.RaftMetadataClient;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -33,9 +34,6 @@ import org.logstash.cluster.protocols.raft.proxy.impl.RecoveringRaftProxyClient;
 import org.logstash.cluster.protocols.raft.proxy.impl.RetryingRaftProxyClient;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -53,16 +51,16 @@ public class DefaultRaftClient implements RaftClient {
     private final RaftProxyManager sessionManager;
 
     public DefaultRaftClient(
-        String clientId,
-        MemberId nodeId,
-        Collection<MemberId> cluster,
-        RaftClientProtocol protocol,
-        ThreadContextFactory threadContextFactory) {
+        final String clientId,
+        final MemberId nodeId,
+        final Collection<MemberId> cluster,
+        final RaftClientProtocol protocol,
+        final ThreadContextFactory threadContextFactory) {
         this.clientId = checkNotNull(clientId, "clientId cannot be null");
         this.cluster = checkNotNull(cluster, "cluster cannot be null");
         this.threadContextFactory = checkNotNull(threadContextFactory, "threadContextFactory cannot be null");
         this.threadContext = threadContextFactory.createContext();
-        this.metadata = new DefaultRaftMetadataClient(clientId, protocol, selectorManager, threadContextFactory.createContext());
+        this.metadata = new DefaultRaftMetadataClient(protocol, selectorManager, threadContextFactory.createContext());
         this.sessionManager = new RaftProxyManager(clientId, nodeId, protocol, selectorManager, threadContextFactory);
     }
 
@@ -83,7 +81,7 @@ public class DefaultRaftClient implements RaftClient {
 
     @Override
     public synchronized CompletableFuture<RaftClient> connect(Collection<MemberId> cluster) {
-        CompletableFuture<RaftClient> future = new CompletableFuture<>();
+        final CompletableFuture<RaftClient> future = new CompletableFuture<>();
 
         // If the provided cluster list is null or empty, use the default list.
         if (cluster == null || cluster.isEmpty()) {
@@ -125,18 +123,20 @@ public class DefaultRaftClient implements RaftClient {
      * Default Raft client builder.
      */
     public static class Builder extends RaftClient.Builder {
-        public Builder(Collection<MemberId> cluster) {
+        public Builder(final Collection<MemberId> cluster) {
             super(cluster);
         }
 
         @Override
         public RaftClient build() {
             checkNotNull(nodeId, "nodeId cannot be null");
-            Logger log = ContextualLoggerFactory.getLogger(DefaultRaftClient.class, LoggerContext.builder(RaftClient.class)
-                .addValue(clientId)
-                .build());
-            ThreadContextFactory threadContextFactory = threadModel.factory("raft-client-" + clientId + "-%d", threadPoolSize, log);
-            return new DefaultRaftClient(clientId, nodeId, cluster, protocol, threadContextFactory);
+            return new DefaultRaftClient(
+                clientId, nodeId, cluster, protocol,
+                threadModel.factory(
+                    "raft-client-" + clientId + "-%d", threadPoolSize,
+                    LogManager.getLogger(DefaultRaftClient.class)
+                )
+            );
         }
     }
 
@@ -147,7 +147,7 @@ public class DefaultRaftClient implements RaftClient {
         @Override
         public RaftProxy build() {
             // Create a proxy builder that uses the session manager to open a session.
-            RaftProxyClient.Builder clientBuilder = new RaftProxyClient.Builder() {
+            final RaftProxyClient.Builder clientBuilder = new RaftProxyClient.Builder() {
                 @Override
                 public CompletableFuture<RaftProxyClient> buildAsync() {
                     return sessionManager.openSession(name, serviceType, readConsistency, communicationStrategy, minTimeout, maxTimeout);
@@ -180,7 +180,7 @@ public class DefaultRaftClient implements RaftClient {
             }
 
             // Default the executor to use the configured thread pool executor and create a blocking aware proxy client.
-            Executor executor = this.executor != null ? this.executor : threadContextFactory.createContext();
+            final Executor executor = this.executor != null ? this.executor : threadContextFactory.createContext();
             client = new BlockingAwareRaftProxyClient(client, executor);
 
             // Create the proxy.

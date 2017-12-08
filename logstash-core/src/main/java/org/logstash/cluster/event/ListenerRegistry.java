@@ -3,8 +3,8 @@ package org.logstash.cluster.event;
 import com.google.common.base.Preconditions;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Base implementation of an event sink and a registry capable of tracking
@@ -13,12 +13,13 @@ import org.slf4j.LoggerFactory;
 public class ListenerRegistry<E extends Event, L extends EventListener<E>>
     implements ListenerService<E, L>, EventSink<E> {
 
+    private static final Logger LOGGER = LogManager.getLogger(ListenerRegistry.class);
+
     private static final long LIMIT = 1_800; // ms
     /**
      * Set of listeners that have registered.
      */
     protected final Set<L> listeners = new CopyOnWriteArraySet<>();
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private long lastStart;
     private L lastListener;
 
@@ -32,7 +33,7 @@ public class ListenerRegistry<E extends Event, L extends EventListener<E>>
     public void removeListener(L listener) {
         Preconditions.checkNotNull(listener, "Listener cannot be null");
         if (!listeners.remove(listener)) {
-            log.warn("Listener {} not registered", listener);
+            LOGGER.warn("Listener {} not registered", listener);
         }
     }
 
@@ -57,7 +58,7 @@ public class ListenerRegistry<E extends Event, L extends EventListener<E>>
         if (lastStart > 0) {
             long duration = System.currentTimeMillis() - lastStart;
             if (duration > LIMIT) {
-                log.error("Listener {} exceeded execution time limit: {} ms; ejected",
+                LOGGER.error("Listener {} exceeded execution time limit: {} ms; ejected",
                     lastListener.getClass().getName(),
                     duration);
                 removeListener(lastListener);
@@ -71,8 +72,8 @@ public class ListenerRegistry<E extends Event, L extends EventListener<E>>
      * @param event event being processed
      * @param error error encountered while processing
      */
-    protected void reportProblem(E event, Throwable error) {
-        log.warn("Exception encountered while processing event " + event, error);
+    private void reportProblem(E event, Throwable error) {
+        LOGGER.warn("Exception encountered while processing event " + event, error);
     }
 
 }

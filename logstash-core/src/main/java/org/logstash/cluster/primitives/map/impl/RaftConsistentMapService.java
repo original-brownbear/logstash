@@ -1,20 +1,6 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.map.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -59,36 +45,6 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
-
-import static com.google.common.base.Preconditions.checkState;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapEvents.CHANGE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.ADD_LISTENER;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.BEGIN;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.CLEAR;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.COMMIT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.CONTAINS_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.CONTAINS_VALUE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.ENTRY_SET;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.GET;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.GET_ALL_PRESENT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.GET_OR_DEFAULT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.IS_EMPTY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.KEY_SET;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.PREPARE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.PREPARE_AND_COMMIT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.PUT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.PUT_AND_GET;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.PUT_IF_ABSENT;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REMOVE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REMOVE_LISTENER;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REMOVE_VALUE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REMOVE_VERSION;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REPLACE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REPLACE_VALUE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.REPLACE_VERSION;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.ROLLBACK;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.SIZE;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentMapOperations.VALUES;
 
 /**
  * State Machine for {@link RaftConsistentMap} resource.
@@ -154,35 +110,35 @@ public class RaftConsistentMapService extends AbstractRaftService {
     @Override
     protected void configure(RaftServiceExecutor executor) {
         // Listeners
-        executor.register(ADD_LISTENER, (Commit<Void> c) -> listen(c.session()));
-        executor.register(REMOVE_LISTENER, (Commit<Void> c) -> unlisten(c.session()));
+        executor.register(RaftConsistentMapOperations.ADD_LISTENER, (Commit<Void> c) -> listen(c.session()));
+        executor.register(RaftConsistentMapOperations.REMOVE_LISTENER, (Commit<Void> c) -> unlisten(c.session()));
         // Queries
-        executor.register(CONTAINS_KEY, serializer()::decode, this::containsKey, serializer()::encode);
-        executor.register(CONTAINS_VALUE, serializer()::decode, this::containsValue, serializer()::encode);
-        executor.register(ENTRY_SET, (Commit<Void> c) -> entrySet(), serializer()::encode);
-        executor.register(GET, serializer()::decode, this::get, serializer()::encode);
-        executor.register(GET_ALL_PRESENT, serializer()::decode, this::getAllPresent, serializer()::encode);
-        executor.register(GET_OR_DEFAULT, serializer()::decode, this::getOrDefault, serializer()::encode);
-        executor.register(IS_EMPTY, (Commit<Void> c) -> isEmpty(), serializer()::encode);
-        executor.register(KEY_SET, (Commit<Void> c) -> keySet(), serializer()::encode);
-        executor.register(SIZE, (Commit<Void> c) -> size(), serializer()::encode);
-        executor.register(VALUES, (Commit<Void> c) -> values(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.CONTAINS_KEY, serializer()::decode, this::containsKey, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.CONTAINS_VALUE, serializer()::decode, this::containsValue, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.ENTRY_SET, (Commit<Void> c) -> entrySet(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.GET, serializer()::decode, this::get, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.GET_ALL_PRESENT, serializer()::decode, this::getAllPresent, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.GET_OR_DEFAULT, serializer()::decode, this::getOrDefault, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.IS_EMPTY, (Commit<Void> c) -> isEmpty(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.KEY_SET, (Commit<Void> c) -> keySet(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.SIZE, (Commit<Void> c) -> size(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.VALUES, (Commit<Void> c) -> values(), serializer()::encode);
         // Commands
-        executor.register(PUT, serializer()::decode, this::put, serializer()::encode);
-        executor.register(PUT_IF_ABSENT, serializer()::decode, this::putIfAbsent, serializer()::encode);
-        executor.register(PUT_AND_GET, serializer()::decode, this::putAndGet, serializer()::encode);
-        executor.register(REMOVE, serializer()::decode, this::remove, serializer()::encode);
-        executor.register(REMOVE_VALUE, serializer()::decode, this::removeValue, serializer()::encode);
-        executor.register(REMOVE_VERSION, serializer()::decode, this::removeVersion, serializer()::encode);
-        executor.register(REPLACE, serializer()::decode, this::replace, serializer()::encode);
-        executor.register(REPLACE_VALUE, serializer()::decode, this::replaceValue, serializer()::encode);
-        executor.register(REPLACE_VERSION, serializer()::decode, this::replaceVersion, serializer()::encode);
-        executor.register(CLEAR, (Commit<Void> c) -> clear(), serializer()::encode);
-        executor.register(BEGIN, serializer()::decode, this::begin, serializer()::encode);
-        executor.register(PREPARE, serializer()::decode, this::prepare, serializer()::encode);
-        executor.register(PREPARE_AND_COMMIT, serializer()::decode, this::prepareAndCommit, serializer()::encode);
-        executor.register(COMMIT, serializer()::decode, this::commit, serializer()::encode);
-        executor.register(ROLLBACK, serializer()::decode, this::rollback, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.PUT, serializer()::decode, this::put, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.PUT_IF_ABSENT, serializer()::decode, this::putIfAbsent, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.PUT_AND_GET, serializer()::decode, this::putAndGet, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REMOVE, serializer()::decode, this::remove, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REMOVE_VALUE, serializer()::decode, this::removeValue, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REMOVE_VERSION, serializer()::decode, this::removeVersion, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REPLACE, serializer()::decode, this::replace, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REPLACE_VALUE, serializer()::decode, this::replaceValue, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.REPLACE_VERSION, serializer()::decode, this::replaceVersion, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.CLEAR, (Commit<Void> c) -> clear(), serializer()::encode);
+        executor.register(RaftConsistentMapOperations.BEGIN, serializer()::decode, this::begin, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.PREPARE, serializer()::decode, this::prepare, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.PREPARE_AND_COMMIT, serializer()::decode, this::prepareAndCommit, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.COMMIT, serializer()::decode, this::commit, serializer()::encode);
+        executor.register(RaftConsistentMapOperations.ROLLBACK, serializer()::decode, this::rollback, serializer()::encode);
     }
 
     /**
@@ -295,7 +251,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
      */
     private void publish(List<MapEvent<String, byte[]>> events) {
         listeners.values().forEach(session -> {
-            session.publish(CHANGE, serializer()::encode, events);
+            session.publish(RaftConsistentMapEvents.CHANGE, serializer()::encode, events);
         });
     }
 
@@ -773,7 +729,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
             }
 
             String key = record.key();
-            checkState(preparedKeys.remove(key), "key is not prepared");
+            Preconditions.checkState(preparedKeys.remove(key), "key is not prepared");
 
             if (record.type() == MapUpdate.Type.LOCK) {
                 continue;
@@ -985,7 +941,7 @@ public class RaftConsistentMapService extends AbstractRaftService {
          * @return the transaction commit log
          */
         TransactionLog<MapUpdate<String, byte[]>> transactionLog() {
-            checkState(isPrepared());
+            Preconditions.checkState(isPrepared());
             return transactionLog;
         }
 

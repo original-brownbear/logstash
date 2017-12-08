@@ -1,23 +1,11 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.roles;
 
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.cluster.impl.DefaultRaftMember;
 import org.logstash.cluster.protocols.raft.cluster.impl.RaftMemberContext;
@@ -35,26 +23,21 @@ import org.logstash.cluster.protocols.raft.storage.log.entry.RaftLogEntry;
 import org.logstash.cluster.protocols.raft.storage.snapshot.Snapshot;
 import org.logstash.cluster.protocols.raft.storage.snapshot.SnapshotReader;
 import org.logstash.cluster.storage.journal.Indexed;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Abstract appender.
  */
 abstract class AbstractAppender implements AutoCloseable {
+
+    protected static final Logger LOGGER = LogManager.getLogger(AbstractAppender.class);
+
     private static final int MAX_BATCH_SIZE = 1024 * 32;
-    protected final Logger log;
+
     protected final RaftContext raft;
     protected boolean open = true;
 
     AbstractAppender(RaftContext raft) {
-        this.raft = checkNotNull(raft, "context cannot be null");
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
-            .addValue(raft.getName())
-            .build());
+        this.raft = Preconditions.checkNotNull(raft, "context cannot be null");
     }
 
     /**
@@ -165,7 +148,7 @@ abstract class AbstractAppender implements AutoCloseable {
 
         long timestamp = System.currentTimeMillis();
 
-        log.trace("Sending {} to {}", request, member.getMember().memberId());
+        LOGGER.trace("Sending {} to {}", request, member.getMember().memberId());
         raft.getProtocol().append(member.getMember().memberId(), request).whenCompleteAsync((response, error) -> {
             // Complete the append to the member.
             if (!request.entries().isEmpty()) {
@@ -176,7 +159,7 @@ abstract class AbstractAppender implements AutoCloseable {
 
             if (open) {
                 if (error == null) {
-                    log.trace("Received {} from {}", response, member.getMember().memberId());
+                    LOGGER.trace("Received {} from {}", response, member.getMember().memberId());
                     handleAppendResponse(member, request, response, timestamp);
                 } else {
                     handleAppendResponseFailure(member, request, error);
@@ -206,7 +189,7 @@ abstract class AbstractAppender implements AutoCloseable {
         // when attempting to send entries to down followers.
         int failures = member.incrementFailureCount();
         if (failures <= 3 || failures % 100 == 0) {
-            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), error.getMessage());
+            LOGGER.debug("{} to {} failed: {}", request, member.getMember().memberId(), error.getMessage());
         }
     }
 
@@ -288,7 +271,7 @@ abstract class AbstractAppender implements AutoCloseable {
      */
     protected void resetMatchIndex(RaftMemberContext member, AppendResponse response) {
         member.setMatchIndex(response.lastLogIndex());
-        log.trace("Reset match index for {} to {}", member, member.getMatchIndex());
+        LOGGER.trace("Reset match index for {} to {}", member, member.getMatchIndex());
     }
 
     /**
@@ -301,7 +284,7 @@ abstract class AbstractAppender implements AutoCloseable {
         } else {
             reader.reset();
         }
-        log.trace("Reset next index for {} to {} + 1", member, member.getMatchIndex());
+        LOGGER.trace("Reset next index for {} to {} + 1", member, member.getMatchIndex());
     }
 
     /**
@@ -313,7 +296,7 @@ abstract class AbstractAppender implements AutoCloseable {
         // when attempting to send entries to down followers.
         int failures = member.incrementFailureCount();
         if (failures <= 3 || failures % 100 == 0) {
-            log.debug("{} to {} failed: {}", request, member.getMember().memberId(), response.error() != null ? response.error() : "");
+            LOGGER.debug("{} to {} failed: {}", request, member.getMember().memberId(), response.error() != null ? response.error() : "");
         }
     }
 
@@ -335,24 +318,24 @@ abstract class AbstractAppender implements AutoCloseable {
      * Connects to the member and sends a configure request.
      */
     protected void sendConfigureRequest(RaftMemberContext member, ConfigureRequest request) {
-        log.debug("Configuring {}", member.getMember().memberId());
+        LOGGER.debug("Configuring {}", member.getMember().memberId());
 
         // Start the configure to the member.
         member.startConfigure();
 
         long timestamp = System.currentTimeMillis();
 
-        log.trace("Sending {} to {}", request, member.getMember().memberId());
+        LOGGER.trace("Sending {} to {}", request, member.getMember().memberId());
         raft.getProtocol().configure(member.getMember().memberId(), request).whenCompleteAsync((response, error) -> {
             // Complete the configure to the member.
             member.completeConfigure();
 
             if (open) {
                 if (error == null) {
-                    log.trace("Received {} from {}", response, member.getMember().memberId());
+                    LOGGER.trace("Received {} from {}", response, member.getMember().memberId());
                     handleConfigureResponse(member, request, response, timestamp);
                 } else {
-                    log.warn("Failed to configure {}", member.getMember().memberId());
+                    LOGGER.warn("Failed to configure {}", member.getMember().memberId());
                     handleConfigureResponseFailure(member, request, error);
                 }
             }
@@ -453,17 +436,17 @@ abstract class AbstractAppender implements AutoCloseable {
 
         long timestamp = System.currentTimeMillis();
 
-        log.trace("Sending {} to {}", request, member.getMember().memberId());
+        LOGGER.trace("Sending {} to {}", request, member.getMember().memberId());
         raft.getProtocol().install(member.getMember().memberId(), request).whenCompleteAsync((response, error) -> {
             // Complete the install to the member.
             member.completeInstall();
 
             if (open) {
                 if (error == null) {
-                    log.trace("Received {} from {}", response, member.getMember().memberId());
+                    LOGGER.trace("Received {} from {}", response, member.getMember().memberId());
                     handleInstallResponse(member, request, response, timestamp);
                 } else {
-                    log.warn("Failed to install {}", member.getMember().memberId());
+                    LOGGER.warn("Failed to install {}", member.getMember().memberId());
 
                     // Trigger reactions to the install response failure.
                     handleInstallResponseFailure(member, request, error);
@@ -528,7 +511,7 @@ abstract class AbstractAppender implements AutoCloseable {
      */
     @SuppressWarnings("unused")
     protected void handleInstallResponseError(RaftMemberContext member, InstallRequest request, InstallResponse response) {
-        log.warn("Failed to install {}", member.getMember().memberId());
+        LOGGER.warn("Failed to install {}", member.getMember().memberId());
         member.setNextSnapshotIndex(0);
         member.setNextSnapshotOffset(0);
     }

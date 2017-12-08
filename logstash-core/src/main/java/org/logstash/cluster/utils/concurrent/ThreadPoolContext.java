@@ -7,8 +7,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Thread pool context.
@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
  * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class ThreadPoolContext implements ThreadContext {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ThreadPoolContext.class);
+    private static final Logger LOGGER = LogManager.getLogger(ThreadPoolContext.class);
     private final ScheduledExecutorService parent;
     private final Runnable runner;
     private final LinkedList<Runnable> tasks = new LinkedList<>();

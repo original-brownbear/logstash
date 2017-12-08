@@ -67,7 +67,7 @@ public final class CandidateRole extends ActiveRole {
      * Starts the election.
      */
     void startElection() {
-        log.info("Starting election");
+        LOGGER.info("Starting election");
         sendVoteRequests();
     }
 
@@ -97,13 +97,13 @@ public final class CandidateRole extends ActiveRole {
         currentTimer = raft.getThreadContext().schedule(delay, () -> {
             // When the election times out, clear the previous majority vote
             // check and restart the election.
-            log.debug("Election timed out");
+            LOGGER.debug("Election timed out");
             if (quorum != null) {
                 quorum.cancel();
                 quorum = null;
             }
             sendVoteRequests();
-            log.debug("Restarted election");
+            LOGGER.debug("Restarted election");
         });
 
         final AtomicBoolean complete = new AtomicBoolean();
@@ -111,7 +111,7 @@ public final class CandidateRole extends ActiveRole {
 
         // If there are no other members in the cluster, immediately transition to leader.
         if (votingMembers.isEmpty()) {
-            log.debug("Single member cluster. Transitioning directly to leader.", raft.getCluster().getMember().memberId());
+            LOGGER.debug("Single member cluster. Transitioning directly to leader.", raft.getCluster().getMember().memberId());
             raft.transition(RaftServer.Role.LEADER);
             return;
         }
@@ -140,12 +140,12 @@ public final class CandidateRole extends ActiveRole {
             lastTerm = 0;
         }
 
-        log.debug("Requesting votes for term {}", raft.getTerm());
+        LOGGER.debug("Requesting votes for term {}", raft.getTerm());
 
         // Once we got the last log term, iterate through each current member
         // of the cluster and vote each member for a vote.
         for (DefaultRaftMember member : votingMembers) {
-            log.debug("Requesting vote from {} for term {}", member, raft.getTerm());
+            LOGGER.debug("Requesting vote from {} for term {}", member, raft.getTerm());
             VoteRequest request = VoteRequest.builder()
                 .withTerm(raft.getTerm())
                 .withCandidate(raft.getCluster().getMember().memberId())
@@ -157,22 +157,22 @@ public final class CandidateRole extends ActiveRole {
                 raft.checkThread();
                 if (isOpen() && !complete.get()) {
                     if (error != null) {
-                        log.warn(error.getMessage());
+                        LOGGER.warn(error.getMessage());
                         quorum.fail();
                     } else {
                         if (response.term() > raft.getTerm()) {
-                            log.debug("Received greater term from {}", member);
+                            LOGGER.debug("Received greater term from {}", member);
                             raft.setTerm(response.term());
                             complete.set(true);
                             raft.transition(RaftServer.Role.FOLLOWER);
                         } else if (!response.voted()) {
-                            log.debug("Received rejected vote from {}", member);
+                            LOGGER.debug("Received rejected vote from {}", member);
                             quorum.fail();
                         } else if (response.term() != raft.getTerm()) {
-                            log.debug("Received successful vote for a different term from {}", member);
+                            LOGGER.debug("Received successful vote for a different term from {}", member);
                             quorum.fail();
                         } else {
-                            log.debug("Received successful vote from {}", member);
+                            LOGGER.debug("Received successful vote from {}", member);
                             quorum.succeed();
                         }
                     }
@@ -229,7 +229,7 @@ public final class CandidateRole extends ActiveRole {
     private void cancelElection() {
         raft.checkThread();
         if (currentTimer != null) {
-            log.debug("Cancelling election");
+            LOGGER.debug("Cancelling election");
             currentTimer.cancel();
         }
         if (quorum != null) {

@@ -1,31 +1,14 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.utils;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Base implementation of an item accumulator. It allows triggering based on
@@ -34,6 +17,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  */
 public abstract class AbstractAccumulator<T> implements Accumulator<T> {
 
+    private static final Logger LOGGER = LogManager.getLogger(AbstractAccumulator.class);
+
     private final Timer timer;
     private final int maxItems;
     private final int maxBatchMillis;
@@ -41,7 +26,6 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
     private final AtomicReference<TimerTask> idleTask = new AtomicReference<>();
     private final AtomicReference<TimerTask> maxTask = new AtomicReference<>();
     private final List<T> items;
-    private Logger log = LoggerFactory.getLogger(AbstractAccumulator.class);
 
     /**
      * Creates an item accumulator capable of triggering on the specified
@@ -61,11 +45,11 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
      */
     protected AbstractAccumulator(Timer timer, int maxItems,
         int maxBatchMillis, int maxIdleMillis) {
-        this.timer = checkNotNull(timer, "Timer cannot be null");
+        this.timer = Preconditions.checkNotNull(timer, "Timer cannot be null");
 
-        checkArgument(maxItems > 1, "Maximum number of items must be > 1");
-        checkArgument(maxBatchMillis > 0, "Maximum millis must be positive");
-        checkArgument(maxIdleMillis > 0, "Maximum idle millis must be positive");
+        Preconditions.checkArgument(maxItems > 1, "Maximum number of items must be > 1");
+        Preconditions.checkArgument(maxBatchMillis > 0, "Maximum millis must be positive");
+        Preconditions.checkArgument(maxIdleMillis > 0, "Maximum idle millis must be positive");
 
         this.maxItems = maxItems;
         this.maxBatchMillis = maxBatchMillis;
@@ -215,7 +199,7 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
                     rescheduleTask(idleTask, maxIdleMillis);
                 }
             } catch (Exception e) {
-                log.warn("Unable to process batch due to", e);
+                LOGGER.warn("Unable to process batch due to", e);
             }
         }
     }

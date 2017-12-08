@@ -14,6 +14,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.cluster.ClusterEvent;
 import org.logstash.cluster.cluster.ClusterEventListener;
 import org.logstash.cluster.cluster.ClusterMetadata;
@@ -28,15 +30,13 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.utils.concurrent.Threads;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Default cluster implementation.
  */
 public class DefaultClusterService implements ManagedClusterService {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusterService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DefaultClusterService.class);
 
     private static final int DEFAULT_HEARTBEAT_INTERVAL = 100;
     private static final int DEFAULT_PHI_FAILURE_THRESHOLD = 10;

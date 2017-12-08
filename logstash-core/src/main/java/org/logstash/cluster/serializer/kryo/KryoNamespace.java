@@ -24,10 +24,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.serializer.Namespace;
 import org.objenesis.strategy.StdInstantiatorStrategy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Pool of Kryo instances, with classes pre-registered.
@@ -54,7 +54,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
 
     private static final String NO_NAME = "(no name)";
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(KryoNamespace.class);
+    private static final Logger LOGGER = LogManager.getLogger(KryoNamespace.class);
 
     /**
      * Default Kryo namespace.

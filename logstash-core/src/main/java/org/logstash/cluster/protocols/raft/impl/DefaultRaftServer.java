@@ -1,36 +1,19 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.cluster.RaftCluster;
 import org.logstash.cluster.protocols.raft.service.RaftService;
 import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.utils.concurrent.Futures;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Provides a standalone implementation of the <a href="http://raft.github.io/">Raft consensus algorithm</a>.
@@ -38,22 +21,21 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * @see RaftStorage
  */
 public class DefaultRaftServer implements RaftServer {
+
+    private static final Logger LOGGER = LogManager.getLogger(DefaultRaftServer.class);
+
     protected final RaftContext context;
-    private final Logger log;
     private volatile CompletableFuture<RaftServer> openFuture;
     private volatile CompletableFuture<Void> closeFuture;
     private volatile boolean started;
 
     public DefaultRaftServer(RaftContext context) {
-        this.context = checkNotNull(context, "context cannot be null");
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
-            .addValue(context.getName())
-            .build());
+        this.context = Preconditions.checkNotNull(context, "context cannot be null");
     }
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("name", name())
             .toString();
     }
@@ -202,9 +184,9 @@ public class DefaultRaftServer implements RaftServer {
 
         return openFuture.whenComplete((result, error) -> {
             if (error == null) {
-                log.info("Server started successfully!");
+                LOGGER.info("Server started successfully!");
             } else {
-                log.warn("Failed to start server!");
+                LOGGER.warn("Failed to start server!");
             }
         });
     }

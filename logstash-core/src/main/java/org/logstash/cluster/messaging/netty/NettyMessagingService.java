@@ -66,13 +66,13 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManagerFactory;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.messaging.Endpoint;
 import org.logstash.cluster.messaging.ManagedMessagingService;
 import org.logstash.cluster.messaging.MessagingException;
 import org.logstash.cluster.messaging.MessagingService;
 import org.logstash.cluster.utils.concurrent.Threads;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Netty based MessagingService.
@@ -97,7 +97,9 @@ public class NettyMessagingService implements ManagedMessagingService {
     private static final String KS_FILE_NAME = "atomix.jks";
     private static final File DEFAULT_KS_FILE = new File(CONFIG_DIR, KS_FILE_NAME);
     private static final String DEFAULT_KS_PASSWORD = "changeit";
-    private final Logger log = LoggerFactory.getLogger(getClass());
+
+    private static final Logger LOGGER = LogManager.getLogger(NettyMessagingService.class);
+
     private final NettyMessagingService.ClientConnection localClientConnection = new LocalClientConnection();
     private final NettyMessagingService.ServerConnection localServerConnection = new NettyMessagingService.LocalServerConnection(null);
     private final Endpoint localEndpoint;
@@ -135,18 +137,18 @@ public class NettyMessagingService implements ManagedMessagingService {
     public CompletableFuture<MessagingService> open() {
         getTlsParameters();
         if (started.get()) {
-            log.warn("Already running at local endpoint: {}", localEndpoint);
+            LOGGER.warn("Already running at local endpoint: {}", localEndpoint);
             return CompletableFuture.completedFuture(this);
         }
 
         initEventLoopGroup();
         return startAcceptingConnections().thenRun(() -> {
             timeoutExecutor = Executors.newSingleThreadScheduledExecutor(
-                Threads.namedThreads("netty-messaging-timeout-%d", log));
+                Threads.namedThreads("netty-messaging-timeout-%d", LOGGER));
             timeoutFuture = timeoutExecutor.scheduleAtFixedRate(
                 this::timeoutAllCallbacks, TIMEOUT_INTERVAL, TIMEOUT_INTERVAL, TimeUnit.MILLISECONDS);
             started.set(true);
-            log.info("Started");
+            LOGGER.info("Started");
         }).thenApply(v -> this);
     }
 
@@ -178,15 +180,15 @@ public class NettyMessagingService implements ManagedMessagingService {
             final KeyStore ks = KeyStore.getInstance("JKS");
             ks.load(new FileInputStream(ksLocation), ksPwd);
             kmf.init(ks, ksPwd);
-            if (log.isInfoEnabled()) {
+            if (LOGGER.isInfoEnabled()) {
                 logKeyStore(ks, ksLocation, ksPwd);
             }
         } catch (final FileNotFoundException e) {
-            log.warn("Disabling TLS for intra-cluster messaging; Could not load cluster key store: {}", e.getMessage());
+            LOGGER.warn("Disabling TLS for intra-cluster messaging; Could not load cluster key store: {}", e.getMessage());
             return TLS_DISABLED;
         } catch (final Exception e) {
             //TODO we might want to catch exceptions more specifically
-            log.error("Error loading key store; disabling TLS for intra-cluster messaging", e);
+            LOGGER.error("Error loading key store; disabling TLS for intra-cluster messaging", e);
             return TLS_DISABLED;
         }
         this.trustManager = tmf;
@@ -195,19 +197,19 @@ public class NettyMessagingService implements ManagedMessagingService {
     }
 
     private void logKeyStore(final KeyStore ks, final String ksLocation, final char[] ksPwd) {
-        if (log.isInfoEnabled()) {
-            log.info("Loaded cluster key store from: {}", ksLocation);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Loaded cluster key store from: {}", ksLocation);
             try {
                 for (final Enumeration<String> e = ks.aliases(); e.hasMoreElements(); ) {
                     final String alias = e.nextElement();
                     final Key key = ks.getKey(alias, ksPwd);
                     final Certificate[] certs = ks.getCertificateChain(alias);
-                    log.debug("{} -> {}", alias, certs);
+                    LOGGER.debug("{} -> {}", alias, certs);
                     final byte[] encodedKey;
                     if (certs != null && certs.length > 0) {
                         encodedKey = certs[0].getEncoded();
                     } else {
-                        log.info("Could not find cert chain for {}, using fingerprint of key instead...", alias);
+                        LOGGER.info("Could not find cert chain for {}, using fingerprint of key instead...", alias);
                         encodedKey = key.getEncoded();
                     }
                     // Compute the certificate's fingerprint (use the key if certificate cannot be found)
@@ -217,10 +219,10 @@ public class NettyMessagingService implements ManagedMessagingService {
                     for (final byte b : digest.digest()) {
                         fingerprint.add(String.format("%02X", b));
                     }
-                    log.info("{} -> {}", alias, fingerprint);
+                    LOGGER.info("{} -> {}", alias, fingerprint);
                 }
             } catch (final Exception e) {
-                log.warn("Unable to print contents of key store: {}", ksLocation, e);
+                LOGGER.warn("Unable to print contents of key store: {}", ksLocation, e);
             }
         }
     }
@@ -239,7 +241,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             timeoutExecutor.shutdown();
             started.set(false);
         }
-        log.info("Stopped");
+        LOGGER.info("Stopped");
         return CompletableFuture.completedFuture(null);
     }
 
@@ -251,17 +253,17 @@ public class NettyMessagingService implements ManagedMessagingService {
     private void initEventLoopGroup() {
         // try Epoll first and if that does work, use nio.
         try {
-            clientGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-client-%d", log));
-            serverGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-server-%d", log));
+            clientGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-client-%d", LOGGER));
+            serverGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-server-%d", LOGGER));
             serverChannelClass = EpollServerSocketChannel.class;
             clientChannelClass = EpollSocketChannel.class;
             return;
         } catch (final Throwable e) {
-            log.debug("Failed to initialize native (epoll) transport. "
+            LOGGER.debug("Failed to initialize native (epoll) transport. "
                 + "Reason: {}. Proceeding with nio.", e.getMessage());
         }
-        clientGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-client-%d", log));
-        serverGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-server-%d", log));
+        clientGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-client-%d", LOGGER));
+        serverGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-server-%d", LOGGER));
         serverChannelClass = NioServerSocketChannel.class;
         clientChannelClass = NioSocketChannel.class;
     }
@@ -287,11 +289,11 @@ public class NettyMessagingService implements ManagedMessagingService {
         // Bind and start to accept incoming connections.
         b.bind(localEndpoint.port()).addListener(f -> {
             if (f.isSuccess()) {
-                log.info("{} accepting incoming connections on port {}",
+                LOGGER.info("{} accepting incoming connections on port {}",
                     localEndpoint.host(), localEndpoint.port());
                 future.complete(null);
             } else {
-                log.warn("{} failed to bind to port {} due to {}",
+                LOGGER.warn("{} failed to bind to port {} due to {}",
                     localEndpoint.host(), localEndpoint.port(), f.cause());
                 future.completeExceptionally(f.cause());
             }
@@ -349,7 +351,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             try {
                 responsePayload = handler.apply(message.sender(), message.payload());
             } catch (final Exception e) {
-                log.debug("An error occurred in a message handler: {}", e);
+                LOGGER.debug("An error occurred in a message handler: {}", e);
                 status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
             }
             connection.reply(message, status, Optional.ofNullable(responsePayload));
@@ -364,7 +366,7 @@ public class NettyMessagingService implements ManagedMessagingService {
                 if (error == null) {
                     status = InternalReply.Status.OK;
                 } else {
-                    log.debug("An error occurred in a message handler: {}", error);
+                    LOGGER.debug("An error occurred in a message handler: {}", error);
                     status = InternalReply.Status.ERROR_HANDLER_EXCEPTION;
                 }
                 connection.reply(message, status, Optional.ofNullable(result));
@@ -517,7 +519,7 @@ public class NettyMessagingService implements ManagedMessagingService {
                 retFuture.completeExceptionally(future.cause());
             }
         });
-        log.debug("Established a new connection to {}", ep);
+        LOGGER.debug("Established a new connection to {}", ep);
         return retFuture;
     }
 
@@ -714,7 +716,7 @@ public class NettyMessagingService implements ManagedMessagingService {
 
         @Override
         public void exceptionCaught(final ChannelHandlerContext context, final Throwable cause) {
-            log.error("Exception inside channel handling pipeline.", cause);
+            LOGGER.error("Exception inside channel handling pipeline.", cause);
 
             final NettyMessagingService.RemoteClientConnection clientConnection = clientConnections.remove(context.channel());
             if (clientConnection != null) {
@@ -753,7 +755,7 @@ public class NettyMessagingService implements ManagedMessagingService {
                     connection.dispatch((InternalReply) message);
                 }
             } catch (final RejectedExecutionException e) {
-                log.warn("Unable to dispatch message due to {}", e.getMessage());
+                LOGGER.warn("Unable to dispatch message due to {}", e.getMessage());
             }
         }
     }
@@ -790,7 +792,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             if (handler != null) {
                 handler.accept(message, localServerConnection);
             } else {
-                log.debug("No handler for message type {} from {}", message.type(), message.sender());
+                LOGGER.debug("No handler for message type {} from {}", message.type(), message.sender());
             }
             return CompletableFuture.completedFuture(null);
         }
@@ -802,7 +804,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             if (handler != null) {
                 handler.accept(message, new NettyMessagingService.LocalServerConnection(future));
             } else {
-                log.debug("No handler for message type {} from {}", message.type(), message.sender());
+                LOGGER.debug("No handler for message type {} from {}", message.type(), message.sender());
                 new NettyMessagingService.LocalServerConnection(future)
                     .reply(message, InternalReply.Status.ERROR_NO_HANDLER, Optional.empty());
             }
@@ -890,7 +892,7 @@ public class NettyMessagingService implements ManagedMessagingService {
          */
         private void dispatch(final InternalReply message) {
             if (message.preamble() != preamble) {
-                log.debug("Received {} with invalid preamble", message.type());
+                LOGGER.debug("Received {} with invalid preamble", message.type());
                 return;
             }
 
@@ -913,7 +915,7 @@ public class NettyMessagingService implements ManagedMessagingService {
                     throw new AssertionError();
                 }
             } else {
-                log.debug("Received a reply for message id:[{}] "
+                LOGGER.debug("Received a reply for message id:[{}] "
                     + "but was unable to locate the"
                     + " request handle", message.id());
             }
@@ -973,7 +975,7 @@ public class NettyMessagingService implements ManagedMessagingService {
          */
         private void dispatch(final InternalRequest message) {
             if (message.preamble() != preamble) {
-                log.debug("Received {} with invalid preamble from {}", message.type(), message.sender());
+                LOGGER.debug("Received {} with invalid preamble from {}", message.type(), message.sender());
                 reply(message, InternalReply.Status.PROTOCOL_EXCEPTION, Optional.empty());
                 return;
             }
@@ -982,7 +984,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             if (handler != null) {
                 handler.accept(message, this);
             } else {
-                log.debug("No handler for message type {} from {}", message.type(), message.sender());
+                LOGGER.debug("No handler for message type {} from {}", message.type(), message.sender());
                 reply(message, InternalReply.Status.ERROR_NO_HANDLER, Optional.empty());
             }
         }

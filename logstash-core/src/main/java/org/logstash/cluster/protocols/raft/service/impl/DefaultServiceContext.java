@@ -1,24 +1,12 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.protocols.raft.service.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentSkipListMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -46,12 +34,6 @@ import org.logstash.cluster.time.WallClock;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Raft server state machine executor.
@@ -59,9 +41,11 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DefaultServiceContext implements ServiceContext {
 
     private static final int LOAD_WINDOW_SIZE = 5;
+
     private static final int HIGH_LOAD_THRESHOLD = 50;
 
-    private final Logger log;
+    private static final Logger LOGGER = LogManager.getLogger(DefaultServiceContext.class);
+
     private final ServiceId serviceId;
     private final String serviceName;
     private final ServiceType serviceType;
@@ -91,27 +75,22 @@ public class DefaultServiceContext implements ServiceContext {
     private OperationType currentOperation;
 
     public DefaultServiceContext(
-        ServiceId serviceId,
-        String serviceName,
-        ServiceType serviceType,
-        RaftService service,
-        RaftContext raft,
-        ThreadContextFactory threadContextFactory) {
-        this.serviceId = checkNotNull(serviceId);
-        this.serviceName = checkNotNull(serviceName);
-        this.serviceType = checkNotNull(serviceType);
-        this.service = checkNotNull(service);
-        this.raft = checkNotNull(raft);
+        final ServiceId serviceId,
+        final String serviceName,
+        final ServiceType serviceType,
+        final RaftService service,
+        final RaftContext raft,
+        final ThreadContextFactory threadContextFactory) {
+        this.serviceId = Preconditions.checkNotNull(serviceId);
+        this.serviceName = Preconditions.checkNotNull(serviceName);
+        this.serviceType = Preconditions.checkNotNull(serviceType);
+        this.service = Preconditions.checkNotNull(service);
+        this.raft = Preconditions.checkNotNull(raft);
         this.sessions = new DefaultServiceSessions(serviceId, raft.getSessions());
         this.serviceExecutor = threadContextFactory.createContext();
         this.snapshotExecutor = threadContextFactory.createContext();
         this.loadMonitor = new LoadMonitor(LOAD_WINDOW_SIZE, HIGH_LOAD_THRESHOLD, serviceExecutor);
         this.threadContextFactory = threadContextFactory;
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftService.class)
-            .addValue(serviceId)
-            .add("type", serviceType)
-            .add("name", serviceName)
-            .build());
         init();
     }
 
@@ -184,8 +163,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param index takes a snapshot at the given index
      * @return a future to be completed once the snapshot has been taken
      */
-    public CompletableFuture<Long> takeSnapshot(long index) {
-        CompletableFuture<Long> future = new CompletableFuture<>();
+    public CompletableFuture<Long> takeSnapshot(final long index) {
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
             // If no entries have been applied to the state machine, skip the snapshot.
             if (currentIndex == 0) {
@@ -193,22 +172,22 @@ public class DefaultServiceContext implements ServiceContext {
             }
 
             // Compute the snapshot index as the greater of the compaction index and the last index applied to this service.
-            long snapshotIndex = Math.max(index, currentIndex);
+            final long snapshotIndex = Math.max(index, currentIndex);
 
             // If there's already a snapshot taken at a higher index, skip the snapshot.
-            Snapshot currentSnapshot = raft.getSnapshotStore().getSnapshotById(serviceId);
+            final Snapshot currentSnapshot = raft.getSnapshotStore().getSnapshotById(serviceId);
             if (currentSnapshot != null && currentSnapshot.index() > index) {
                 return;
             }
 
-            log.debug("Taking snapshot {}", snapshotIndex);
+            LOGGER.debug("Taking snapshot {}", snapshotIndex);
 
             // Create a temporary in-memory snapshot buffer.
-            Snapshot snapshot = raft.getSnapshotStore()
+            final Snapshot snapshot = raft.getSnapshotStore()
                 .newTemporarySnapshot(serviceId, serviceName, snapshotIndex, WallClockTimestamp.from(currentTimestamp));
 
             // Add the snapshot to the pending snapshots registry.
-            PendingSnapshot pendingSnapshot = new PendingSnapshot(snapshot);
+            final PendingSnapshot pendingSnapshot = new PendingSnapshot(snapshot);
             pendingSnapshots.put(snapshotIndex, pendingSnapshot);
             pendingSnapshot.future.whenComplete((r, e) -> pendingSnapshots.remove(snapshotIndex));
 
@@ -218,7 +197,7 @@ public class DefaultServiceContext implements ServiceContext {
                 writer.writeString(serviceType.id());
                 writer.writeString(serviceName);
                 writer.writeInt(sessions.getSessions().size());
-                for (RaftSessionContext session : sessions.getSessions()) {
+                for (final RaftSessionContext session : sessions.getSessions()) {
                     writer.writeLong(session.sessionId().id());
                     writer.writeString(session.memberId().id());
                     writer.writeString(session.readConsistency().name());
@@ -231,8 +210,8 @@ public class DefaultServiceContext implements ServiceContext {
                     writer.writeLong(session.getLastCompleted());
                 }
                 service.snapshot(writer);
-            } catch (Exception e) {
-                log.error("Snapshot failed: {}", e);
+            } catch (final Exception e) {
+                LOGGER.error("Snapshot failed: {}", e);
             }
 
             // Persist the snapshot to disk in a background thread before completing the snapshot future.
@@ -249,8 +228,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param index the index of the snapshot to complete
      * @return a future to be completed once the snapshot has been completed
      */
-    public CompletableFuture<Void> completeSnapshot(long index) {
-        PendingSnapshot pendingSnapshot = pendingSnapshots.get(index);
+    public CompletableFuture<Void> completeSnapshot(final long index) {
+        final PendingSnapshot pendingSnapshot = pendingSnapshots.get(index);
         if (pendingSnapshot == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -261,21 +240,21 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Completes a state machine snapshot.
      */
-    private void maybeCompleteSnapshot(long index) {
+    private void maybeCompleteSnapshot(final long index) {
         if (!pendingSnapshots.isEmpty()) {
             // Compute the lowest completed index for all sessions that belong to this state machine.
             long lastCompleted = index;
-            for (RaftSessionContext session : sessions.getSessions()) {
+            for (final RaftSessionContext session : sessions.getSessions()) {
                 lastCompleted = Math.min(lastCompleted, session.getLastCompleted());
             }
 
-            for (PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
-                Snapshot snapshot = pendingSnapshot.snapshot;
+            for (final PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
+                final Snapshot snapshot = pendingSnapshot.snapshot;
                 if (snapshot.isPersisted()) {
 
                     // If the lowest completed index for all sessions is greater than the snapshot index, complete the snapshot.
                     if (lastCompleted >= snapshot.index()) {
-                        log.debug("Completing snapshot {}", snapshot.index());
+                        LOGGER.debug("Completing snapshot {}", snapshot.index());
                         snapshot.complete();
 
                         // Update the snapshot index to ensure we don't simply install the same snapshot.
@@ -293,10 +272,10 @@ public class DefaultServiceContext implements ServiceContext {
      * @param timestamp The timestamp of the registration.
      * @param session The session to register.
      */
-    public CompletableFuture<Long> openSession(long index, long timestamp, RaftSessionContext session) {
-        CompletableFuture<Long> future = new CompletableFuture<>();
+    public CompletableFuture<Long> openSession(final long index, final long timestamp, final RaftSessionContext session) {
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
-            log.debug("Opening session {}", session.sessionId());
+            LOGGER.debug("Opening session {}", session.sessionId());
 
             // Update the session's timestamp to prevent it from being expired.
             session.setLastUpdated(timestamp);
@@ -328,7 +307,7 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Executes scheduled callbacks based on the provided time.
      */
-    private void tick(long index, long timestamp) {
+    private void tick(final long index, final long timestamp) {
         this.currentIndex = index;
         this.currentTimestamp = Math.max(currentTimestamp, timestamp);
 
@@ -342,19 +321,19 @@ public class DefaultServiceContext implements ServiceContext {
      * Sets the current state machine operation type.
      * @param operation the current state machine operation type
      */
-    private void setOperation(OperationType operation) {
+    private void setOperation(final OperationType operation) {
         this.currentOperation = operation;
     }
 
     /**
      * Expires sessions that have timed out.
      */
-    private void expireSessions(long timestamp) {
+    private void expireSessions(final long timestamp) {
         // Iterate through registered sessions.
-        for (RaftSessionContext session : sessions.getSessions()) {
+        for (final RaftSessionContext session : sessions.getSessions()) {
             if (session.isTimedOut(timestamp)) {
-                log.debug("Session expired in {} milliseconds: {}", timestamp - session.getLastUpdated(), session);
-                log.debug("Closing session {}", session.sessionId());
+                LOGGER.debug("Session expired in {} milliseconds: {}", timestamp - session.getLastUpdated(), session);
+                LOGGER.debug("Closing session {}", session.sessionId());
                 sessions.expireSession(session);
             }
         }
@@ -363,26 +342,26 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Installs a snapshot if one exists.
      */
-    private void maybeInstallSnapshot(long index) {
+    private void maybeInstallSnapshot(final long index) {
         // Look up the latest snapshot for this state machine.
-        Snapshot snapshot = raft.getSnapshotStore().getSnapshotById(serviceId);
+        final Snapshot snapshot = raft.getSnapshotStore().getSnapshotById(serviceId);
 
         // If the latest snapshot is non-null, hasn't been installed, and has an index lower than the current index, install it.
         if (snapshot != null && snapshot.index() > snapshotIndex && snapshot.index() < index) {
-            log.debug("Installing snapshot {}", snapshot.index());
+            LOGGER.debug("Installing snapshot {}", snapshot.index());
             try (SnapshotReader reader = snapshot.openReader()) {
                 reader.skip(Bytes.LONG); // Skip the service ID
-                ServiceType serviceType = ServiceType.from(reader.readString());
-                String serviceName = reader.readString();
-                int sessionCount = reader.readInt();
+                final ServiceType serviceType = ServiceType.from(reader.readString());
+                final String serviceName = reader.readString();
+                final int sessionCount = reader.readInt();
                 for (int i = 0; i < sessionCount; i++) {
-                    SessionId sessionId = SessionId.from(reader.readLong());
-                    MemberId node = MemberId.from(reader.readString());
-                    ReadConsistency readConsistency = ReadConsistency.valueOf(reader.readString());
-                    long minTimeout = reader.readLong();
-                    long maxTimeout = reader.readLong();
-                    long sessionTimestamp = reader.readLong();
-                    RaftSessionContext session = new RaftSessionContext(
+                    final SessionId sessionId = SessionId.from(reader.readLong());
+                    final MemberId node = MemberId.from(reader.readString());
+                    final ReadConsistency readConsistency = ReadConsistency.valueOf(reader.readString());
+                    final long minTimeout = reader.readLong();
+                    final long maxTimeout = reader.readLong();
+                    final long sessionTimestamp = reader.readLong();
+                    final RaftSessionContext session = new RaftSessionContext(
                         sessionId,
                         node,
                         serviceName,
@@ -404,8 +383,8 @@ public class DefaultServiceContext implements ServiceContext {
                 currentIndex = snapshot.index();
                 currentTimestamp = snapshot.timestamp().unixTimestamp();
                 service.install(reader);
-            } catch (Exception e) {
-                log.error("Snapshot installation failed: {}", e);
+            } catch (final Exception e) {
+                LOGGER.error("Snapshot installation failed: {}", e);
             }
             snapshotIndex = snapshot.index();
         }
@@ -416,8 +395,8 @@ public class DefaultServiceContext implements ServiceContext {
      */
     @SuppressWarnings("unchecked")
     private void commit() {
-        long index = this.currentIndex;
-        for (RaftSessionContext session : sessions.getSessions()) {
+        final long index = this.currentIndex;
+        for (final RaftSessionContext session : sessions.getSessions()) {
             session.commit(index);
         }
     }
@@ -430,8 +409,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param commandSequence The session command sequence number.
      * @param eventIndex The session event index.
      */
-    public CompletableFuture<Boolean> keepAlive(long index, long timestamp, RaftSessionContext session, long commandSequence, long eventIndex) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+    public CompletableFuture<Boolean> keepAlive(final long index, final long timestamp, final RaftSessionContext session, final long commandSequence, final long eventIndex) {
+        final CompletableFuture<Boolean> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
 
             // If a snapshot exists prior to the given index and hasn't yet been installed, install the snapshot.
@@ -481,8 +460,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param timestamp the keep-alive timestamp
      * @return future to be completed once the keep alive is completed
      */
-    public CompletableFuture<Void> completeKeepAlive(long index, long timestamp) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+    public CompletableFuture<Void> completeKeepAlive(final long index, final long timestamp) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
             // Update the state machine index/timestamp.
             tick(index, timestamp);
@@ -507,15 +486,15 @@ public class DefaultServiceContext implements ServiceContext {
      * @param timestamp the timestamp with which to reset session timeouts
      * @return future to be completed once all sessions have been preserved
      */
-    public CompletableFuture<Void> keepAliveSessions(long index, long timestamp) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+    public CompletableFuture<Void> keepAliveSessions(final long index, final long timestamp) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
-            log.debug("Resetting session timeouts");
+            LOGGER.debug("Resetting session timeouts");
 
             this.currentIndex = index;
             this.currentTimestamp = Math.max(currentTimestamp, timestamp);
 
-            for (RaftSessionContext session : sessions.getSessions()) {
+            for (final RaftSessionContext session : sessions.getSessions()) {
                 session.setLastUpdated(timestamp);
             }
         });
@@ -529,10 +508,10 @@ public class DefaultServiceContext implements ServiceContext {
      * @param session The session to unregister.
      * @param expired Whether the session was expired by the leader.
      */
-    public CompletableFuture<Void> closeSession(long index, long timestamp, RaftSessionContext session, boolean expired) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+    public CompletableFuture<Void> closeSession(final long index, final long timestamp, final RaftSessionContext session, final boolean expired) {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> {
-            log.debug("Closing session {}", session.sessionId());
+            LOGGER.debug("Closing session {}", session.sessionId());
 
             // Update the session's timestamp to prevent it from being expired.
             session.setLastUpdated(timestamp);
@@ -574,8 +553,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param operation The command to execute.
      * @return A future to be completed with the command result.
      */
-    public CompletableFuture<OperationResult> executeCommand(long index, long sequence, long timestamp, RaftSessionContext session, RaftOperation operation) {
-        CompletableFuture<OperationResult> future = new CompletableFuture<>();
+    public CompletableFuture<OperationResult> executeCommand(final long index, final long sequence, final long timestamp, final RaftSessionContext session, final RaftOperation operation) {
+        final CompletableFuture<OperationResult> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> executeCommand(index, sequence, timestamp, session, operation, future));
         return future;
     }
@@ -583,7 +562,7 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Executes a command on the state machine thread.
      */
-    private void executeCommand(long index, long sequence, long timestamp, RaftSessionContext session, RaftOperation operation, CompletableFuture<OperationResult> future) {
+    private void executeCommand(final long index, final long sequence, final long timestamp, final RaftSessionContext session, final RaftOperation operation, final CompletableFuture<OperationResult> future) {
         // Update the session's timestamp to prevent it from being expired.
         session.setLastUpdated(timestamp);
 
@@ -621,10 +600,10 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Loads and returns a cached command result according to the sequence number.
      */
-    private void sequenceCommand(long index, long sequence, RaftSessionContext session, CompletableFuture<OperationResult> future) {
-        OperationResult result = session.getResult(sequence);
+    private void sequenceCommand(final long index, final long sequence, final RaftSessionContext session, final CompletableFuture<OperationResult> future) {
+        final OperationResult result = session.getResult(sequence);
         if (result == null) {
-            log.debug("Missing command result at index {}", index);
+            LOGGER.debug("Missing command result at index {}", index);
         }
         future.complete(result);
     }
@@ -632,19 +611,19 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Applies the given commit to the state machine.
      */
-    private void applyCommand(long index, long sequence, long timestamp, RaftOperation operation, RaftSessionContext session, CompletableFuture<OperationResult> future) {
-        Commit<byte[]> commit = new DefaultCommit<>(index, operation.id(), operation.value(), session, timestamp);
+    private void applyCommand(final long index, final long sequence, final long timestamp, final RaftOperation operation, final RaftSessionContext session, final CompletableFuture<OperationResult> future) {
+        final Commit<byte[]> commit = new DefaultCommit<>(index, operation.id(), operation.value(), session, timestamp);
 
-        long eventIndex = session.getEventIndex();
+        final long eventIndex = session.getEventIndex();
 
         OperationResult result;
         try {
             // Execute the state machine operation and get the result.
-            byte[] output = service.apply(commit);
+            final byte[] output = service.apply(commit);
 
             // Store the result for linearizability and complete the command.
             result = OperationResult.succeeded(index, eventIndex, output);
-        } catch (Exception e) {
+        } catch (final Exception e) {
             // If an exception occurs during execution of the command, store the exception.
             result = OperationResult.failed(index, eventIndex, e);
         }
@@ -669,8 +648,8 @@ public class DefaultServiceContext implements ServiceContext {
      * @param operation The query to execute.
      * @return A future to be completed with the query result.
      */
-    public CompletableFuture<OperationResult> executeQuery(long index, long sequence, long timestamp, RaftSessionContext session, RaftOperation operation) {
-        CompletableFuture<OperationResult> future = new CompletableFuture<>();
+    public CompletableFuture<OperationResult> executeQuery(final long index, final long sequence, final long timestamp, final RaftSessionContext session, final RaftOperation operation) {
+        final CompletableFuture<OperationResult> future = new CompletableFuture<>();
         serviceExecutor.execute(() -> executeQuery(index, sequence, timestamp, session, operation, future));
         return future;
     }
@@ -678,10 +657,10 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Executes a query on the state machine thread.
      */
-    private void executeQuery(long index, long sequence, long timestamp, RaftSessionContext session, RaftOperation operation, CompletableFuture<OperationResult> future) {
+    private void executeQuery(final long index, final long sequence, final long timestamp, final RaftSessionContext session, final RaftOperation operation, final CompletableFuture<OperationResult> future) {
         // If the session is not open, fail the request.
         if (!session.getState().active()) {
-            log.warn("Inactive session: " + session.sessionId());
+            LOGGER.warn("Inactive session: " + session.sessionId());
             future.completeExceptionally(new RaftException.UnknownSession("Unknown session: " + session.sessionId()));
             return;
         }
@@ -693,12 +672,12 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Sequences the given query.
      */
-    private void sequenceQuery(long index, long sequence, long timestamp, RaftSessionContext session, RaftOperation operation, CompletableFuture<OperationResult> future) {
+    private void sequenceQuery(final long index, final long sequence, final long timestamp, final RaftSessionContext session, final RaftOperation operation, final CompletableFuture<OperationResult> future) {
         // If the query's sequence number is greater than the session's current sequence number, queue the request for
         // handling once the state machine is caught up.
-        long commandSequence = session.getCommandSequence();
+        final long commandSequence = session.getCommandSequence();
         if (sequence > commandSequence) {
-            log.trace("Registering query with sequence number " + sequence + " > " + commandSequence);
+            LOGGER.trace("Registering query with sequence number " + sequence + " > " + commandSequence);
             session.registerSequenceQuery(sequence, () -> indexQuery(index, timestamp, session, operation, future));
         } else {
             indexQuery(index, timestamp, session, operation, future);
@@ -708,11 +687,11 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Ensures the given query is applied after the appropriate index.
      */
-    private void indexQuery(long index, long timestamp, RaftSessionContext session, RaftOperation operation, CompletableFuture<OperationResult> future) {
+    private void indexQuery(final long index, final long timestamp, final RaftSessionContext session, final RaftOperation operation, final CompletableFuture<OperationResult> future) {
         // If the query index is greater than the session's last applied index, queue the request for handling once the
         // state machine is caught up.
         if (index > currentIndex) {
-            log.trace("Registering query with index " + index + " > " + currentIndex);
+            LOGGER.trace("Registering query with index " + index + " > " + currentIndex);
             session.registerIndexQuery(index, () -> applyQuery(timestamp, session, operation, future));
         } else {
             applyQuery(timestamp, session, operation, future);
@@ -722,10 +701,10 @@ public class DefaultServiceContext implements ServiceContext {
     /**
      * Applies a query to the state machine.
      */
-    private void applyQuery(long timestamp, RaftSessionContext session, RaftOperation operation, CompletableFuture<OperationResult> future) {
+    private void applyQuery(final long timestamp, final RaftSessionContext session, final RaftOperation operation, final CompletableFuture<OperationResult> future) {
         // If the session is not open, fail the request.
         if (!session.getState().active()) {
-            log.warn("Inactive session: " + session.sessionId());
+            LOGGER.warn("Inactive session: " + session.sessionId());
             future.completeExceptionally(new RaftException.UnknownSession("Unknown session: " + session.sessionId()));
             return;
         }
@@ -733,14 +712,14 @@ public class DefaultServiceContext implements ServiceContext {
         // Set the current operation type to QUERY to prevent events from being sent to clients.
         setOperation(OperationType.QUERY);
 
-        Commit<byte[]> commit = new DefaultCommit<>(session.getLastApplied(), operation.id(), operation.value(), session, timestamp);
+        final Commit<byte[]> commit = new DefaultCommit<>(session.getLastApplied(), operation.id(), operation.value(), session, timestamp);
 
-        long eventIndex = session.getEventIndex();
+        final long eventIndex = session.getEventIndex();
 
         OperationResult result;
         try {
             result = OperationResult.succeeded(currentIndex, eventIndex, service.apply(commit));
-        } catch (Exception e) {
+        } catch (final Exception e) {
             result = OperationResult.failed(currentIndex, eventIndex, e);
         }
         future.complete(result);
@@ -748,7 +727,7 @@ public class DefaultServiceContext implements ServiceContext {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("server", raft.getName())
             .add("type", serviceType)
             .add("name", serviceName)
@@ -763,7 +742,7 @@ public class DefaultServiceContext implements ServiceContext {
         private final CompletableFuture<Void> future = new CompletableFuture<>();
         private volatile Snapshot snapshot;
 
-        public PendingSnapshot(Snapshot snapshot) {
+        public PendingSnapshot(final Snapshot snapshot) {
             this.snapshot = snapshot;
         }
 

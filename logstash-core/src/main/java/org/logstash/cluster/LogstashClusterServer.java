@@ -16,6 +16,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.cluster.ClusterMetadata;
 import org.logstash.cluster.cluster.ClusterService;
 import org.logstash.cluster.cluster.ManagedClusterService;
@@ -57,12 +59,10 @@ import org.logstash.cluster.primitives.value.AtomicValueBuilder;
 import org.logstash.cluster.utils.Managed;
 import org.logstash.cluster.utils.concurrent.SingleThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class LogstashClusterServer implements PrimitiveService, Managed<LogstashClusterServer> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LogstashClusterServer.class);
+    private static final Logger LOGGER = LogManager.getLogger(LogstashClusterServer.class);
 
     private final ManagedClusterService cluster;
     private final ManagedMessagingService messagingService;

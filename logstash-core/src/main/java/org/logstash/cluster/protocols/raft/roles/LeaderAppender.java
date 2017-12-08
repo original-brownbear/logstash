@@ -369,7 +369,7 @@ final class LeaderAppender extends AbstractAppender {
             long commitIndex = raft.getLogWriter().getLastIndex();
             long previousCommitIndex = raft.setCommitIndex(commitIndex);
             if (commitIndex > previousCommitIndex) {
-                log.trace("Committed entries up to {}", commitIndex);
+                LOGGER.trace("Committed entries up to {}", commitIndex);
                 completeCommits(previousCommitIndex, commitIndex);
             }
             return;
@@ -383,7 +383,7 @@ final class LeaderAppender extends AbstractAppender {
         // the index of the leader's no-op entry. Update the commit index and trigger commit futures.
         long previousCommitIndex = raft.getCommitIndex();
         if (commitIndex > 0 && commitIndex > previousCommitIndex && (leaderIndex > 0 && commitIndex >= leaderIndex)) {
-            log.trace("Committed entries up to {}", commitIndex);
+            LOGGER.trace("Committed entries up to {}", commitIndex);
             raft.setCommitIndex(commitIndex);
             completeCommits(previousCommitIndex, commitIndex);
         }
@@ -395,7 +395,7 @@ final class LeaderAppender extends AbstractAppender {
     protected void handleAppendResponseError(RaftMemberContext member, AppendRequest request, AppendResponse response) {
         // If we've received a greater term, update the term and transition back to follower.
         if (response.term() > raft.getTerm()) {
-            log.debug("Received higher term from {}", member.getMember().memberId());
+            LOGGER.debug("Received higher term from {}", member.getMember().memberId());
             raft.setTerm(response.term());
             raft.setLeader(null);
             raft.transition(RaftServer.Role.FOLLOWER);
@@ -415,7 +415,7 @@ final class LeaderAppender extends AbstractAppender {
         // If the leader is not able to contact a majority of the cluster within two election timeouts, assume
         // that a partition occurred and transition back to the FOLLOWER state.
         if (member.getFailureCount() >= MIN_STEP_DOWN_FAILURE_COUNT && System.currentTimeMillis() - Math.max(computeHeartbeatTime(), leaderTime) > electionTimeout * 2) {
-            log.warn("Suspected network partition. Stepping down");
+            LOGGER.warn("Suspected network partition. Stepping down");
             raft.setLeader(null);
             raft.transition(RaftServer.Role.FOLLOWER);
         }

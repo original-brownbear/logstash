@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.cluster.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +33,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -45,18 +49,14 @@ import org.logstash.cluster.protocols.raft.protocol.RaftResponse;
 import org.logstash.cluster.protocols.raft.storage.system.Configuration;
 import org.logstash.cluster.utils.concurrent.Futures;
 import org.logstash.cluster.utils.concurrent.Scheduled;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Manages the persistent state of the Raft cluster from the perspective of a single server.
  */
 public final class RaftClusterContext implements RaftCluster, AutoCloseable {
-    private final Logger log;
+
+    private static final Logger LOGGER = LogManager.getLogger(RaftClusterContext.class);
+
     private final RaftContext raft;
     private final DefaultRaftMember member;
     private final Map<MemberId, RaftMemberContext> membersMap = new ConcurrentHashMap<>();
@@ -73,10 +73,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
     public RaftClusterContext(MemberId localMemberId, RaftContext raft) {
         Instant time = Instant.now();
         this.member = new DefaultRaftMember(localMemberId, RaftMember.Type.PASSIVE, time).setCluster(this);
-        this.raft = checkNotNull(raft, "context cannot be null");
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
-            .addValue(raft.getName())
-            .build());
+        this.raft = Preconditions.checkNotNull(raft, "context cannot be null");
 
         // If a configuration is stored, use the stored configuration, otherwise configure the server with the user provided configuration.
         configuration = raft.getMetaStore().loadConfiguration();
@@ -268,7 +265,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
 
             // If there are no remote members to leave, simply transition the server to INACTIVE.
             if (getActiveMemberStates().isEmpty() && configuration.index() <= raft.getCommitIndex()) {
-                log.trace("Single member cluster. Transitioning directly to inactive.");
+                LOGGER.trace("Single member cluster. Transitioning directly to inactive.");
                 raft.transition(RaftServer.Role.INACTIVE);
                 leaveFuture.complete(null);
             } else {
@@ -407,7 +404,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
 
             RaftMemberContext member = iterator.next();
 
-            log.debug("Attempting to join via {}", member.getMember().memberId());
+            LOGGER.debug("Attempting to join via {}", member.getMember().memberId());
 
             JoinRequest request = JoinRequest.builder()
                 .withMember(new DefaultRaftMember(getMember().memberId(), getMember().getType(), getMember().getLastUpdated()))
@@ -418,7 +415,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
 
                 if (error == null) {
                     if (response.status() == RaftResponse.Status.OK) {
-                        log.info("Successfully joined via {}", member.getMember().memberId());
+                        LOGGER.info("Successfully joined via {}", member.getMember().memberId());
 
                         Configuration configuration = new Configuration(response.index(), response.term(), response.timestamp(), response.members());
 
@@ -436,15 +433,15 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
                         // If the response error is null, that indicates that no error occurred but the leader was
                         // in a state that was incapable of handling the join request. Attempt to join the leader
                         // again after an election timeout.
-                        log.debug("Failed to join {}", member.getMember().memberId());
+                        LOGGER.debug("Failed to join {}", member.getMember().memberId());
                         resetJoinTimer();
                     } else {
                         // If the response error was non-null, attempt to join via the next server in the members list.
-                        log.debug("Failed to join {}", member.getMember().memberId());
+                        LOGGER.debug("Failed to join {}", member.getMember().memberId());
                         join(iterator);
                     }
                 } else {
-                    log.debug("Failed to join {}", member.getMember().memberId());
+                    LOGGER.debug("Failed to join {}", member.getMember().memberId());
                     join(iterator);
                 }
             }, raft.getThreadContext());
@@ -452,7 +449,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
         // If join attempts remain, schedule another attempt after two election timeouts. This allows enough time
         // for servers to potentially timeout and elect a leader.
         else {
-            log.debug("Failed to join cluster, retrying...");
+            LOGGER.debug("Failed to join cluster, retrying...");
             resetJoinTimer();
         }
     }
@@ -506,7 +503,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
      */
     private void cancelLeaveTimer() {
         if (leaveTimeout != null) {
-            log.trace("Cancelling leave timeout");
+            LOGGER.trace("Cancelling leave timeout");
             leaveTimeout.cancel();
             leaveTimeout = null;
         }
@@ -527,7 +524,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
      * @return The cluster state.
      */
     public RaftClusterContext configure(Configuration configuration) {
-        checkNotNull(configuration, "configuration cannot be null");
+        Preconditions.checkNotNull(configuration, "configuration cannot be null");
 
         // If the configuration index is less than the currently configured index, ignore it.
         // Configurations can be persisted and applying old configurations can revert newer configurations.
@@ -649,7 +646,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
      */
     private void cancelJoinTimer() {
         if (joinTimeout != null) {
-            log.trace("Cancelling join timeout");
+            LOGGER.trace("Cancelling join timeout");
             joinTimeout.cancel();
             joinTimeout = null;
         }
@@ -657,7 +654,7 @@ public final class RaftClusterContext implements RaftCluster, AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("server", raft.getName())
             .toString();
     }

@@ -1,20 +1,7 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.session.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -23,6 +10,8 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.phi.PhiAccrualFailureDetector;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -41,18 +30,14 @@ import org.logstash.cluster.protocols.raft.session.SessionId;
 import org.logstash.cluster.utils.TimestampPrinter;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Raft session.
  */
 public class RaftSessionContext implements RaftSession {
-    private final Logger log;
+
+    private static final Logger LOGGER = LogManager.getLogger(RaftSessionContext.class);
+
     private final SessionId sessionId;
     private final MemberId member;
     private final String name;
@@ -106,11 +91,6 @@ public class RaftSessionContext implements RaftSession {
         this.context = context;
         this.server = server;
         this.eventExecutor = threadContextFactory.createContext();
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftSession.class)
-            .addValue(sessionId)
-            .add("type", context.serviceType())
-            .add("name", context.serviceName())
-            .build());
         protocol.registerResetListener(sessionId, request -> resendEvents(request.index()), context.executor());
     }
 
@@ -155,7 +135,7 @@ public class RaftSessionContext implements RaftSession {
                     .withEvents(event.events)
                     .build();
 
-                log.trace("Sending {}", request);
+                LOGGER.trace("Sending {}", request);
                 protocol.publish(member, request);
             });
         }
@@ -208,7 +188,7 @@ public class RaftSessionContext implements RaftSession {
     private void setState(State state) {
         if (this.state != state) {
             this.state = state;
-            log.debug("State changed: {}", state);
+            LOGGER.debug("State changed: {}", state);
             switch (state) {
                 case OPEN:
                     eventListeners.forEach(l -> l.onEvent(new RaftSessionEvent(RaftSessionEvent.Type.OPEN, this, getLastUpdated())));
@@ -253,9 +233,9 @@ public class RaftSessionContext implements RaftSession {
     public void publish(RaftEvent event) {
         // Store volatile state in a local variable.
         State state = this.state;
-        checkState(state != State.EXPIRED, "session is expired");
-        checkState(state != State.CLOSED, "session is closed");
-        checkState(context.currentOperation() == OperationType.COMMAND, "session events can only be published during command execution");
+        Preconditions.checkState(state != State.EXPIRED, "session is expired");
+        Preconditions.checkState(state != State.CLOSED, "session is closed");
+        Preconditions.checkState(context.currentOperation() == OperationType.COMMAND, "session events can only be published during command execution");
 
         // If the client acked an index greater than the current event sequence number since we know the
         // client must have received it from another server.
@@ -561,7 +541,7 @@ public class RaftSessionContext implements RaftSession {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .addValue(context)
             .add("session", sessionId)
             .add("timestamp", TimestampPrinter.of(lastUpdated))

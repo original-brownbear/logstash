@@ -5,20 +5,22 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.tree.AsyncDocumentTree;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTreeListener;
 import org.logstash.cluster.time.Versioned;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Caching asynchronous document tree.
  */
 public class CachingAsyncDocumentTree<V> extends DelegatingAsyncDocumentTree<V> {
+
+    private static final Logger LOGGER = LogManager.getLogger(CachingAsyncDocumentTree.class);
+
     private static final int DEFAULT_CACHE_SIZE = 10000;
-    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final LoadingCache<DocumentPath, CompletableFuture<Versioned<V>>> cache;
     private final DocumentTreeListener<V> cacheUpdater;
@@ -50,7 +52,7 @@ public class CachingAsyncDocumentTree<V> extends DelegatingAsyncDocumentTree<V> 
             }
         };
         statusListener = status -> {
-            log.debug("{} status changed to {}", this.name(), status);
+            LOGGER.debug("{} status changed to {}", this.name(), status);
             // If the status of the underlying map is SUSPENDED or INACTIVE
             // we can no longer guarantee that the cache will be in sync.
             if (status == DistributedPrimitive.Status.SUSPENDED || status == DistributedPrimitive.Status.INACTIVE) {

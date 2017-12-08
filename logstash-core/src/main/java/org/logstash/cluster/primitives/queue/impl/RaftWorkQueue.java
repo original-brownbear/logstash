@@ -12,6 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.primitives.impl.AbstractRaftPrimitive;
 import org.logstash.cluster.primitives.queue.AsyncWorkQueue;
 import org.logstash.cluster.primitives.queue.Task;
@@ -24,8 +26,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.utils.AbstractAccumulator;
 import org.logstash.cluster.utils.Accumulator;
 import org.logstash.cluster.utils.concurrent.Threads;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Distributed resource providing the {@link WorkQueue} primitive.
@@ -37,7 +37,8 @@ public final class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncW
         .register(RaftWorkQueueEvents.NAMESPACE)
         .build());
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger LOGGER = LogManager.getLogger(RaftWorkQueue.class);
+
     private final ExecutorService executor;
     private final AtomicReference<RaftWorkQueue.TaskProcessor> taskProcessor = new AtomicReference<>();
     private final Timer timer = new Timer("atomix-work-queue-completer");
@@ -45,7 +46,7 @@ public final class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncW
 
     public RaftWorkQueue(final RaftProxy proxy) {
         super(proxy);
-        executor = Executors.newSingleThreadExecutor(Threads.namedThreads("atomix-work-queue-" + proxy.name() + "-%d", log));
+        executor = Executors.newSingleThreadExecutor(Threads.namedThreads("atomix-work-queue-" + proxy.name() + "-%d", LOGGER));
         proxy.addStateChangeListener(state -> {
             if (state == RaftProxy.State.CONNECTED && isRegistered.get()) {
                 proxy.invoke(RaftWorkQueueOperations.REGISTER);
@@ -171,7 +172,7 @@ public final class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncW
                         backingConsumer.accept(task.payload());
                         taskCompleter.add(task.taskId());
                     } catch (final Exception e) {
-                        log.debug("Task execution failed", e);
+                        LOGGER.debug("Task execution failed", e);
                     } finally {
                         headRoom.incrementAndGet();
                         resumeWork();

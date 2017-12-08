@@ -1,5 +1,7 @@
 package org.logstash.cluster.protocols.raft.service;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.service.impl.DefaultRaftServiceExecutor;
 import org.logstash.cluster.protocols.raft.session.RaftSession;
 import org.logstash.cluster.protocols.raft.session.RaftSessions;
@@ -8,15 +10,12 @@ import org.logstash.cluster.time.LogicalClock;
 import org.logstash.cluster.time.WallClock;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.Scheduler;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
 
 /**
  * Raft service.
  */
 public abstract class AbstractRaftService implements RaftService {
-    private Logger log;
+    private static final Logger LOGGER = LogManager.getLogger(AbstractRaftService.class);
     private ServiceContext context;
     private RaftServiceExecutor executor;
 
@@ -24,11 +23,6 @@ public abstract class AbstractRaftService implements RaftService {
     public void init(ServiceContext context) {
         this.context = context;
         this.executor = new DefaultRaftServiceExecutor(context);
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftService.class)
-            .addValue(context.serviceId())
-            .add("type", context.serviceType())
-            .add("name", context.serviceName())
-            .build());
         configure(executor);
     }
 
@@ -65,7 +59,7 @@ public abstract class AbstractRaftService implements RaftService {
      * @return the service logger
      */
     protected Logger logger() {
-        return log;
+        return LOGGER;
     }
 
     /**
