@@ -49,7 +49,7 @@ final class LeaderAppender extends AbstractAppender {
     private final long electionTimeout;
     private final long heartbeatInterval;
     private final Map<Long, CompletableFuture<Long>> appendFutures = new HashMap<>();
-    private final List<TimestampedFuture<Long>> heartbeatFutures = new ArrayList<>();
+    private final List<LeaderAppender.TimestampedFuture<Long>> heartbeatFutures = new ArrayList<>();
     private long heartbeatTime;
 
     LeaderAppender(LeaderRole leader) {
@@ -137,7 +137,7 @@ final class LeaderAppender extends AbstractAppender {
         }
 
         // Create a heartbeat future and add it to the heartbeat futures list.
-        TimestampedFuture<Long> future = new TimestampedFuture<>();
+        LeaderAppender.TimestampedFuture<Long> future = new LeaderAppender.TimestampedFuture<>();
         heartbeatFutures.add(future);
 
         // Iterate through members and append entries. Futures will be completed on responses from followers.
@@ -221,9 +221,9 @@ final class LeaderAppender extends AbstractAppender {
         // Iterate through pending timestamped heartbeat futures and fail futures that have been pending longer
         // than an election timeout.
         long currentTimestamp = System.currentTimeMillis();
-        Iterator<TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
+        Iterator<LeaderAppender.TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
         while (iterator.hasNext()) {
-            TimestampedFuture<Long> future = iterator.next();
+            LeaderAppender.TimestampedFuture<Long> future = iterator.next();
             if (currentTimestamp - future.timestamp > electionTimeout) {
                 future.completeExceptionally(new RaftException.ProtocolException("Failed to reach consensus"));
                 iterator.remove();
@@ -253,9 +253,9 @@ final class LeaderAppender extends AbstractAppender {
 
         // Iterate through pending timestamped heartbeat futures and complete all futures where the timestamp
         // is greater than the last timestamp a quorum of the cluster was contacted.
-        Iterator<TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
+        Iterator<LeaderAppender.TimestampedFuture<Long>> iterator = heartbeatFutures.iterator();
         while (iterator.hasNext()) {
-            TimestampedFuture<Long> future = iterator.next();
+            LeaderAppender.TimestampedFuture<Long> future = iterator.next();
 
             // If the future is timestamped prior to the last heartbeat to a majority of the cluster, complete the future.
             if (future.timestamp < heartbeatTime) {

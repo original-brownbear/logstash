@@ -1,20 +1,7 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.storage;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -29,10 +16,6 @@ import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.storage.journal.JournalSegmentDescriptor;
 import org.logstash.cluster.storage.journal.JournalSegmentFile;
 import org.logstash.cluster.storage.statistics.StorageStatistics;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Immutable log configuration and {@link RaftLog} factory.
@@ -253,7 +236,7 @@ public class RaftStorage {
      * files directly. Deleting the snapshot store does not involve reading any snapshot files into memory.
      */
     public void deleteSnapshotStore() {
-        deleteFiles(f -> SnapshotFile.isSnapshotFile(f));
+        deleteFiles(SnapshotFile::isSnapshotFile);
     }
 
     /**
@@ -290,7 +273,7 @@ public class RaftStorage {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("directory", directory())
             .toString();
     }
@@ -353,7 +336,7 @@ public class RaftStorage {
          * @return The storage builder.
          */
         public Builder withPrefix(String prefix) {
-            this.prefix = checkNotNull(prefix, "prefix cannot be null");
+            this.prefix = Preconditions.checkNotNull(prefix, "prefix cannot be null");
             return this;
         }
 
@@ -366,7 +349,7 @@ public class RaftStorage {
          * @return The storage builder.
          */
         public Builder withStorageLevel(StorageLevel storageLevel) {
-            this.storageLevel = checkNotNull(storageLevel, "storageLevel");
+            this.storageLevel = Preconditions.checkNotNull(storageLevel, "storageLevel");
             return this;
         }
 
@@ -380,7 +363,7 @@ public class RaftStorage {
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
         public Builder withDirectory(String directory) {
-            return withDirectory(new File(checkNotNull(directory, "directory")));
+            return withDirectory(new File(Preconditions.checkNotNull(directory, "directory")));
         }
 
         /**
@@ -393,7 +376,7 @@ public class RaftStorage {
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
         public Builder withDirectory(File directory) {
-            this.directory = checkNotNull(directory, "directory");
+            this.directory = Preconditions.checkNotNull(directory, "directory");
             return this;
         }
 
@@ -404,7 +387,7 @@ public class RaftStorage {
          * @throws NullPointerException If the {@code serializer} is {@code null}
          */
         public Builder withSerializer(Serializer serializer) {
-            this.serializer = checkNotNull(serializer, "serializer cannot be null");
+            this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
             return this;
         }
 
@@ -421,7 +404,7 @@ public class RaftStorage {
          * @throws IllegalArgumentException If the {@code maxSegmentSize} is not positive
          */
         public Builder withMaxSegmentSize(int maxSegmentSize) {
-            checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
+            Preconditions.checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
             this.maxSegmentSize = maxSegmentSize;
             return this;
         }
@@ -440,8 +423,8 @@ public class RaftStorage {
          * segment
          */
         public Builder withMaxEntriesPerSegment(int maxEntriesPerSegment) {
-            checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
-            checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
+            Preconditions.checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
+            Preconditions.checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
                 "max entries per segment cannot be greater than " + DEFAULT_MAX_ENTRIES_PER_SEGMENT);
             this.maxEntriesPerSegment = maxEntriesPerSegment;
             return this;
@@ -477,8 +460,8 @@ public class RaftStorage {
          * @return the Raft log builder
          */
         public Builder withFreeDiskBuffer(double freeDiskBuffer) {
-            checkArgument(freeDiskBuffer > 0, "freeDiskBuffer must be positive");
-            checkArgument(freeDiskBuffer < 1, "freeDiskBuffer must be less than 1");
+            Preconditions.checkArgument(freeDiskBuffer > 0, "freeDiskBuffer must be positive");
+            Preconditions.checkArgument(freeDiskBuffer < 1, "freeDiskBuffer must be less than 1");
             this.freeDiskBuffer = freeDiskBuffer;
             return this;
         }

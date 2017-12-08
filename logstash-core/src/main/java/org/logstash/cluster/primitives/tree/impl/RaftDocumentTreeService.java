@@ -1,19 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -54,43 +38,35 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
 
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeEvents.CHANGE;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.ADD_LISTENER;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.CLEAR;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.GET;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.GET_CHILDREN;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.REMOVE_LISTENER;
-import static org.logstash.cluster.primitives.tree.impl.RaftDocumentTreeOperations.UPDATE;
-
 /**
  * State Machine for {@link RaftDocumentTree} resource.
  */
 public class RaftDocumentTreeService extends AbstractRaftService {
-    private Map<Long, SessionListenCommits> listeners = new HashMap<>();
+    private Map<Long, RaftDocumentTreeService.SessionListenCommits> listeners = new HashMap<>();
     private AtomicLong versionCounter = new AtomicLong(0);
     private final Serializer serializer = Serializer.using(KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .register(RaftDocumentTreeOperations.NAMESPACE)
         .register(RaftDocumentTreeEvents.NAMESPACE)
-        .register(new com.esotericsoftware.kryo.Serializer<Listener>() {
+        .register(new com.esotericsoftware.kryo.Serializer<RaftDocumentTreeService.Listener>() {
             @Override
-            public void write(Kryo kryo, Output output, Listener listener) {
+            public void write(Kryo kryo, Output output, RaftDocumentTreeService.Listener listener) {
                 output.writeLong(listener.session.sessionId().id());
                 kryo.writeObject(output, listener.path);
             }
 
             @Override
-            public Listener read(Kryo kryo, Input input, Class<Listener> type) {
-                return new Listener(sessions().getSession(input.readLong()),
+            public RaftDocumentTreeService.Listener read(Kryo kryo, Input input, Class<RaftDocumentTreeService.Listener> type) {
+                return new RaftDocumentTreeService.Listener(sessions().getSession(input.readLong()),
                     kryo.readObjectOrNull(input, DocumentPath.class));
             }
-        }, Listener.class)
+        }, RaftDocumentTreeService.Listener.class)
         .register(Versioned.class)
         .register(DocumentPath.class)
         .register(new LinkedHashMap().keySet().getClass())
         .register(TreeMap.class)
         .register(Ordering.class)
-        .register(SessionListenCommits.class)
+        .register(RaftDocumentTreeService.SessionListenCommits.class)
         .register(new com.esotericsoftware.kryo.Serializer<DefaultDocumentTree>() {
             @Override
             public void write(Kryo kryo, Output output, DefaultDocumentTree object) {
@@ -132,14 +108,14 @@ public class RaftDocumentTreeService extends AbstractRaftService {
     @Override
     protected void configure(RaftServiceExecutor executor) {
         // Listeners
-        executor.register(ADD_LISTENER, serializer::decode, this::listen);
-        executor.register(REMOVE_LISTENER, serializer::decode, this::unlisten);
+        executor.register(RaftDocumentTreeOperations.ADD_LISTENER, serializer::decode, this::listen);
+        executor.register(RaftDocumentTreeOperations.REMOVE_LISTENER, serializer::decode, this::unlisten);
         // queries
-        executor.register(GET, serializer::decode, this::get, serializer::encode);
-        executor.register(GET_CHILDREN, serializer::decode, this::getChildren, serializer::encode);
+        executor.register(RaftDocumentTreeOperations.GET, serializer::decode, this::get, serializer::encode);
+        executor.register(RaftDocumentTreeOperations.GET_CHILDREN, serializer::decode, this::getChildren, serializer::encode);
         // commands
-        executor.register(UPDATE, serializer::decode, this::update, serializer::encode);
-        executor.register(CLEAR, this::clear);
+        executor.register(RaftDocumentTreeOperations.UPDATE, serializer::decode, this::update, serializer::encode);
+        executor.register(RaftDocumentTreeOperations.CLEAR, this::clear);
     }
 
     @Override
@@ -158,13 +134,13 @@ public class RaftDocumentTreeService extends AbstractRaftService {
 
     protected void listen(Commit<? extends RaftDocumentTreeOperations.Listen> commit) {
         Long sessionId = commit.session().sessionId().id();
-        listeners.computeIfAbsent(sessionId, k -> new SessionListenCommits())
-            .add(new Listener(commit.session(), commit.value().path()));
+        listeners.computeIfAbsent(sessionId, k -> new RaftDocumentTreeService.SessionListenCommits())
+            .add(new RaftDocumentTreeService.Listener(commit.session(), commit.value().path()));
     }
 
     protected void unlisten(Commit<? extends RaftDocumentTreeOperations.Unlisten> commit) {
         Long sessionId = commit.session().sessionId().id();
-        SessionListenCommits listenCommits = listeners.get(sessionId);
+        RaftDocumentTreeService.SessionListenCommits listenCommits = listeners.get(sessionId);
         if (listenCommits != null) {
             listenCommits.remove(commit);
         }
@@ -260,7 +236,7 @@ public class RaftDocumentTreeService extends AbstractRaftService {
         listeners.values()
             .stream()
             .filter(l -> event.path().isDescendentOf(l.leastCommonAncestorPath()))
-            .forEach(listener -> listener.publish(CHANGE, Arrays.asList(event)));
+            .forEach(listener -> listener.publish(RaftDocumentTreeEvents.CHANGE, Arrays.asList(event)));
     }
 
     protected void clear(Commit<Void> commit) {
@@ -284,7 +260,7 @@ public class RaftDocumentTreeService extends AbstractRaftService {
 
     private void publish(List<DocumentTreeEvent<byte[]>> events) {
         listeners.values().forEach(session -> {
-            session.publish(CHANGE, events);
+            session.publish(RaftDocumentTreeEvents.CHANGE, events);
         });
     }
 
@@ -307,25 +283,25 @@ public class RaftDocumentTreeService extends AbstractRaftService {
     }
 
     private class SessionListenCommits {
-        private final List<Listener> listeners = Lists.newArrayList();
+        private final List<RaftDocumentTreeService.Listener> listeners = Lists.newArrayList();
         private DocumentPath leastCommonAncestorPath;
 
-        public void add(Listener listener) {
+        public void add(RaftDocumentTreeService.Listener listener) {
             listeners.add(listener);
             recomputeLeastCommonAncestor();
         }
 
         private void recomputeLeastCommonAncestor() {
             this.leastCommonAncestorPath = DocumentPath.leastCommonAncestor(listeners.stream()
-                .map(Listener::path)
+                .map(RaftDocumentTreeService.Listener::path)
                 .collect(Collectors.toList()));
         }
 
         public void remove(Commit<? extends RaftDocumentTreeOperations.Unlisten> commit) {
             // Remove the first listen commit with path matching path in unlisten commit
-            Iterator<Listener> iterator = listeners.iterator();
+            Iterator<RaftDocumentTreeService.Listener> iterator = listeners.iterator();
             while (iterator.hasNext()) {
-                Listener listener = iterator.next();
+                RaftDocumentTreeService.Listener listener = iterator.next();
                 if (listener.path().equals(commit.value().path())) {
                     iterator.remove();
                 }

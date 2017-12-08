@@ -1,7 +1,7 @@
 package org.logstash.cluster.protocols.raft;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 
 /**
  * Base type for Raft protocol errors.
@@ -14,7 +14,7 @@ public class RaftError {
     private final String message;
 
     public RaftError(Type type, String message) {
-        this.type = checkNotNull(type, "type cannot be null");
+        this.type = Preconditions.checkNotNull(type, "type cannot be null");
         this.message = message;
     }
 
@@ -44,7 +44,7 @@ public class RaftError {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("type", type)
             .add("message", message)
             .toString();

@@ -1,18 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives;
 
 import java.time.Duration;
@@ -30,8 +15,6 @@ import org.logstash.cluster.primitives.set.AsyncDistributedSet;
 import org.logstash.cluster.primitives.tree.AsyncDocumentTree;
 import org.logstash.cluster.primitives.value.AsyncAtomicValue;
 import org.logstash.cluster.serializer.Serializer;
-
-import static org.logstash.cluster.primitives.DistributedPrimitive.DEFAULT_OPERATION_TIMEOUT_MILLIS;
 
 /**
  * Interface for entity that can create instances of different distributed primitives.
@@ -116,7 +99,7 @@ public interface DistributedPrimitiveCreator {
      * @return leader elector
      */
     default <T> AsyncLeaderElector<T> newAsyncLeaderElector(String name, Serializer serializer) {
-        return newAsyncLeaderElector(name, serializer, Duration.ofMillis(DEFAULT_OPERATION_TIMEOUT_MILLIS));
+        return newAsyncLeaderElector(name, serializer, Duration.ofMillis(DistributedPrimitive.DEFAULT_OPERATION_TIMEOUT_MILLIS));
     }
 
     /**
@@ -134,7 +117,7 @@ public interface DistributedPrimitiveCreator {
      * @return distributed lock
      */
     default AsyncDistributedLock newAsyncDistributedLock(String name) {
-        return newAsyncDistributedLock(name, Duration.ofMillis(DEFAULT_OPERATION_TIMEOUT_MILLIS));
+        return newAsyncDistributedLock(name, Duration.ofMillis(DistributedPrimitive.DEFAULT_OPERATION_TIMEOUT_MILLIS));
     }
 
     /**
