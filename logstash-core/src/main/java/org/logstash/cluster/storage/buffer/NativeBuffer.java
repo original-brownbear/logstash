@@ -1,16 +1,11 @@
 package org.logstash.cluster.storage.buffer;
 
-import org.logstash.cluster.utils.concurrent.ReferenceManager;
 import org.logstash.cluster.utils.memory.NativeMemory;
 
 /**
  * Native byte buffer implementation.
  */
 public abstract class NativeBuffer extends AbstractBuffer {
-
-    protected NativeBuffer(NativeBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
-    }
 
     protected NativeBuffer(NativeBytes bytes, int offset, int initialCapacity, int maxCapacity) {
         super(bytes, offset, initialCapacity, maxCapacity, null);

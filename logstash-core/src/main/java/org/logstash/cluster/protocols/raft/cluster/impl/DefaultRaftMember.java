@@ -1,20 +1,7 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.cluster.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
 import java.time.Instant;
 import java.util.Objects;
@@ -30,9 +17,6 @@ import org.logstash.cluster.protocols.raft.protocol.ReconfigureRequest;
 import org.logstash.cluster.protocols.raft.storage.system.Configuration;
 import org.logstash.cluster.utils.concurrent.Scheduled;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Cluster member.
  */
@@ -46,12 +30,12 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
     private transient RaftClusterContext cluster;
 
     public DefaultRaftMember(MemberId id, Type type, Instant updated) {
-        this.id = checkNotNull(id, "id cannot be null");
+        this.id = Preconditions.checkNotNull(id, "id cannot be null");
         this.hash = Hashing.murmur3_32()
             .hashUnencodedChars(id.id())
             .asInt();
-        this.type = checkNotNull(type, "type cannot be null");
-        this.updated = checkNotNull(updated, "updated cannot be null");
+        this.type = Preconditions.checkNotNull(type, "type cannot be null");
+        this.updated = Preconditions.checkNotNull(updated, "updated cannot be null");
     }
 
     /**
@@ -138,9 +122,9 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
      */
     public DefaultRaftMember update(RaftMember.Type type, Instant time) {
         if (this.type != type) {
-            this.type = checkNotNull(type, "type cannot be null");
+            this.type = Preconditions.checkNotNull(type, "type cannot be null");
             if (time.isAfter(updated)) {
-                this.updated = checkNotNull(time, "time cannot be null");
+                this.updated = Preconditions.checkNotNull(time, "time cannot be null");
             }
             if (typeChangeListeners != null) {
                 typeChangeListeners.forEach(l -> l.accept(type));
@@ -225,7 +209,7 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id)
             .add("type", type)
             .add("updated", updated)

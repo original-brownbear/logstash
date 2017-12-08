@@ -23,11 +23,6 @@ import org.logstash.cluster.utils.concurrent.ReferenceManager;
 public abstract class ByteBufferBuffer extends AbstractBuffer {
     protected final ByteBufferBytes bytes;
 
-    public ByteBufferBuffer(ByteBufferBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
-        this.bytes = bytes;
-    }
-
     public ByteBufferBuffer(ByteBufferBytes bytes, int offset, int initialCapacity, int maxCapacity, ReferenceManager<Buffer> referenceManager) {
         super(bytes, offset, initialCapacity, maxCapacity, referenceManager);
         this.bytes = bytes;

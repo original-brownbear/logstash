@@ -1,20 +1,6 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
@@ -34,9 +20,6 @@ import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.protocols.raft.storage.log.RaftLog;
 import org.logstash.cluster.protocols.raft.storage.snapshot.SnapshotStore;
 import org.logstash.cluster.protocols.raft.storage.system.MetaStore;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Provides a standalone implementation of the <a href="http://raft.github.io/">Raft consensus algorithm</a>.
@@ -391,7 +374,7 @@ public interface RaftServer {
      * @return A completable future to be completed once the local server has joined the cluster as a listener.
      */
     default CompletableFuture<RaftServer> listen(MemberId... cluster) {
-        return listen(Arrays.asList(checkNotNull(cluster)));
+        return listen(Arrays.asList(Preconditions.checkNotNull(cluster)));
     }
 
     /**
@@ -548,7 +531,7 @@ public interface RaftServer {
         protected int threadPoolSize = DEFAULT_THREAD_POOL_SIZE;
 
         protected Builder(MemberId localMemberId) {
-            this.localMemberId = checkNotNull(localMemberId, "localMemberId cannot be null");
+            this.localMemberId = Preconditions.checkNotNull(localMemberId, "localMemberId cannot be null");
         }
 
         /**
@@ -559,7 +542,7 @@ public interface RaftServer {
          * @return The server builder.
          */
         public Builder withName(String name) {
-            this.name = checkNotNull(name, "name cannot be null");
+            this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
 
@@ -579,7 +562,7 @@ public interface RaftServer {
          * @return The server builder.
          */
         public Builder withProtocol(RaftServerProtocol protocol) {
-            this.protocol = checkNotNull(protocol, "protocol cannot be null");
+            this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
             return this;
         }
 
@@ -589,7 +572,7 @@ public interface RaftServer {
          * @return the server builder
          */
         public Builder withThreadModel(ThreadModel threadModel) {
-            this.threadModel = checkNotNull(threadModel, "threadModel cannot be null");
+            this.threadModel = Preconditions.checkNotNull(threadModel, "threadModel cannot be null");
             return this;
         }
 
@@ -600,7 +583,7 @@ public interface RaftServer {
          * @throws NullPointerException if {@code storage} is null
          */
         public Builder withStorage(RaftStorage storage) {
-            this.storage = checkNotNull(storage, "storage cannot be null");
+            this.storage = Preconditions.checkNotNull(storage, "storage cannot be null");
             return this;
         }
 
@@ -624,9 +607,9 @@ public interface RaftServer {
          * @throws NullPointerException if {@code electionTimeout} is null
          */
         public Builder withElectionTimeout(Duration electionTimeout) {
-            checkNotNull(electionTimeout, "electionTimeout cannot be null");
-            checkArgument(!electionTimeout.isNegative() && !electionTimeout.isZero(), "electionTimeout must be positive");
-            checkArgument(electionTimeout.toMillis() > heartbeatInterval.toMillis(), "electionTimeout must be greater than heartbeatInterval");
+            Preconditions.checkNotNull(electionTimeout, "electionTimeout cannot be null");
+            Preconditions.checkArgument(!electionTimeout.isNegative() && !electionTimeout.isZero(), "electionTimeout must be positive");
+            Preconditions.checkArgument(electionTimeout.toMillis() > heartbeatInterval.toMillis(), "electionTimeout must be greater than heartbeatInterval");
             this.electionTimeout = electionTimeout;
             return this;
         }
@@ -639,9 +622,9 @@ public interface RaftServer {
          * @throws NullPointerException if {@code heartbeatInterval} is null
          */
         public Builder withHeartbeatInterval(Duration heartbeatInterval) {
-            checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
-            checkArgument(!heartbeatInterval.isNegative() && !heartbeatInterval.isZero(), "sessionTimeout must be positive");
-            checkArgument(heartbeatInterval.toMillis() < electionTimeout.toMillis(), "heartbeatInterval must be less than electionTimeout");
+            Preconditions.checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
+            Preconditions.checkArgument(!heartbeatInterval.isNegative() && !heartbeatInterval.isZero(), "sessionTimeout must be positive");
+            Preconditions.checkArgument(heartbeatInterval.toMillis() < electionTimeout.toMillis(), "heartbeatInterval must be less than electionTimeout");
             this.heartbeatInterval = heartbeatInterval;
             return this;
         }
@@ -656,7 +639,7 @@ public interface RaftServer {
          * @throws IllegalArgumentException if the threshold is not positive
          */
         public Builder withElectionThreshold(int electionThreshold) {
-            checkArgument(electionThreshold > 0, "electionThreshold must be positive");
+            Preconditions.checkArgument(electionThreshold > 0, "electionThreshold must be positive");
             this.electionThreshold = electionThreshold;
             return this;
         }
@@ -669,9 +652,9 @@ public interface RaftServer {
          * @throws NullPointerException if {@code sessionTimeout} is null
          */
         public Builder withSessionTimeout(Duration sessionTimeout) {
-            checkNotNull(sessionTimeout, "sessionTimeout cannot be null");
-            checkArgument(!sessionTimeout.isNegative() && !sessionTimeout.isZero(), "sessionTimeout must be positive");
-            checkArgument(sessionTimeout.toMillis() > electionTimeout.toMillis(), "sessionTimeout must be greater than electionTimeout");
+            Preconditions.checkNotNull(sessionTimeout, "sessionTimeout cannot be null");
+            Preconditions.checkArgument(!sessionTimeout.isNegative() && !sessionTimeout.isZero(), "sessionTimeout must be positive");
+            Preconditions.checkArgument(sessionTimeout.toMillis() > electionTimeout.toMillis(), "sessionTimeout must be greater than electionTimeout");
             this.sessionTimeout = sessionTimeout;
             return this;
         }
@@ -685,7 +668,7 @@ public interface RaftServer {
          * @throws IllegalArgumentException if the threshold is not positive
          */
         public Builder withSessionFailureThreshold(int sessionFailureThreshold) {
-            checkArgument(sessionFailureThreshold > 0, "sessionFailureThreshold must be positive");
+            Preconditions.checkArgument(sessionFailureThreshold > 0, "sessionFailureThreshold must be positive");
             this.sessionFailureThreshold = sessionFailureThreshold;
             return this;
         }
@@ -696,7 +679,7 @@ public interface RaftServer {
          * @return The server builder.
          */
         public Builder withThreadPoolSize(int threadPoolSize) {
-            checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
+            Preconditions.checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
             this.threadPoolSize = threadPoolSize;
             return this;
         }

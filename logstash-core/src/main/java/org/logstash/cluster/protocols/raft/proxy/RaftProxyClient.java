@@ -1,20 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.proxy;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -24,9 +10,6 @@ import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.utils.Managed;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Raft proxy client.
@@ -54,7 +37,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @return The session builder.
          */
         public Builder withName(String name) {
-            this.name = checkNotNull(name, "name cannot be null");
+            this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
 
@@ -73,7 +56,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @return The session builder.
          */
         public Builder withServiceType(ServiceType serviceType) {
-            this.serviceType = checkNotNull(serviceType, "serviceType cannot be null");
+            this.serviceType = Preconditions.checkNotNull(serviceType, "serviceType cannot be null");
             return this;
         }
 
@@ -83,7 +66,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @return the proxy builder
          */
         public Builder withReadConsistency(ReadConsistency consistency) {
-            this.readConsistency = checkNotNull(consistency, "consistency cannot be null");
+            this.readConsistency = Preconditions.checkNotNull(consistency, "consistency cannot be null");
             return this;
         }
 
@@ -94,7 +77,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws NullPointerException if the communication strategy is null
          */
         public Builder withCommunicationStrategy(CommunicationStrategy communicationStrategy) {
-            this.communicationStrategy = checkNotNull(communicationStrategy, "communicationStrategy");
+            this.communicationStrategy = Preconditions.checkNotNull(communicationStrategy, "communicationStrategy");
             return this;
         }
 
@@ -104,7 +87,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @return the proxy builder
          */
         public Builder withMaxRetries(int maxRetries) {
-            checkArgument(maxRetries >= 0, "maxRetries must be positive");
+            Preconditions.checkArgument(maxRetries >= 0, "maxRetries must be positive");
             this.maxRetries = maxRetries;
             return this;
         }
@@ -125,7 +108,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws NullPointerException if the delay is null
          */
         public Builder withRetryDelay(Duration retryDelay) {
-            this.retryDelay = checkNotNull(retryDelay, "retryDelay cannot be null");
+            this.retryDelay = Preconditions.checkNotNull(retryDelay, "retryDelay cannot be null");
             return this;
         }
 
@@ -147,7 +130,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws NullPointerException if the strategy is null
          */
         public Builder withRecoveryStrategy(RecoveryStrategy recoveryStrategy) {
-            this.recoveryStrategy = checkNotNull(recoveryStrategy, "recoveryStrategy cannot be null");
+            this.recoveryStrategy = Preconditions.checkNotNull(recoveryStrategy, "recoveryStrategy cannot be null");
             return this;
         }
 
@@ -169,7 +152,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws NullPointerException if the timeout is null
          */
         public Builder withMinTimeout(Duration timeout) {
-            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
+            Preconditions.checkArgument(!Preconditions.checkNotNull(timeout).isNegative(), "timeout must be positive");
             this.minTimeout = timeout;
             return this;
         }
@@ -193,7 +176,7 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
          * @throws NullPointerException if the timeout is null
          */
         public Builder withMaxTimeout(Duration timeout) {
-            checkArgument(!checkNotNull(timeout).isNegative(), "timeout must be positive");
+            Preconditions.checkArgument(!Preconditions.checkNotNull(timeout).isNegative(), "timeout must be positive");
             this.maxTimeout = timeout;
             return this;
         }

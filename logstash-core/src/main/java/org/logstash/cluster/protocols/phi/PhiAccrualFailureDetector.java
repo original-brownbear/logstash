@@ -1,23 +1,7 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.phi;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Phi Accrual failure detector.
@@ -33,6 +17,7 @@ public class PhiAccrualFailureDetector {
     private final int minSamples;
     private final double phiFactor;
     private final History history;
+
     /**
      * Creates a new failure detector with the default configuration.
      */
@@ -81,7 +66,7 @@ public class PhiAccrualFailureDetector {
      * @param arrivalTime arrival time
      */
     public void report(long arrivalTime) {
-        checkArgument(arrivalTime >= 0, "arrivalTime must not be negative");
+        Preconditions.checkArgument(arrivalTime >= 0, "arrivalTime must not be negative");
         long latestHeartbeat = history.latestHeartbeatTime();
         if (latestHeartbeat != -1) {
             history.samples().addValue(arrivalTime - latestHeartbeat);
@@ -155,7 +140,7 @@ public class PhiAccrualFailureDetector {
          * @return the phi accrual failure detector builder
          */
         public Builder withMinSamples(int minSamples) {
-            checkArgument(minSamples > 0, "minSamples must be positive");
+            Preconditions.checkArgument(minSamples > 0, "minSamples must be positive");
             this.minSamples = minSamples;
             return this;
         }
@@ -176,7 +161,7 @@ public class PhiAccrualFailureDetector {
          * @return the phi accrual failure detector builder
          */
         public Builder withWindowSize(int windowSize) {
-            checkArgument(windowSize > 0, "windowSize must be positive");
+            Preconditions.checkArgument(windowSize > 0, "windowSize must be positive");
             this.windowSize = windowSize;
             return this;
         }

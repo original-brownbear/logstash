@@ -1,7 +1,6 @@
 package org.logstash.cluster.storage.buffer;
 
 import com.google.common.base.Preconditions;
-import org.logstash.cluster.utils.concurrent.ReferenceManager;
 import org.logstash.cluster.utils.memory.HeapMemory;
 import org.logstash.cluster.utils.memory.Memory;
 
@@ -12,11 +11,6 @@ import org.logstash.cluster.utils.memory.Memory;
 public class UnsafeHeapBuffer extends AbstractBuffer {
 
     private final UnsafeHeapBytes bytes;
-
-    protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, ReferenceManager<Buffer> referenceManager) {
-        super(bytes, referenceManager);
-        this.bytes = bytes;
-    }
 
     protected UnsafeHeapBuffer(UnsafeHeapBytes bytes, int offset, int initialCapacity, int maxCapacity) {
         super(bytes, offset, initialCapacity, maxCapacity, null);

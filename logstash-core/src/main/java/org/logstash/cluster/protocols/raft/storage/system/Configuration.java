@@ -1,27 +1,10 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.storage.system;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
 import org.logstash.cluster.utils.TimestampPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents a persisted server configuration.
@@ -33,8 +16,8 @@ public class Configuration {
     private final Collection<RaftMember> members;
 
     public Configuration(long index, long term, long time, Collection<RaftMember> members) {
-        checkArgument(time > 0, "time must be positive");
-        checkNotNull(members, "members cannot be null");
+        Preconditions.checkArgument(time > 0, "time must be positive");
+        Preconditions.checkNotNull(members, "members cannot be null");
         this.index = index;
         this.term = term;
         this.time = time;
@@ -80,7 +63,7 @@ public class Configuration {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index)
             .add("time", new TimestampPrinter(time))
             .add("members", members)
