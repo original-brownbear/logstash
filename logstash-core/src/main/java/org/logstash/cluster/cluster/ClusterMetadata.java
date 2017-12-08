@@ -10,16 +10,14 @@ import org.logstash.cluster.cluster.impl.DefaultNode;
 /**
  * Cluster metadata.
  */
-public class ClusterMetadata {
+public final class ClusterMetadata {
 
     private final String name;
     private final Node localNode;
     private final Collection<Node> bootstrapNodes;
 
-    protected ClusterMetadata(
-        String name,
-        Node localNode,
-        Collection<Node> bootstrapNodes) {
+    ClusterMetadata(final String name, final Node localNode,
+        final Collection<Node> bootstrapNodes) {
         this.name = Preconditions.checkNotNull(name, "name cannot be null");
         this.localNode = ((DefaultNode) localNode).setType(bootstrapNodes.contains(localNode) ? Node.Type.CORE : Node.Type.CLIENT);
         this.bootstrapNodes = bootstrapNodes.stream()
@@ -82,7 +80,7 @@ public class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the name is null
          */
-        public Builder withClusterName(String name) {
+        public Builder withClusterName(final String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -92,7 +90,7 @@ public class ClusterMetadata {
          * @param localNode the local node metadata
          * @return the cluster metadata builder
          */
-        public Builder withLocalNode(Node localNode) {
+        public Builder withLocalNode(final Node localNode) {
             this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
@@ -103,7 +101,7 @@ public class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(Node... bootstrapNodes) {
+        public Builder withBootstrapNodes(final Node... bootstrapNodes) {
             return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
@@ -113,7 +111,7 @@ public class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(Collection<Node> bootstrapNodes) {
+        public Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
             this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }

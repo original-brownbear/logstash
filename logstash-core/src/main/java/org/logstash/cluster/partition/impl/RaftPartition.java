@@ -60,7 +60,7 @@ import org.logstash.cluster.serializer.Serializer;
 /**
  * Abstract partition.
  */
-public class RaftPartition implements ManagedPartition {
+public final class RaftPartition implements ManagedPartition {
     public static final Map<String, Supplier<RaftService>> RAFT_SERVICES =
         ImmutableMap.<String, Supplier<RaftService>>builder()
             .put(DistributedPrimitive.Type.CONSISTENT_MAP.name(), RaftConsistentMapService::new)
@@ -79,10 +79,10 @@ public class RaftPartition implements ManagedPartition {
             .put(String.format("%s-%s", DistributedPrimitive.Type.DOCUMENT_TREE.name(), Ordering.INSERTION),
                 () -> new RaftDocumentTreeService(Ordering.INSERTION))
             .build();
-    protected final AtomicBoolean isOpened = new AtomicBoolean(false);
-    protected final ClusterCommunicationService clusterCommunicator;
-    protected final PartitionMetadata partition;
-    protected final NodeId localNodeId;
+    private final AtomicBoolean isOpened = new AtomicBoolean(false);
+    private final ClusterCommunicationService clusterCommunicator;
+    private final PartitionMetadata partition;
+    private final NodeId localNodeId;
     private final File dataDir;
     private final RaftPartitionClient client;
     private final RaftPartitionServer server;
@@ -103,7 +103,7 @@ public class RaftPartition implements ManagedPartition {
     /**
      * Creates a Raft server.
      */
-    protected RaftPartitionServer createServer() {
+    private RaftPartitionServer createServer() {
         return new RaftPartitionServer(
             this,
             MemberId.from(localNodeId.id()),
@@ -151,7 +151,7 @@ public class RaftPartition implements ManagedPartition {
      * Returns the identifiers of partition members.
      * @return partition member instance ids
      */
-    Collection<NodeId> members() {
+    private Collection<NodeId> members() {
         return partition.members();
     }
 
