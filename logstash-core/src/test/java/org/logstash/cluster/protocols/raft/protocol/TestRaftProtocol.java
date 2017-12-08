@@ -15,7 +15,6 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
-import java.util.Collection;
 import java.util.Map;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 
@@ -33,10 +32,6 @@ public abstract class TestRaftProtocol {
 
     TestRaftServerProtocol server(MemberId memberId) {
         return servers.get(memberId);
-    }
-
-    Collection<TestRaftServerProtocol> servers() {
-        return servers.values();
     }
 
     TestRaftClientProtocol client(MemberId memberId) {

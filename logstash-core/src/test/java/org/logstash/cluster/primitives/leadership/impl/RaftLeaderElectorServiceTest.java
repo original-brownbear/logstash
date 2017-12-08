@@ -51,7 +51,7 @@ import static org.mockito.Mockito.when;
  */
 public class RaftLeaderElectorServiceTest {
     @Test
-    public void testSnapshot() throws Exception {
+    public void testSnapshot() {
         SnapshotStore store = new SnapshotStore(RaftStorage.builder()
             .withPrefix("test")
             .withStorageLevel(StorageLevel.MEMORY)

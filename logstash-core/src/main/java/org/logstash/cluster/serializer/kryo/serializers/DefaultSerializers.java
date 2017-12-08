@@ -26,7 +26,7 @@ public class DefaultSerializers {
     /**
      * Basic serializer.
      */
-    public static Serializer BASIC = Serializer.using(KryoNamespaces.BASIC);
+    public static final Serializer BASIC = Serializer.using(KryoNamespaces.BASIC);
 
     private DefaultSerializers() {
     }

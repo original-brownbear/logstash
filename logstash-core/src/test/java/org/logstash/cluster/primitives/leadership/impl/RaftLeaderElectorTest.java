@@ -51,7 +51,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testRun() throws Throwable {
+    public void testRun() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-run");
         elector1.run(node1).thenAccept(result -> {
             assertArrayEquals(node1, result.leader().id());
@@ -71,7 +71,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testWithdraw() throws Throwable {
+    public void testWithdraw() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-withdraw");
         elector1.run(node1).join();
         RaftLeaderElector elector2 = newPrimitive("test-elector-withdraw");
@@ -109,7 +109,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testAnoint() throws Throwable {
+    public void testAnoint() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-anoint");
         RaftLeaderElector elector2 = newPrimitive("test-elector-anoint");
         RaftLeaderElector elector3 = newPrimitive("test-elector-anoint");
@@ -155,7 +155,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testPromote() throws Throwable {
+    public void testPromote() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-promote");
         RaftLeaderElector elector2 = newPrimitive("test-elector-promote");
         RaftLeaderElector elector3 = newPrimitive("test-elector-promote");
@@ -205,7 +205,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testLeaderSessionClose() throws Throwable {
+    public void testLeaderSessionClose() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-leader-session-close");
         elector1.run(node1).join();
         RaftLeaderElector elector2 = newPrimitive("test-elector-leader-session-close");
@@ -221,7 +221,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testNonLeaderSessionClose() throws Throwable {
+    public void testNonLeaderSessionClose() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-non-leader-session-close");
         elector1.run(node1).join();
         RaftLeaderElector elector2 = newPrimitive("test-elector-non-leader-session-close");
@@ -237,7 +237,7 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
     }
 
     @Test
-    public void testQueries() throws Throwable {
+    public void testQueries() {
         RaftLeaderElector elector1 = newPrimitive("test-elector-query");
         RaftLeaderElector elector2 = newPrimitive("test-elector-query");
         elector1.run(node1).join();
@@ -273,10 +273,6 @@ public class RaftLeaderElectorTest extends AbstractRaftPrimitiveTest<RaftLeaderE
 
         public boolean hasEvent() {
             return !eventQueue.isEmpty();
-        }
-
-        public void clearEvents() {
-            eventQueue.clear();
         }
 
         public CompletableFuture<LeadershipEvent<byte[]>> nextEvent() {

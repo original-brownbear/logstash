@@ -15,7 +15,7 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Base request for all client requests.
@@ -37,7 +37,7 @@ public abstract class AbstractRaftRequest implements RaftRequest {
 
         @Override
         public String toString() {
-            return toStringHelper(this).toString();
+            return MoreObjects.toStringHelper(this).toString();
         }
     }
 }

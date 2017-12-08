@@ -79,7 +79,7 @@ public abstract class AbstractLogTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testLogWriteRead() throws Exception {
+    public void testLogWriteRead() {
         RaftLog log = createLog();
         RaftLogWriter writer = log.writer();
         RaftLogReader reader = log.openReader(1, RaftLogReader.Mode.ALL);
@@ -210,7 +210,7 @@ public abstract class AbstractLogTest {
     protected abstract StorageLevel storageLevel();
 
     @Test
-    public void testResetTruncateZero() throws Exception {
+    public void testResetTruncateZero() {
         RaftLog log = createLog();
         RaftLogWriter writer = log.writer();
         RaftLogReader reader = log.openReader(1, RaftLogReader.Mode.ALL);
@@ -238,7 +238,7 @@ public abstract class AbstractLogTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testWriteReadEntries() throws Exception {
+    public void testWriteReadEntries() {
         RaftLog log = createLog();
         RaftLogWriter writer = log.writer();
         RaftLogReader reader = log.openReader(1, RaftLogReader.Mode.ALL);
@@ -281,7 +281,7 @@ public abstract class AbstractLogTest {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void testWriteReadCommittedEntries() throws Exception {
+    public void testWriteReadCommittedEntries() {
         RaftLog log = createLog();
         RaftLogWriter writer = log.writer();
         RaftLogReader reader = log.openReader(1, RaftLogReader.Mode.COMMITS);

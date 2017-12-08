@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.FileBuffer;
 import org.logstash.cluster.storage.buffer.HeapBuffer;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Stores information about a {@link Snapshot} of the state machine.
@@ -39,7 +38,7 @@ public final class SnapshotDescriptor implements AutoCloseable {
      * @throws NullPointerException if {@code buffer} is null
      */
     public SnapshotDescriptor(Buffer buffer) {
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
+        this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null");
         this.serviceId = buffer.readLong();
         this.index = buffer.readLong();
         this.timestamp = buffer.readLong();
@@ -146,7 +145,7 @@ public final class SnapshotDescriptor implements AutoCloseable {
         private final Buffer buffer;
 
         private Builder(Buffer buffer) {
-            this.buffer = checkNotNull(buffer, "buffer cannot be null");
+            this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null");
         }
 
         /**

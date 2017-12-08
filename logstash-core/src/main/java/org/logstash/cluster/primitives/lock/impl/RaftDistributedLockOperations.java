@@ -15,12 +15,11 @@
  */
 package org.logstash.cluster.primitives.lock.impl;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
 import org.logstash.cluster.protocols.raft.operation.OperationType;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Counter commands.
@@ -59,7 +58,7 @@ public enum RaftDistributedLockOperations implements OperationId {
     public abstract static class LockOperation {
         @Override
         public String toString() {
-            return toStringHelper(this).toString();
+            return MoreObjects.toStringHelper(this).toString();
         }
     }
 
@@ -97,7 +96,7 @@ public enum RaftDistributedLockOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("id", id)
                 .add("timeout", timeout)
                 .toString();
@@ -124,7 +123,7 @@ public enum RaftDistributedLockOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("id", id)
                 .toString();
         }

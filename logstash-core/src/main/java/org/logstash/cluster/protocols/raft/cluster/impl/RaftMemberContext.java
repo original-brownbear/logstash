@@ -15,13 +15,11 @@
  */
 package org.logstash.cluster.protocols.raft.cluster.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.logstash.cluster.protocols.raft.storage.log.RaftLog;
 import org.logstash.cluster.protocols.raft.storage.log.RaftLogReader;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Cluster member state.
@@ -50,7 +48,7 @@ public final class RaftMemberContext {
     private volatile RaftLogReader reader;
 
     RaftMemberContext(DefaultRaftMember member, RaftClusterContext cluster) {
-        this.member = checkNotNull(member, "member cannot be null").setCluster(cluster);
+        this.member = Preconditions.checkNotNull(member, "member cannot be null").setCluster(cluster);
     }
 
     /**
@@ -222,7 +220,7 @@ public final class RaftMemberContext {
      * @param matchIndex The member's match index.
      */
     public void setMatchIndex(long matchIndex) {
-        checkArgument(matchIndex >= 0, "matchIndex must be positive");
+        Preconditions.checkArgument(matchIndex >= 0, "matchIndex must be positive");
         this.matchIndex = matchIndex;
     }
 
@@ -386,7 +384,7 @@ public final class RaftMemberContext {
     @Override
     public String toString() {
         RaftLogReader reader = this.reader;
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("member", member.memberId())
             .add("term", term)
             .add("configIndex", configIndex)

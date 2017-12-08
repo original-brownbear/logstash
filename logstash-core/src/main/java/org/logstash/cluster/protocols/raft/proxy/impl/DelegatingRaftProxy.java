@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -27,8 +28,6 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxyClient;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.SessionId;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Default Raft proxy.
@@ -157,7 +156,7 @@ public class DelegatingRaftProxy implements RaftProxy {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("client", client)
             .toString();
     }

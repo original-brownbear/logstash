@@ -47,6 +47,7 @@ public abstract class AbstractRole implements RaftRole {
      * Returns the Raft state represented by this state.
      * @return The Raft state represented by this state.
      */
+    @Override
     public abstract RaftServer.Role role();
 
     /**

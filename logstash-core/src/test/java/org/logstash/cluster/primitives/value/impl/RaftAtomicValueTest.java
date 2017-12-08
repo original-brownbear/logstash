@@ -40,7 +40,7 @@ public class RaftAtomicValueTest extends AbstractRaftPrimitiveTest<RaftAtomicVal
     }
 
     @Test
-    public void testValue() throws Exception {
+    public void testValue() {
         byte[] bytes1 = "a".getBytes();
         byte[] bytes2 = "b".getBytes();
         byte[] bytes3 = "c".getBytes();

@@ -17,6 +17,7 @@
 package org.logstash.cluster.primitives.tree.impl;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTree;
@@ -152,6 +153,7 @@ public class DefaultDocumentTreeTest {
         tree.set(path("root.a.b"), "alpha");
     }
 
+    @Test
     public void testReplaceWithVersion() {
         DocumentTree<String> tree = new DefaultDocumentTree<>();
         tree.create(path("root.a"), "bar");
@@ -162,6 +164,8 @@ public class DefaultDocumentTreeTest {
         Assert.assertFalse(tree.replace(path("root.x"), "beta", 1));
     }
 
+    @Test
+    @Ignore
     public void testReplaceWithValue() {
         DocumentTree<String> tree = new DefaultDocumentTree<>();
         tree.create(path("root.a"), "bar");

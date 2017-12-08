@@ -31,7 +31,7 @@ public class MemberSelectorManagerTest {
      * Tests the member selector manager.
      */
     @Test
-    public void testMemberSelectorManager() throws Exception {
+    public void testMemberSelectorManager() {
         MemberSelectorManager selectorManager = new MemberSelectorManager();
         assertNull(selectorManager.leader());
         assertEquals(0, selectorManager.members().size());

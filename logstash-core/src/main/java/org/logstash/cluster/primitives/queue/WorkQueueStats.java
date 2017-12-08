@@ -72,7 +72,7 @@ public final class WorkQueueStats {
 
     public static class Builder {
 
-        WorkQueueStats workQueueStats = new WorkQueueStats();
+        final WorkQueueStats workQueueStats = new WorkQueueStats();
 
         public Builder withTotalPending(long value) {
             workQueueStats.totalPending = value;

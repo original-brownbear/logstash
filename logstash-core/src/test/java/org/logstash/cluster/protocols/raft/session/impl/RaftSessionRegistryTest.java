@@ -49,7 +49,7 @@ public class RaftSessionRegistryTest {
      * Tests that the same session can be registered twice without replacing the original session.
      */
     @Test
-    public void testRegisterIdempotent() throws Exception {
+    public void testRegisterIdempotent() {
         RaftSessionRegistry sessionManager = new RaftSessionRegistry();
         RaftSessionContext session1 = createSession(1);
         RaftSessionContext session2 = createSession(1);
@@ -82,7 +82,7 @@ public class RaftSessionRegistryTest {
     }
 
     @Test
-    public void testUnregisterSession() throws Exception {
+    public void testUnregisterSession() {
         RaftSessionRegistry sessionManager = new RaftSessionRegistry();
         RaftSessionContext session = createSession(1);
         sessionManager.registerSession(session);

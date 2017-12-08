@@ -68,7 +68,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
      * check).
      */
     @Test
-    public void testSize() throws Throwable {
+    public void testSize() {
         RaftConsistentSetMultimap map = createResource("testOneMap");
         //Simplest operation case
         map.isEmpty().thenAccept(result -> assertTrue(result));
@@ -126,7 +126,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
      * Contains tests for value, key and entry.
      */
     @Test
-    public void containsTest() throws Throwable {
+    public void containsTest() {
         RaftConsistentSetMultimap map = createResource("testTwoMap");
 
         //Populate the maps
@@ -186,7 +186,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
      * Contains tests for put, putAll, remove, removeAll and replace.
      */
     @Test
-    public void addAndRemoveTest() throws Exception {
+    public void addAndRemoveTest() {
         RaftConsistentSetMultimap map = createResource("testThreeMap");
 
         //Test single put
@@ -345,7 +345,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
      * as a trivial test of the asMap functionality (throws error).
      */
     @Test
-    public void testAccessors() throws Exception {
+    public void testAccessors() {
         RaftConsistentSetMultimap map = createResource("testFourMap");
 
         //Populate for full map behavior tests

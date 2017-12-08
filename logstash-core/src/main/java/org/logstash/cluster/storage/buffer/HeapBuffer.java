@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.utils.memory.HeapMemory;
 import org.logstash.cluster.utils.memory.Memory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Direct {@link java.nio.ByteBuffer} based buffer.
@@ -64,7 +63,7 @@ public class HeapBuffer extends ByteBufferBuffer {
      * @see HeapBuffer#allocate(int)
      */
     public static HeapBuffer allocate(int initialCapacity, int maxCapacity) {
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        Preconditions.checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
         return new HeapBuffer(HeapBytes.allocate((int) Math.min(Memory.Util.toPow2(initialCapacity), HeapMemory.MAX_SIZE)), 0, initialCapacity, maxCapacity);
     }
 

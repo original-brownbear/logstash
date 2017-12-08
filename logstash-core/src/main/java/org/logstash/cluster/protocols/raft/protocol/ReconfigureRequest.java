@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Member configuration change request.
@@ -74,7 +73,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index)
             .add("term", term)
             .add("member", member)
@@ -94,7 +93,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
          * @return The request builder.
          */
         public Builder withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
         }
@@ -105,7 +104,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
          * @return The request builder.
          */
         public Builder withTerm(long term) {
-            checkArgument(term >= 0, "term must be positive");
+            Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;
         }
@@ -119,8 +118,8 @@ public class ReconfigureRequest extends ConfigurationRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(index >= 0, "index must be positive");
-            checkArgument(term >= 0, "term must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(term >= 0, "term must be positive");
         }
     }
 }

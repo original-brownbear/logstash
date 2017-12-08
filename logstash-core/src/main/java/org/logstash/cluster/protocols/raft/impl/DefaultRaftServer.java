@@ -89,6 +89,7 @@ public class DefaultRaftServer implements RaftServer {
      * Returns a boolean indicating whether the server is running.
      * @return Indicates whether the server is running.
      */
+    @Override
     public boolean isRunning() {
         return started;
     }
@@ -97,6 +98,7 @@ public class DefaultRaftServer implements RaftServer {
      * Shuts down the server without leaving the Raft cluster.
      * @return A completable future to be completed once the server has been shutdown.
      */
+    @Override
     public CompletableFuture<Void> shutdown() {
         if (!started) {
             return Futures.exceptionalFuture(new IllegalStateException("context not open"));
@@ -119,6 +121,7 @@ public class DefaultRaftServer implements RaftServer {
      * Leaves the Raft cluster.
      * @return A completable future to be completed once the server has left the cluster.
      */
+    @Override
     public CompletableFuture<Void> leave() {
         if (!started) {
             return CompletableFuture.completedFuture(null);

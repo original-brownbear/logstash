@@ -38,23 +38,6 @@ public class PhiAccrualFailureDetector {
     }
 
     /**
-     * Creates a new failure detector.
-     * @param minSamples the minimum number of samples required to compute phi
-     * @param phiFactor the phi factor
-     */
-    public PhiAccrualFailureDetector(int minSamples, double phiFactor) {
-        this(minSamples, phiFactor, DEFAULT_WINDOW_SIZE);
-    }
-
-    /**
-     * Returns a new failure detector builder.
-     * @return a new failure detector builder
-     */
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    /**
      * Report a new heart beat for the specified node id.
      */
     public void report() {
@@ -123,52 +106,6 @@ public class PhiAccrualFailureDetector {
 
         void setLatestHeartbeatTime(long value) {
             lastHeartbeatTime = value;
-        }
-    }
-
-    /**
-     * Phi accrual failure detector builder.
-     */
-    public static class Builder implements org.logstash.cluster.utils.Builder<PhiAccrualFailureDetector> {
-        private int minSamples = DEFAULT_MIN_SAMPLES;
-        private double phiFactor = DEFAULT_PHI_FACTOR;
-        private int windowSize = DEFAULT_WINDOW_SIZE;
-
-        /**
-         * Sets the minimum number of samples required to compute phi.
-         * @param minSamples the minimum number of samples
-         * @return the phi accrual failure detector builder
-         */
-        public Builder withMinSamples(int minSamples) {
-            Preconditions.checkArgument(minSamples > 0, "minSamples must be positive");
-            this.minSamples = minSamples;
-            return this;
-        }
-
-        /**
-         * Sets the phi factor.
-         * @param phiFactor the phi factor
-         * @return the phi accrual failure detector builder
-         */
-        public Builder withPhiFactor(double phiFactor) {
-            this.phiFactor = phiFactor;
-            return this;
-        }
-
-        /**
-         * Sets the history window size.
-         * @param windowSize the history window size
-         * @return the phi accrual failure detector builder
-         */
-        public Builder withWindowSize(int windowSize) {
-            Preconditions.checkArgument(windowSize > 0, "windowSize must be positive");
-            this.windowSize = windowSize;
-            return this;
-        }
-
-        @Override
-        public PhiAccrualFailureDetector build() {
-            return new PhiAccrualFailureDetector(minSamples, phiFactor, windowSize);
         }
     }
 }

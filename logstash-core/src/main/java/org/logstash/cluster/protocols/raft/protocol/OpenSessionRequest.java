@@ -15,14 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Open session request.
@@ -121,7 +119,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("node", member)
             .add("serviceName", name)
             .add("serviceType", typeName)
@@ -149,7 +147,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code node} is {@code null}
          */
         public Builder withMemberId(MemberId member) {
-            this.memberId = checkNotNull(member, "node cannot be null").id();
+            this.memberId = Preconditions.checkNotNull(member, "node cannot be null").id();
             return this;
         }
 
@@ -160,7 +158,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code serviceName} is {@code null}
          */
         public Builder withServiceName(String serviceName) {
-            this.serviceName = checkNotNull(serviceName, "serviceName cannot be null");
+            this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName cannot be null");
             return this;
         }
 
@@ -171,7 +169,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code serviceType} is {@code null}
          */
         public Builder withServiceType(ServiceType serviceType) {
-            this.serviceType = checkNotNull(serviceType, "serviceType cannot be null").id();
+            this.serviceType = Preconditions.checkNotNull(serviceType, "serviceType cannot be null").id();
             return this;
         }
 
@@ -182,7 +180,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws NullPointerException if the {@code readConsistency} is null
          */
         public Builder withReadConsistency(ReadConsistency readConsistency) {
-            this.readConsistency = checkNotNull(readConsistency, "readConsistency cannot be null");
+            this.readConsistency = Preconditions.checkNotNull(readConsistency, "readConsistency cannot be null");
             return this;
         }
 
@@ -193,7 +191,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code timeout} is not positive
          */
         public Builder withMinTimeout(long timeout) {
-            checkArgument(timeout >= 0, "timeout must be positive");
+            Preconditions.checkArgument(timeout >= 0, "timeout must be positive");
             this.minTimeout = timeout;
             return this;
         }
@@ -205,7 +203,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code timeout} is not positive
          */
         public Builder withMaxTimeout(long timeout) {
-            checkArgument(timeout >= 0, "timeout must be positive");
+            Preconditions.checkArgument(timeout >= 0, "timeout must be positive");
             this.maxTimeout = timeout;
             return this;
         }
@@ -222,11 +220,11 @@ public class OpenSessionRequest extends AbstractRaftRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkNotNull(memberId, "client cannot be null");
-            checkNotNull(serviceName, "name cannot be null");
-            checkNotNull(serviceType, "typeName cannot be null");
-            checkArgument(minTimeout >= 0, "minTimeout must be positive");
-            checkArgument(maxTimeout >= 0, "maxTimeout must be positive");
+            Preconditions.checkNotNull(memberId, "client cannot be null");
+            Preconditions.checkNotNull(serviceName, "name cannot be null");
+            Preconditions.checkNotNull(serviceType, "typeName cannot be null");
+            Preconditions.checkArgument(minTimeout >= 0, "minTimeout must be positive");
+            Preconditions.checkArgument(maxTimeout >= 0, "maxTimeout must be positive");
         }
     }
 }

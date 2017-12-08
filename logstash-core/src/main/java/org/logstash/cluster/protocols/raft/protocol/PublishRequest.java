@@ -15,14 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.event.RaftEvent;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Event publish request.
@@ -97,7 +95,7 @@ public class PublishRequest extends SessionRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("session", session)
             .add("eventIndex", eventIndex)
             .add("previousIndex", previousIndex)
@@ -120,7 +118,7 @@ public class PublishRequest extends SessionRequest {
          * @throws IllegalArgumentException if {@code index} is less than 1
          */
         public Builder withEventIndex(long eventIndex) {
-            checkArgument(eventIndex > 0, "eventIndex must be positive");
+            Preconditions.checkArgument(eventIndex > 0, "eventIndex must be positive");
             this.eventIndex = eventIndex;
             return this;
         }
@@ -132,7 +130,7 @@ public class PublishRequest extends SessionRequest {
          * @throws IllegalArgumentException if {@code index} is less than 1
          */
         public Builder withPreviousIndex(long previousIndex) {
-            checkArgument(previousIndex >= 0, "previousIndex must be positive");
+            Preconditions.checkArgument(previousIndex >= 0, "previousIndex must be positive");
             this.previousIndex = previousIndex;
             return this;
         }
@@ -143,7 +141,7 @@ public class PublishRequest extends SessionRequest {
          * @return The publish request builder.
          */
         public Builder withEvents(RaftEvent... events) {
-            return withEvents(Arrays.asList(checkNotNull(events, "events cannot be null")));
+            return withEvents(Arrays.asList(Preconditions.checkNotNull(events, "events cannot be null")));
         }
 
         /**
@@ -152,7 +150,7 @@ public class PublishRequest extends SessionRequest {
          * @return The publish request builder.
          */
         public Builder withEvents(List<RaftEvent> events) {
-            this.events = checkNotNull(events, "events cannot be null");
+            this.events = Preconditions.checkNotNull(events, "events cannot be null");
             return this;
         }
 
@@ -168,9 +166,9 @@ public class PublishRequest extends SessionRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(eventIndex > 0, "eventIndex must be positive");
-            checkArgument(previousIndex >= 0, "previousIndex must be positive");
-            checkNotNull(events, "events cannot be null");
+            Preconditions.checkArgument(eventIndex > 0, "eventIndex must be positive");
+            Preconditions.checkArgument(previousIndex >= 0, "previousIndex must be positive");
+            Preconditions.checkNotNull(events, "events cannot be null");
         }
     }
 }

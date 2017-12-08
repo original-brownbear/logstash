@@ -16,6 +16,7 @@
 
 package org.logstash.cluster.primitives.tree;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -27,8 +28,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Unique key for nodes in the {@link DocumentTree}.
@@ -46,8 +45,8 @@ public class DocumentPath implements Comparable<DocumentPath> {
     public static final String DEFAULT_SEPARATOR_RE = "\\|";
 
     // TODO: Add means to set the path separator and separator ERE.
-    private static String pathSeparator = DEFAULT_SEPARATOR;
-    private static String pathSeparatorRE = DEFAULT_SEPARATOR_RE;
+    private static final String pathSeparator = DEFAULT_SEPARATOR;
+    private static final String pathSeparatorRE = DEFAULT_SEPARATOR_RE;
 
     /**
      * Root document tree path.
@@ -61,7 +60,7 @@ public class DocumentPath implements Comparable<DocumentPath> {
      * @param pathElements list of path elements
      */
     private DocumentPath(List<String> pathElements) {
-        checkNotNull(pathElements);
+        Preconditions.checkNotNull(pathElements);
         this.pathElements.addAll(pathElements);
     }
 
@@ -76,7 +75,7 @@ public class DocumentPath implements Comparable<DocumentPath> {
      * @throws IllegalDocumentNameException if both parameters are null or name contains an illegal character ('.')
      */
     public DocumentPath(String nodeName, DocumentPath parentPath) {
-        checkNotNull(nodeName, "Node name cannot be null");
+        Preconditions.checkNotNull(nodeName, "Node name cannot be null");
         if (nodeName.contains(pathSeparator)) {
             throw new IllegalDocumentNameException("'" + pathSeparator + "'" +
                 " are not allowed in names.");

@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Server append entries response.
@@ -88,14 +87,14 @@ public class AppendResponse extends AbstractRaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("term", term)
                 .add("succeeded", succeeded)
                 .add("lastLogIndex", lastLogIndex)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -117,7 +116,7 @@ public class AppendResponse extends AbstractRaftResponse {
          * @throws IllegalArgumentException if {@code term} is not positive
          */
         public Builder withTerm(long term) {
-            checkArgument(term > 0, "term must be positive");
+            Preconditions.checkArgument(term > 0, "term must be positive");
             this.term = term;
             return this;
         }
@@ -139,7 +138,7 @@ public class AppendResponse extends AbstractRaftResponse {
          * @throws IllegalArgumentException if {@code index} is negative
          */
         public Builder withLastLogIndex(long lastLogIndex) {
-            checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
+            Preconditions.checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
             this.lastLogIndex = lastLogIndex;
             return this;
         }
@@ -157,8 +156,8 @@ public class AppendResponse extends AbstractRaftResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkArgument(term > 0, "term must be positive");
-                checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
+                Preconditions.checkArgument(term > 0, "term must be positive");
+                Preconditions.checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
             }
         }
     }

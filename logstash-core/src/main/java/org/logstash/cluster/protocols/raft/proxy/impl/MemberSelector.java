@@ -15,16 +15,14 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.proxy.CommunicationStrategy;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Cluster member selector.
@@ -40,9 +38,9 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
     private Iterator<MemberId> selectionsIterator;
     public MemberSelector(MemberId leader, Collection<MemberId> members, CommunicationStrategy strategy, MemberSelectorManager selectors) {
         this.leader = leader;
-        this.members = checkNotNull(members, "servers cannot be null");
-        this.strategy = checkNotNull(strategy, "strategy cannot be null");
-        this.selectors = checkNotNull(selectors, "selectors cannot be null");
+        this.members = Preconditions.checkNotNull(members, "servers cannot be null");
+        this.strategy = Preconditions.checkNotNull(strategy, "strategy cannot be null");
+        this.selectors = Preconditions.checkNotNull(selectors, "selectors cannot be null");
         this.selections = strategy.selectConnections(leader, new ArrayList<>(members));
     }
 
@@ -130,15 +128,15 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
      * Returns a boolean value indicating whether the selector state would be changed by the given members.
      */
     private boolean changed(MemberId leader, Collection<MemberId> servers) {
-        checkNotNull(servers, "servers");
-        checkArgument(!servers.isEmpty(), "servers cannot be empty");
+        Preconditions.checkNotNull(servers, "servers");
+        Preconditions.checkArgument(!servers.isEmpty(), "servers cannot be empty");
         if (this.leader != null && leader == null) {
             return true;
         } else if (this.leader == null && leader != null) {
-            checkArgument(servers.contains(leader), "leader must be present in the servers list");
+            Preconditions.checkArgument(servers.contains(leader), "leader must be present in the servers list");
             return true;
         } else if (this.leader != null && !this.leader.equals(leader)) {
-            checkArgument(servers.contains(leader), "leader must be present in the servers list");
+            Preconditions.checkArgument(servers.contains(leader), "leader must be present in the servers list");
             return true;
         } else if (!matches(this.members, servers)) {
             return true;
@@ -168,7 +166,7 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("strategy", strategy)
             .toString();
     }

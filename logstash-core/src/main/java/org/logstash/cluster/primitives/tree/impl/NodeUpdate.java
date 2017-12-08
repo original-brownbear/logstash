@@ -126,7 +126,7 @@ public final class NodeUpdate<V> {
      */
     public static final class Builder<V> {
 
-        private NodeUpdate<V> update = new NodeUpdate<>();
+        private final NodeUpdate<V> update = new NodeUpdate<>();
 
         public NodeUpdate<V> build() {
             validateInputs();

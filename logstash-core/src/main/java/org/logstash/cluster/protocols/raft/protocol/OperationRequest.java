@@ -15,10 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.protocols.raft.operation.RaftOperation;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Client operation request.
@@ -70,7 +68,7 @@ public abstract class OperationRequest extends SessionRequest {
          */
         @SuppressWarnings("unchecked")
         public T withSequence(long sequence) {
-            checkArgument(sequence >= 0, "sequence must be positive");
+            Preconditions.checkArgument(sequence >= 0, "sequence must be positive");
             this.sequence = sequence;
             return (T) this;
         }
@@ -83,15 +81,15 @@ public abstract class OperationRequest extends SessionRequest {
          */
         @SuppressWarnings("unchecked")
         public T withOperation(RaftOperation operation) {
-            this.operation = checkNotNull(operation, "operation cannot be null");
+            this.operation = Preconditions.checkNotNull(operation, "operation cannot be null");
             return (T) this;
         }
 
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(sequence >= 0, "sequence must be positive");
-            checkNotNull(operation, "operation cannot be null");
+            Preconditions.checkArgument(sequence >= 0, "sequence must be positive");
+            Preconditions.checkNotNull(operation, "operation cannot be null");
         }
     }
 }

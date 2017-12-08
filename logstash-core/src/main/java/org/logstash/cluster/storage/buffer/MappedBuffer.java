@@ -15,11 +15,9 @@
  */
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.nio.channels.FileChannel;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Direct {@link java.nio.ByteBuffer} based buffer.
@@ -76,9 +74,9 @@ public class MappedBuffer extends ByteBufferBuffer {
      * @see #allocate(File, int, int)
      */
     public static MappedBuffer allocate(File file, FileChannel.MapMode mode, int initialCapacity, int maxCapacity) {
-        checkNotNull(file, "file cannot be null");
-        checkNotNull(mode, "mode cannot be null");
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        Preconditions.checkNotNull(file, "file cannot be null");
+        Preconditions.checkNotNull(mode, "mode cannot be null");
+        Preconditions.checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
         return new MappedBuffer(MappedBytes.allocate(file, mode, initialCapacity), 0, initialCapacity, maxCapacity);
     }
 

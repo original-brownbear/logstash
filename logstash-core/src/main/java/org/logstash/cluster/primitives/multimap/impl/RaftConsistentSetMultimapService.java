@@ -65,25 +65,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
 
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapEvents.CHANGE;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.ADD_LISTENER;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.CLEAR;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.CONTAINS_ENTRY;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.CONTAINS_KEY;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.CONTAINS_VALUE;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.ENTRIES;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.GET;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.IS_EMPTY;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.KEYS;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.KEY_SET;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.PUT;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.REMOVE;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.REMOVE_ALL;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.REMOVE_LISTENER;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.REPLACE;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.SIZE;
-import static org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.VALUES;
-
 /**
  * State Machine for {@link RaftConsistentSetMultimap} resource.
  */
@@ -137,23 +118,23 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
-        executor.register(SIZE, this::size, serializer::encode);
-        executor.register(IS_EMPTY, this::isEmpty, serializer::encode);
-        executor.register(CONTAINS_KEY, serializer::decode, this::containsKey, serializer::encode);
-        executor.register(CONTAINS_VALUE, serializer::decode, this::containsValue, serializer::encode);
-        executor.register(CONTAINS_ENTRY, serializer::decode, this::containsEntry, serializer::encode);
-        executor.register(CLEAR, this::clear);
-        executor.register(KEY_SET, this::keySet, serializer::encode);
-        executor.register(KEYS, this::keys, serializer::encode);
-        executor.register(VALUES, this::values, serializer::encode);
-        executor.register(ENTRIES, this::entries, serializer::encode);
-        executor.register(GET, serializer::decode, this::get, serializer::encode);
-        executor.register(REMOVE_ALL, serializer::decode, this::removeAll, serializer::encode);
-        executor.register(REMOVE, serializer::decode, this::multiRemove, serializer::encode);
-        executor.register(PUT, serializer::decode, this::put, serializer::encode);
-        executor.register(REPLACE, serializer::decode, this::replace, serializer::encode);
-        executor.register(ADD_LISTENER, this::listen);
-        executor.register(REMOVE_LISTENER, this::unlisten);
+        executor.register(RaftConsistentSetMultimapOperations.SIZE, this::size, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.IS_EMPTY, this::isEmpty, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.CONTAINS_KEY, serializer::decode, this::containsKey, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.CONTAINS_VALUE, serializer::decode, this::containsValue, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.CONTAINS_ENTRY, serializer::decode, this::containsEntry, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.CLEAR, this::clear);
+        executor.register(RaftConsistentSetMultimapOperations.KEY_SET, this::keySet, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.KEYS, this::keys, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.VALUES, this::values, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.ENTRIES, this::entries, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.GET, serializer::decode, this::get, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.REMOVE_ALL, serializer::decode, this::removeAll, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.REMOVE, serializer::decode, this::multiRemove, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.PUT, serializer::decode, this::put, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.REPLACE, serializer::decode, this::replace, serializer::encode);
+        executor.register(RaftConsistentSetMultimapOperations.ADD_LISTENER, this::listen);
+        executor.register(RaftConsistentSetMultimapOperations.REMOVE_LISTENER, this::unlisten);
     }
 
     @Override
@@ -339,7 +320,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param events list of map event to publish
      */
     private void publish(List<MultimapEvent<String, byte[]>> events) {
-        listeners.values().forEach(session -> session.publish(CHANGE, serializer::encode, events));
+        listeners.values().forEach(session -> session.publish(RaftConsistentSetMultimapEvents.CHANGE, serializer::encode, events));
     }
 
     /**

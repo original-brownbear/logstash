@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Open session response.
@@ -78,13 +77,13 @@ public class OpenSessionResponse extends AbstractRaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("session", session)
                 .add("timeout", timeout)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -105,7 +104,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
          * @throws IllegalArgumentException if {@code session} is less than 1
          */
         public Builder withSession(long session) {
-            checkArgument(session > 0, "session must be positive");
+            Preconditions.checkArgument(session > 0, "session must be positive");
             this.session = session;
             return this;
         }
@@ -116,7 +115,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
          * @return The response builder.
          */
         public Builder withTimeout(long timeout) {
-            checkArgument(timeout > 0, "timeout must be positive");
+            Preconditions.checkArgument(timeout > 0, "timeout must be positive");
             this.timeout = timeout;
             return this;
         }
@@ -131,8 +130,8 @@ public class OpenSessionResponse extends AbstractRaftResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkArgument(session > 0, "session must be positive");
-                checkArgument(timeout > 0, "timeout must be positive");
+                Preconditions.checkArgument(session > 0, "session must be positive");
+                Preconditions.checkArgument(timeout > 0, "timeout must be positive");
             }
         }
     }

@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Configuration change request.
@@ -58,7 +57,7 @@ public abstract class ConfigurationRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("member", member)
             .toString();
     }
@@ -77,14 +76,14 @@ public abstract class ConfigurationRequest extends AbstractRaftRequest {
          */
         @SuppressWarnings("unchecked")
         public T withMember(RaftMember member) {
-            this.member = checkNotNull(member, "member cannot be null");
+            this.member = Preconditions.checkNotNull(member, "member cannot be null");
             return (T) this;
         }
 
         @Override
         protected void validate() {
             super.validate();
-            checkNotNull(member, "member cannot be null");
+            Preconditions.checkNotNull(member, "member cannot be null");
         }
     }
 }

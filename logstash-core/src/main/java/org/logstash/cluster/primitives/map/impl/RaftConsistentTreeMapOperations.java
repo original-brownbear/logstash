@@ -17,6 +17,7 @@
 package org.logstash.cluster.primitives.map.impl;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import java.util.AbstractMap;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
@@ -25,8 +26,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@link org.logstash.cluster.primitives.map.AsyncConsistentTreeMap} Resource
@@ -102,7 +101,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
         protected String key;
 
         public KeyOperation(String key) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
         }
 
         public KeyOperation() {
@@ -131,7 +130,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
         }
 
         public ValueOperation(byte[] value) {
-            this.value = checkNotNull(value);
+            this.value = Preconditions.checkNotNull(value);
         }
 
         public byte[] value() {

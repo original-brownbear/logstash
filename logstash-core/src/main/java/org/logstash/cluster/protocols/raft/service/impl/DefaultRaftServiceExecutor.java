@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.protocols.raft.service.impl;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,9 +35,6 @@ import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
 import org.logstash.cluster.protocols.raft.service.ServiceContext;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.Scheduled;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Default operation executor.
@@ -111,8 +109,8 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
 
     @Override
     public void handle(OperationId operationId, Function<Commit<byte[]>, byte[]> callback) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
         operations.put(operationId, callback);
         LOGGER.debug("Registered operation callback {}", operationId);
     }
@@ -143,7 +141,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
      * @param message the message to print if the current operation does not match the given type
      */
     private void checkOperation(OperationType type, String message) {
-        checkState(operationType == type, message);
+        Preconditions.checkState(operationType == type, message);
     }
 
     @Override

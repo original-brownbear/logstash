@@ -1,5 +1,6 @@
 package org.logstash.cluster.protocols.raft.service;
 
+import com.google.common.base.Preconditions;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -7,8 +8,6 @@ import org.logstash.cluster.protocols.raft.operation.OperationId;
 import org.logstash.cluster.storage.buffer.HeapBytes;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Facilitates registration and execution of state machine commands and provides deterministic scheduling.
@@ -69,8 +68,8 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default void register(OperationId operationId, Runnable callback) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
         handle(operationId, commit -> {
             callback.run();
             return HeapBytes.EMPTY;
@@ -93,8 +92,8 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default <R> void register(OperationId operationId, Supplier<R> callback, Function<R, byte[]> encoder) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
         handle(operationId, commit -> encoder.apply(callback.get()));
     }
 
@@ -105,8 +104,8 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default void register(OperationId operationId, Consumer<Commit<Void>> callback) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
         handle(operationId, commit -> {
             callback.accept(commit.mapToNull());
             return HeapBytes.EMPTY;
@@ -121,9 +120,9 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default <R> void register(OperationId operationId, Function<Commit<Void>, R> callback, Function<R, byte[]> encoder) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(callback, "callback cannot be null");
-        checkNotNull(encoder, "encoder cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(encoder, "encoder cannot be null");
         handle(operationId, commit -> encoder.apply(callback.apply(commit.mapToNull())));
     }
 
@@ -135,9 +134,9 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default <T> void register(OperationId operationId, Function<byte[], T> decoder, Consumer<Commit<T>> callback) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(decoder, "decoder cannot be null");
-        checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(decoder, "decoder cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
         handle(operationId, commit -> {
             callback.accept(commit.map(decoder));
             return HeapBytes.EMPTY;
@@ -153,10 +152,10 @@ public interface RaftServiceExecutor extends ThreadContext {
      * @throws NullPointerException if the {@code operationId} or {@code callback} is null
      */
     default <T, R> void register(OperationId operationId, Function<byte[], T> decoder, Function<Commit<T>, R> callback, Function<R, byte[]> encoder) {
-        checkNotNull(operationId, "operationId cannot be null");
-        checkNotNull(decoder, "decoder cannot be null");
-        checkNotNull(callback, "callback cannot be null");
-        checkNotNull(encoder, "encoder cannot be null");
+        Preconditions.checkNotNull(operationId, "operationId cannot be null");
+        Preconditions.checkNotNull(decoder, "decoder cannot be null");
+        Preconditions.checkNotNull(callback, "callback cannot be null");
+        Preconditions.checkNotNull(encoder, "encoder cannot be null");
         handle(operationId, commit -> encoder.apply(callback.apply(commit.map(decoder))));
     }
 

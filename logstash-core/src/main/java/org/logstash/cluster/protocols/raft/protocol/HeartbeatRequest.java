@@ -15,12 +15,11 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Client heartbeat request.
@@ -74,7 +73,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("leader", leader)
             .add("members", members)
             .toString();
@@ -104,7 +103,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code members} is null
          */
         public Builder withMembers(Collection<MemberId> members) {
-            this.members = checkNotNull(members, "members cannot be null");
+            this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }
 
@@ -120,7 +119,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkNotNull(members, "members cannot be null");
+            Preconditions.checkNotNull(members, "members cannot be null");
         }
     }
 }

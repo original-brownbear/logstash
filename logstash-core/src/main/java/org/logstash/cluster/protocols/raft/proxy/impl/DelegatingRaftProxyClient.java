@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.logstash.cluster.protocols.raft.event.RaftEvent;
@@ -24,9 +26,6 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxyClient;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.SessionId;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Raft proxy delegate.
  */
@@ -34,7 +33,7 @@ public class DelegatingRaftProxyClient implements RaftProxyClient {
     private final RaftProxyClient delegate;
 
     public DelegatingRaftProxyClient(RaftProxyClient delegate) {
-        this.delegate = checkNotNull(delegate, "delegate cannot be null");
+        this.delegate = Preconditions.checkNotNull(delegate, "delegate cannot be null");
     }
 
     @Override
@@ -104,7 +103,7 @@ public class DelegatingRaftProxyClient implements RaftProxyClient {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("delegate", delegate)
             .toString();
     }

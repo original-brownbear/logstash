@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.protocols.raft;
 
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -25,9 +26,6 @@ import org.logstash.cluster.protocols.raft.impl.DefaultRaftClient;
 import org.logstash.cluster.protocols.raft.protocol.RaftClientProtocol;
 import org.logstash.cluster.protocols.raft.proxy.CommunicationStrategy;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Provides an interface for submitting operations to the Raft cluster.
@@ -182,7 +180,7 @@ public interface RaftClient {
         protected int threadPoolSize = Runtime.getRuntime().availableProcessors();
 
         protected Builder(Collection<MemberId> cluster) {
-            this.cluster = checkNotNull(cluster, "cluster cannot be null");
+            this.cluster = Preconditions.checkNotNull(cluster, "cluster cannot be null");
         }
 
         /**
@@ -195,7 +193,7 @@ public interface RaftClient {
          * @throws NullPointerException if {@code clientId} is null
          */
         public Builder withClientId(String clientId) {
-            this.clientId = checkNotNull(clientId, "clientId cannot be null");
+            this.clientId = Preconditions.checkNotNull(clientId, "clientId cannot be null");
             return this;
         }
 
@@ -206,7 +204,7 @@ public interface RaftClient {
          * @throws NullPointerException if {@code nodeId} is null
          */
         public Builder withMemberId(MemberId nodeId) {
-            this.nodeId = checkNotNull(nodeId, "nodeId cannot be null");
+            this.nodeId = Preconditions.checkNotNull(nodeId, "nodeId cannot be null");
             return this;
         }
 
@@ -217,7 +215,7 @@ public interface RaftClient {
          * @throws NullPointerException if the protocol is null
          */
         public Builder withProtocol(RaftClientProtocol protocol) {
-            this.protocol = checkNotNull(protocol, "protocol cannot be null");
+            this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
             return this;
         }
 
@@ -228,7 +226,7 @@ public interface RaftClient {
          * @throws NullPointerException if the thread model is null
          */
         public Builder withThreadModel(ThreadModel threadModel) {
-            this.threadModel = checkNotNull(threadModel, "threadModel cannot be null");
+            this.threadModel = Preconditions.checkNotNull(threadModel, "threadModel cannot be null");
             return this;
         }
 
@@ -239,7 +237,7 @@ public interface RaftClient {
          * @throws IllegalArgumentException if the thread pool size is not positive
          */
         public Builder withThreadPoolSize(int threadPoolSize) {
-            checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
+            Preconditions.checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
             this.threadPoolSize = threadPoolSize;
             return this;
         }

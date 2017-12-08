@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.protocols.raft.service.impl;
 
+import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import java.util.function.Function;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
@@ -23,8 +24,6 @@ import org.logstash.cluster.protocols.raft.session.RaftSession;
 import org.logstash.cluster.time.LogicalTimestamp;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Server commit.
@@ -103,7 +102,7 @@ public class DefaultCommit<T> implements Commit<T> {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index)
             .add("session", session)
             .add("time", wallClockTime())

@@ -24,11 +24,11 @@ public class RaftAtomicCounterTest extends AbstractRaftPrimitiveTest<RaftAtomicC
     }
 
     @Test
-    public void testBasicOperations() throws Throwable {
+    public void testBasicOperations() {
         basicOperationsTest();
     }
 
-    protected void basicOperationsTest() throws Throwable {
+    protected void basicOperationsTest() {
         RaftAtomicCounter along = newPrimitive("test-counter-basic-operations");
         assertEquals(0, along.get().join().longValue());
         assertEquals(1, along.incrementAndGet().join().longValue());

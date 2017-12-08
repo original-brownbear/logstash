@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.time;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Timestamp based on logical sequence value.
@@ -89,7 +88,7 @@ public class LogicalTimestamp implements Timestamp {
 
     @Override
     public String toString() {
-        return toStringHelper(getClass())
+        return MoreObjects.toStringHelper(getClass())
             .add("value", value)
             .toString();
     }

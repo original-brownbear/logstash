@@ -1,6 +1,6 @@
 package org.logstash.cluster.protocols.raft.storage.log.entry;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Stores a state change in a {@link org.logstash.cluster.protocols.raft.storage.log.RaftLog}.
@@ -22,7 +22,7 @@ public abstract class RaftLogEntry {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .toString();
     }

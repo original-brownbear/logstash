@@ -519,7 +519,7 @@ public interface RaftServer {
         private static final int DEFAULT_THREAD_POOL_SIZE = Runtime.getRuntime().availableProcessors();
         protected final RaftServiceFactoryRegistry serviceRegistry = new RaftServiceFactoryRegistry();
         protected String name;
-        protected MemberId localMemberId;
+        protected final MemberId localMemberId;
         protected RaftServerProtocol protocol;
         protected RaftStorage storage;
         protected Duration electionTimeout = DEFAULT_ELECTION_TIMEOUT;

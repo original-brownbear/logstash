@@ -15,14 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Server configuration response.
@@ -94,7 +92,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("index", index)
                 .add("term", term)
@@ -102,7 +100,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
                 .add("members", members)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -126,7 +124,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
          */
         @SuppressWarnings("unchecked")
         public T withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return (T) this;
         }
@@ -139,7 +137,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
          */
         @SuppressWarnings("unchecked")
         public T withTerm(long term) {
-            checkArgument(term >= 0, "term must be positive");
+            Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return (T) this;
         }
@@ -152,7 +150,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
          */
         @SuppressWarnings("unchecked")
         public T withTime(long time) {
-            checkArgument(time > 0, "time must be positive");
+            Preconditions.checkArgument(time > 0, "time must be positive");
             this.timestamp = time;
             return (T) this;
         }
@@ -165,7 +163,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
          */
         @SuppressWarnings("unchecked")
         public T withMembers(Collection<RaftMember> members) {
-            this.members = checkNotNull(members, "members cannot be null");
+            this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return (T) this;
         }
 
@@ -173,10 +171,10 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkArgument(index >= 0, "index must be positive");
-                checkArgument(term >= 0, "term must be positive");
-                checkArgument(timestamp > 0, "time must be positive");
-                checkNotNull(members, "members cannot be null");
+                Preconditions.checkArgument(index >= 0, "index must be positive");
+                Preconditions.checkArgument(term >= 0, "term must be positive");
+                Preconditions.checkArgument(timestamp > 0, "time must be positive");
+                Preconditions.checkNotNull(members, "members cannot be null");
             }
         }
     }

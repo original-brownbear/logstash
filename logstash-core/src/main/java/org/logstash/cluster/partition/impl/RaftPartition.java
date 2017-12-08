@@ -218,7 +218,7 @@ public class RaftPartition implements ManagedPartition {
      * @return future to be completed once the partition has been deleted
      */
     public CompletableFuture<Void> delete() {
-        return server.close().thenCompose(v -> client.close()).thenRun(() -> server.delete());
+        return server.close().thenCompose(v -> client.close()).thenRun(server::delete);
     }
 
     @Override

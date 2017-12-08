@@ -15,13 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Base client operation response.
@@ -100,14 +99,14 @@ public abstract class OperationResponse extends SessionResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("index", index)
                 .add("eventIndex", eventIndex)
                 .add("result", result != null ? ArraySizeHashPrinter.of(result) : null)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .add("lastSequence", lastSequence)
@@ -132,7 +131,7 @@ public abstract class OperationResponse extends SessionResponse {
          */
         @SuppressWarnings("unchecked")
         public T withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return (T) this;
         }
@@ -145,7 +144,7 @@ public abstract class OperationResponse extends SessionResponse {
          */
         @SuppressWarnings("unchecked")
         public T withEventIndex(long eventIndex) {
-            checkArgument(eventIndex >= 0, "eventIndex must be positive");
+            Preconditions.checkArgument(eventIndex >= 0, "eventIndex must be positive");
             this.eventIndex = eventIndex;
             return (T) this;
         }
@@ -169,7 +168,7 @@ public abstract class OperationResponse extends SessionResponse {
          */
         @SuppressWarnings("unchecked")
         public T withLastSequence(long lastSequence) {
-            checkArgument(lastSequence >= 0, "lastSequence must be positive");
+            Preconditions.checkArgument(lastSequence >= 0, "lastSequence must be positive");
             this.lastSequence = lastSequence;
             return (T) this;
         }
@@ -178,9 +177,9 @@ public abstract class OperationResponse extends SessionResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkArgument(index >= 0, "index must be positive");
-                checkArgument(eventIndex >= 0, "eventIndex must be positive");
-                checkArgument(lastSequence >= 0, "lastSequence must be positive");
+                Preconditions.checkArgument(index >= 0, "index must be positive");
+                Preconditions.checkArgument(eventIndex >= 0, "eventIndex must be positive");
+                Preconditions.checkArgument(lastSequence >= 0, "lastSequence must be positive");
             }
         }
     }

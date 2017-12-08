@@ -15,15 +15,14 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.protocols.raft.session.RaftSessionMetadata;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Cluster metadata response.
@@ -56,12 +55,12 @@ public class MetadataResponse extends AbstractRaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("sessions", sessions)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -80,7 +79,7 @@ public class MetadataResponse extends AbstractRaftResponse {
          * @return The metadata response builder.
          */
         public Builder withSessions(RaftSessionMetadata... sessions) {
-            return withSessions(Arrays.asList(checkNotNull(sessions, "sessions cannot be null")));
+            return withSessions(Arrays.asList(Preconditions.checkNotNull(sessions, "sessions cannot be null")));
         }
 
         /**
@@ -89,7 +88,7 @@ public class MetadataResponse extends AbstractRaftResponse {
          * @return The metadata response builder.
          */
         public Builder withSessions(Collection<RaftSessionMetadata> sessions) {
-            this.sessions = new HashSet<>(checkNotNull(sessions, "sessions cannot be null"));
+            this.sessions = new HashSet<>(Preconditions.checkNotNull(sessions, "sessions cannot be null"));
             return this;
         }
 
@@ -103,7 +102,7 @@ public class MetadataResponse extends AbstractRaftResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkNotNull(sessions, "sessions cannot be null");
+                Preconditions.checkNotNull(sessions, "sessions cannot be null");
             }
         }
     }

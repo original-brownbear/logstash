@@ -99,7 +99,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      */
     @SuppressWarnings("serial")
     public abstract static class PathOperation extends DocumentTreeOperation {
-        private DocumentPath path;
+        private final DocumentPath path;
 
         PathOperation(DocumentPath path) {
             this.path = path;
@@ -157,9 +157,9 @@ public enum RaftDocumentTreeOperations implements OperationId {
      */
     @SuppressWarnings("serial")
     public static class Update extends PathOperation {
-        private Optional<byte[]> value;
-        private Match<byte[]> valueMatch;
-        private Match<Long> versionMatch;
+        private final Optional<byte[]> value;
+        private final Match<byte[]> valueMatch;
+        private final Match<Long> versionMatch;
 
         public Update() {
             super(null);

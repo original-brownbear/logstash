@@ -31,7 +31,7 @@ public class OrderedFutureTest {
      * Tests ordered completion of future callbacks.
      */
     @Test
-    public void testOrderedCompletion() throws Throwable {
+    public void testOrderedCompletion() {
         CompletableFuture<String> future = new OrderedFuture<>();
         AtomicInteger order = new AtomicInteger();
         future.whenComplete((r, e) -> assertEquals(1, order.incrementAndGet()));
@@ -61,7 +61,8 @@ public class OrderedFutureTest {
     /**
      * Tests ordered failure of future callbacks.
      */
-    public void testOrderedFailure() throws Throwable {
+    @Test
+    public void testOrderedFailure() {
         CompletableFuture<String> future = new OrderedFuture<>();
         AtomicInteger order = new AtomicInteger();
         future.whenComplete((r, e) -> assertEquals(1, order.incrementAndGet()));
@@ -82,7 +83,8 @@ public class OrderedFutureTest {
     /**
      * Tests calling callbacks that are added after completion.
      */
-    public void testAfterComplete() throws Throwable {
+    @Test
+    public void testAfterComplete() {
         CompletableFuture<String> future = new OrderedFuture<>();
         future.whenComplete((result, error) -> assertEquals(result, "foo"));
         future.complete("foo");

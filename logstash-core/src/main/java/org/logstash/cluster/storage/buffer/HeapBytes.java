@@ -38,7 +38,7 @@ public class HeapBytes extends ByteBufferBytes {
     public static HeapBytes allocate(int size) {
         if (size > HeapMemory.MAX_SIZE)
             throw new IllegalArgumentException("size cannot for HeapBytes cannot be greater than " + HeapMemory.MAX_SIZE);
-        return new HeapBytes(ByteBuffer.allocate((int) size));
+        return new HeapBytes(ByteBuffer.allocate(size));
     }
 
     /**
@@ -55,7 +55,7 @@ public class HeapBytes extends ByteBufferBytes {
 
     @Override
     protected ByteBuffer newByteBuffer(int size) {
-        return ByteBuffer.allocate((int) size);
+        return ByteBuffer.allocate(size);
     }
 
     @Override

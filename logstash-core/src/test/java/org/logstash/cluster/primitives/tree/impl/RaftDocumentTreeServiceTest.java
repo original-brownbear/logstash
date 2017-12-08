@@ -44,11 +44,11 @@ import static org.mockito.Mockito.mock;
 public class RaftDocumentTreeServiceTest {
 
     @Test
-    public void testNaturalOrderedSnapshot() throws Exception {
+    public void testNaturalOrderedSnapshot() {
         testSnapshot(Ordering.NATURAL);
     }
 
-    private void testSnapshot(Ordering ordering) throws Exception {
+    private void testSnapshot(Ordering ordering) {
         SnapshotStore store = new SnapshotStore(RaftStorage.builder()
             .withPrefix("test")
             .withStorageLevel(StorageLevel.MEMORY)
@@ -89,7 +89,7 @@ public class RaftDocumentTreeServiceTest {
     }
 
     @Test
-    public void testInsertionOrderedSnapshot() throws Exception {
+    public void testInsertionOrderedSnapshot() {
         testSnapshot(Ordering.INSERTION);
     }
 }

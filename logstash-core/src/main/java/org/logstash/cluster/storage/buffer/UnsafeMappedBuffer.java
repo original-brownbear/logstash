@@ -1,13 +1,11 @@
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import org.logstash.cluster.utils.memory.MappedMemory;
 import org.logstash.cluster.utils.memory.MappedMemoryAllocator;
 import org.logstash.cluster.utils.memory.Memory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Memory mapped file buffer.
@@ -69,9 +67,9 @@ public class UnsafeMappedBuffer extends NativeBuffer {
      * @see UnsafeMappedBuffer#allocate(File, int, int)
      */
     public static UnsafeMappedBuffer allocate(File file, FileChannel.MapMode mode, int initialCapacity, int maxCapacity) {
-        checkNotNull(file, "file cannot be null");
-        checkNotNull(mode, "mode cannot be null");
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        Preconditions.checkNotNull(file, "file cannot be null");
+        Preconditions.checkNotNull(mode, "mode cannot be null");
+        Preconditions.checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
         return new UnsafeMappedBuffer(new UnsafeMappedBytes(file, MappedMemory.allocate(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity))), 0, initialCapacity, maxCapacity);
     }
 

@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.event;
 
+import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Raft event.
@@ -69,7 +68,7 @@ public class RaftEvent {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("type", type)
             .add("value", ArraySizeHashPrinter.of(value))
             .toString();

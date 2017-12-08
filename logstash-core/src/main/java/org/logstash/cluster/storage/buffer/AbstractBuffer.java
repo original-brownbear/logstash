@@ -274,6 +274,7 @@ public abstract class AbstractBuffer implements Buffer {
     /**
      * Updates the buffer capacity.
      */
+    @Override
     public Buffer capacity(final int capacity) {
         if (capacity > maxCapacity) {
             throw new IllegalArgumentException("capacity cannot be greater than maximum capacity");

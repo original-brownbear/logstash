@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
  */
 public class LogicalTimestampTest {
     @Test
-    public void testLogicalTimestamp() throws Exception {
+    public void testLogicalTimestamp() {
         LogicalTimestamp timestamp = LogicalTimestamp.of(1);
         assertEquals(1, timestamp.value());
         assertTrue(timestamp.isNewerThan(LogicalTimestamp.of(0)));

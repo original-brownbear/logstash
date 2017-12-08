@@ -183,7 +183,4 @@ public class TestClusterCommunicationService implements ManagedClusterCommunicat
         return Futures.exceptionalFuture(new MessagingException.NoRemoteHandler());
     }
 
-    private boolean isSubscriber(MessageSubject subject) {
-        return subscribers.containsKey(subject);
-    }
 }

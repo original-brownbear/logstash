@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.operation;
 
+import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Base type for Raft state operations.
@@ -69,7 +68,7 @@ public class RaftOperation {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id)
             .add("value", ArraySizeHashPrinter.of(value))
             .toString();

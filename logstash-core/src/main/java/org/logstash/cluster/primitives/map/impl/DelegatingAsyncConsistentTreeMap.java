@@ -16,6 +16,7 @@
 
 package org.logstash.cluster.primitives.map.impl;
 
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -33,8 +34,6 @@ import org.logstash.cluster.primitives.map.MapEventListener;
 import org.logstash.cluster.time.Version;
 import org.logstash.cluster.time.Versioned;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * A {@link AsyncConsistentTreeMap} that delegates control to another instance
  * of {@link AsyncConsistentTreeMap}.
@@ -47,7 +46,7 @@ public class DelegatingAsyncConsistentTreeMap<K, V>
 
     DelegatingAsyncConsistentTreeMap(AsyncConsistentTreeMap<K, V> delegateMap) {
         super(delegateMap);
-        this.delegateMap = checkNotNull(delegateMap,
+        this.delegateMap = Preconditions.checkNotNull(delegateMap,
             "delegate map cannot be null");
     }
 

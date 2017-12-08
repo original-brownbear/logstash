@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Byte buffer bytes.
@@ -53,7 +52,7 @@ public abstract class ByteBufferBytes extends AbstractBytes {
 
     public Bytes reset(ByteBuffer buffer) {
         buffer.clear();
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
+        this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null");
         return this;
     }
 
@@ -89,7 +88,7 @@ public abstract class ByteBufferBytes extends AbstractBytes {
      * Returns the index for the given offset.
      */
     private static int index(int offset) {
-        return (int) offset;
+        return offset;
     }
 
     @Override
@@ -103,7 +102,7 @@ public abstract class ByteBufferBytes extends AbstractBytes {
     @Override
     public Bytes write(int position, Bytes bytes, int offset, int length) {
         for (int i = 0; i < length; i++) {
-            buffer.put((int) position + i, (byte) bytes.readByte(offset + i));
+            buffer.put(position + i, (byte) bytes.readByte(offset + i));
         }
         return this;
     }
@@ -111,7 +110,7 @@ public abstract class ByteBufferBytes extends AbstractBytes {
     @Override
     public Bytes write(int position, byte[] bytes, int offset, int length) {
         for (int i = 0; i < length; i++) {
-            buffer.put((int) position + i, (byte) bytes[index(offset) + i]);
+            buffer.put(position + i, bytes[index(offset) + i]);
         }
         return this;
     }

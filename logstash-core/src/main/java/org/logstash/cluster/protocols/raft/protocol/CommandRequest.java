@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.operation.RaftOperation;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Client command request.
@@ -66,7 +65,7 @@ public class CommandRequest extends OperationRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("session", session)
             .add("sequence", sequence)
             .add("operation", operation)

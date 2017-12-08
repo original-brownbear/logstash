@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Event reset request.
@@ -68,7 +67,7 @@ public class ResetRequest extends SessionRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("session", session)
             .add("index", index)
             .toString();
@@ -87,7 +86,7 @@ public class ResetRequest extends SessionRequest {
          * @throws IllegalArgumentException if {@code index} is less than {@code 1}
          */
         public Builder withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
         }

@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.time;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import java.util.Objects;
 import org.logstash.cluster.utils.TimestampPrinter;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A Timestamp that derives its value from the prevailing
@@ -48,7 +47,7 @@ public class WallClockTimestamp implements Timestamp {
 
     @Override
     public int compareTo(Timestamp o) {
-        checkArgument(o instanceof WallClockTimestamp,
+        Preconditions.checkArgument(o instanceof WallClockTimestamp,
             "Must be WallClockTimestamp", o);
         WallClockTimestamp that = (WallClockTimestamp) o;
 

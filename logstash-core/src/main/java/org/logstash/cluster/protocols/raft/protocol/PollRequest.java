@@ -15,12 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Server poll request.
@@ -101,7 +99,7 @@ public class PollRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .add("candidate", candidate)
             .add("lastLogIndex", lastLogIndex)
@@ -125,7 +123,7 @@ public class PollRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code term} is negative
          */
         public Builder withTerm(long term) {
-            checkArgument(term >= 0, "term must be positive");
+            Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;
         }
@@ -137,7 +135,7 @@ public class PollRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code candidate} is not positive
          */
         public Builder withCandidate(MemberId candidate) {
-            this.candidate = checkNotNull(candidate, "candidate cannot be null").id();
+            this.candidate = Preconditions.checkNotNull(candidate, "candidate cannot be null").id();
             return this;
         }
 
@@ -148,7 +146,7 @@ public class PollRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code index} is negative
          */
         public Builder withLastLogIndex(long logIndex) {
-            checkArgument(logIndex >= 0, "lastLogIndex must be positive");
+            Preconditions.checkArgument(logIndex >= 0, "lastLogIndex must be positive");
             this.lastLogIndex = logIndex;
             return this;
         }
@@ -160,7 +158,7 @@ public class PollRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if {@code term} is negative
          */
         public Builder withLastLogTerm(long logTerm) {
-            checkArgument(logTerm >= 0, "lastLogTerm must be positive");
+            Preconditions.checkArgument(logTerm >= 0, "lastLogTerm must be positive");
             this.lastLogTerm = logTerm;
             return this;
         }
@@ -177,10 +175,10 @@ public class PollRequest extends AbstractRaftRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(term >= 0, "term must be positive");
-            checkNotNull(candidate, "candidate cannot be null");
-            checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
-            checkArgument(lastLogTerm >= 0, "lastLogTerm must be positive");
+            Preconditions.checkArgument(term >= 0, "term must be positive");
+            Preconditions.checkNotNull(candidate, "candidate cannot be null");
+            Preconditions.checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
+            Preconditions.checkArgument(lastLogTerm >= 0, "lastLogTerm must be positive");
         }
     }
 }

@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.time;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ComparisonChain;
 import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * A logical timestamp that derives its value from two input values. The first
@@ -79,7 +78,7 @@ public class MultiValuedTimestamp<T extends Comparable<T>, U extends Comparable<
 
     @Override
     public String toString() {
-        return toStringHelper(getClass())
+        return MoreObjects.toStringHelper(getClass())
             .add("value1", value1)
             .add("value2", value2)
             .toString();

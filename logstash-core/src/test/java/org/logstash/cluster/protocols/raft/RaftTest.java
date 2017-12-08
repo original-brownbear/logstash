@@ -866,13 +866,13 @@ public class RaftTest extends ConcurrentTestCase {
      */
     @Test
     public void testSequenceLinearizableOperations() throws Throwable {
-        testSequenceOperations(5, ReadConsistency.LINEARIZABLE);
+        testSequenceOperations(5);
     }
 
     /**
      * Tests submitting a linearizable event that publishes to all sessions.
      */
-    private void testSequenceOperations(final int nodes, final ReadConsistency consistency) throws Throwable {
+    private void testSequenceOperations(final int nodes) throws Throwable {
         createServers(nodes);
 
         final AtomicInteger counter = new AtomicInteger();
@@ -918,7 +918,7 @@ public class RaftTest extends ConcurrentTestCase {
      */
     @Test
     public void testSequenceBoundedLinearizableOperations() throws Throwable {
-        testSequenceOperations(5, ReadConsistency.LINEARIZABLE_LEASE);
+        testSequenceOperations(5);
     }
 
     /**
@@ -926,7 +926,7 @@ public class RaftTest extends ConcurrentTestCase {
      */
     @Test
     public void testSequenceSequentialOperations() throws Throwable {
-        testSequenceOperations(5, ReadConsistency.SEQUENTIAL);
+        testSequenceOperations(5);
     }
 
     /**
