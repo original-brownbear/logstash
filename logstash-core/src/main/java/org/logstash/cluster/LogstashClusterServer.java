@@ -90,7 +90,6 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
         return LogstashClusterServer.builder().withLocalNode(config.localNode())
             .withBootstrapNodes(config.getBootstrap())
             .withDataDir(config.getDataDir())
-            .withNumPartitions(1)
             .build()
             .open().join();
     }
