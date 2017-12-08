@@ -55,10 +55,6 @@ public class RaftServerCommunicator implements RaftServerProtocol {
     private final Serializer serializer;
     private final ClusterCommunicationService clusterCommunicator;
 
-    public RaftServerCommunicator(Serializer serializer, ClusterCommunicationService clusterCommunicator) {
-        this(null, serializer, clusterCommunicator);
-    }
-
     public RaftServerCommunicator(String prefix, Serializer serializer, ClusterCommunicationService clusterCommunicator) {
         this.context = new RaftMessageContext(prefix);
         this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");

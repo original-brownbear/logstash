@@ -322,28 +322,6 @@ public interface RaftProxy extends RaftProxyExecutor, Managed<RaftProxy> {
         }
 
         /**
-         * Sets the session timeout.
-         * @param timeout The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         * @throws NullPointerException if the timeout is null
-         */
-        @Deprecated
-        public Builder withTimeout(Duration timeout) {
-            return withMaxTimeout(timeout);
-        }
-
-        /**
-         * Sets the session timeout.
-         * @param timeoutMillis The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         */
-        public Builder withMaxTimeout(long timeoutMillis) {
-            return withMaxTimeout(Duration.ofMillis(timeoutMillis));
-        }
-
-        /**
          * Sets the executor with which to complete proxy futures.
          * @param executor The executor with which to complete proxy futures.
          * @return The proxy builder.

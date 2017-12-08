@@ -24,41 +24,6 @@ import java.nio.ByteBuffer;
  */
 public interface Namespace {
 
-    /**
-     * Empty namespace that throws exceptions on serialization.
-     */
-    Namespace NONE = new Namespace() {
-        @Override
-        public byte[] serialize(Object obj, int bufferSize) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void serialize(Object obj, ByteBuffer buffer) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public void serialize(Object obj, OutputStream stream, int bufferSize) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <T> T deserialize(byte[] bytes) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <T> T deserialize(ByteBuffer buffer) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public <T> T deserialize(InputStream stream, int bufferSize) {
-            throw new UnsupportedOperationException();
-        }
-    };
-
     int DEFAULT_BUFFER_SIZE = 4096;
     int MAX_BUFFER_SIZE = 100 * 1000 * 1000;
 

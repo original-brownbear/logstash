@@ -59,7 +59,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
     private final RaftClientProtocol protocol;
     private RaftClient client;
 
-    public RaftPartitionClient(RaftPartition partition, MemberId localMemberId, RaftClientProtocol protocol) {
+    RaftPartitionClient(RaftPartition partition, MemberId localMemberId, RaftClientProtocol protocol) {
         this.partition = partition;
         this.localMemberId = localMemberId;
         this.protocol = protocol;
@@ -97,7 +97,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(DistributedPrimitive.Type.CONSISTENT_MAP.name())
             .withReadConsistency(ReadConsistency.SEQUENTIAL)
             .withCommunicationStrategy(CommunicationStrategy.ANY)
-            .withTimeout(Duration.ofSeconds(30))
+            .withMaxTimeout(Duration.ofSeconds(30))
             .withMaxRetries(5)
             .build()
             .open()
@@ -127,7 +127,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
                 .withServiceType(DistributedPrimitive.Type.CONSISTENT_TREEMAP.name())
                 .withReadConsistency(ReadConsistency.SEQUENTIAL)
                 .withCommunicationStrategy(CommunicationStrategy.ANY)
-                .withTimeout(Duration.ofSeconds(30))
+                .withMaxTimeout(Duration.ofSeconds(30))
                 .withMaxRetries(5)
                 .build()
                 .open()
@@ -161,7 +161,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
                 .withServiceType(DistributedPrimitive.Type.CONSISTENT_MULTIMAP.name())
                 .withReadConsistency(ReadConsistency.SEQUENTIAL)
                 .withCommunicationStrategy(CommunicationStrategy.ANY)
-                .withTimeout(Duration.ofSeconds(30))
+                .withMaxTimeout(Duration.ofSeconds(30))
                 .withMaxRetries(5)
                 .build()
                 .open()
@@ -191,7 +191,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(DistributedPrimitive.Type.COUNTER_MAP.name())
             .withReadConsistency(ReadConsistency.LINEARIZABLE_LEASE)
             .withCommunicationStrategy(CommunicationStrategy.LEADER)
-            .withTimeout(Duration.ofSeconds(30))
+            .withMaxTimeout(Duration.ofSeconds(30))
             .withMaxRetries(5)
             .build()
             .open()
@@ -213,7 +213,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(DistributedPrimitive.Type.COUNTER.name())
             .withReadConsistency(ReadConsistency.LINEARIZABLE_LEASE)
             .withCommunicationStrategy(CommunicationStrategy.LEADER)
-            .withTimeout(Duration.ofSeconds(30))
+            .withMaxTimeout(Duration.ofSeconds(30))
             .withMaxRetries(5)
             .build()
             .open()
@@ -232,7 +232,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(DistributedPrimitive.Type.VALUE.name())
             .withReadConsistency(ReadConsistency.LINEARIZABLE_LEASE)
             .withCommunicationStrategy(CommunicationStrategy.ANY)
-            .withTimeout(Duration.ofSeconds(30))
+            .withMaxTimeout(Duration.ofSeconds(30))
             .withMaxRetries(5)
             .build()
             .open()
@@ -247,7 +247,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(DistributedPrimitive.Type.WORK_QUEUE.name())
             .withReadConsistency(ReadConsistency.LINEARIZABLE_LEASE)
             .withCommunicationStrategy(CommunicationStrategy.LEADER)
-            .withTimeout(Duration.ofSeconds(5))
+            .withMaxTimeout(Duration.ofSeconds(5))
             .withMaxRetries(5)
             .build()
             .open()
@@ -262,7 +262,7 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withServiceType(String.format("%s-%s", DistributedPrimitive.Type.DOCUMENT_TREE.name(), ordering))
             .withReadConsistency(ReadConsistency.SEQUENTIAL)
             .withCommunicationStrategy(CommunicationStrategy.ANY)
-            .withTimeout(Duration.ofSeconds(30))
+            .withMaxTimeout(Duration.ofSeconds(30))
             .withMaxRetries(5)
             .build()
             .open()

@@ -46,10 +46,8 @@ public class DefaultPartitionService implements ManagedPartitionService {
 
     @Override
     public CompletableFuture<PartitionService> open() {
-        List<CompletableFuture<Partition>> futures = partitions.values().stream()
-            .map(ManagedPartition::open)
-            .collect(Collectors.toList());
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).thenApply(v -> {
+        return CompletableFuture.allOf(partitions.values().stream()
+            .map(ManagedPartition::open).toArray(CompletableFuture[]::new)).thenApply(v -> {
             open.set(true);
             LOGGER.info("Started");
             return this;
