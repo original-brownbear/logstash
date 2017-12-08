@@ -241,16 +241,8 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("partitions", getPartitionService())
+            .add("partitions", partitions)
             .toString();
-    }
-
-    /**
-     * Returns the partition service.
-     * @return the partition service
-     */
-    public PartitionService getPartitionService() {
-        return partitions;
     }
 
     public static final class Builder implements org.logstash.cluster.utils.Builder<LogstashClusterServer> {
@@ -422,14 +414,11 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
         private ManagedPartitionService buildPartitionService(final ClusterCommunicationService clusterCommunicator) {
             final File partitionsDir = new File(this.dataDir, "partitions");
             return new DefaultPartitionService(
-                buildPartitions().stream()
-                    .map(
-                        p -> new RaftPartition(
-                            localNode.id(), p, clusterCommunicator, new File(partitionsDir,
-                            p.id().toString())
-                        )
-                    )
-                    .collect(Collectors.toList()));
+                buildPartitions().stream().map(
+                    p -> new RaftPartition(
+                        localNode.id(), p, clusterCommunicator,
+                        new File(partitionsDir, p.id().toString()))
+                ).collect(Collectors.toList()));
         }
 
         /**
