@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.tree.impl;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -24,8 +25,6 @@ import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTreeEvent;
 import org.logstash.cluster.primitives.tree.DocumentTreeListener;
 import org.logstash.cluster.time.Versioned;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Transcoding document tree.
@@ -122,7 +121,7 @@ public class TranscodingAsyncDocumentTree<V1, V2> implements AsyncDocumentTree<V
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("backingTree", backingTree)
             .toString();
     }

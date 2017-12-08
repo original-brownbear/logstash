@@ -44,7 +44,7 @@ import static org.mockito.Mockito.mock;
 public class RaftConsistentSetMultimapServiceTest {
     @Test
     @SuppressWarnings("unchecked")
-    public void testSnapshot() throws Exception {
+    public void testSnapshot() {
         SnapshotStore store = new SnapshotStore(RaftStorage.builder()
             .withPrefix("test")
             .withStorageLevel(StorageLevel.MEMORY)

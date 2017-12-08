@@ -74,7 +74,7 @@ public class RaftConsistentTreeMapTest extends AbstractRaftPrimitiveTest<RaftCon
      * except transactions and listeners.
      */
     @Test
-    public void testBasicMapOperations() throws Throwable {
+    public void testBasicMapOperations() {
         //Throughout the test there are isEmpty queries, these are intended to
         //make sure that the previous section has been cleaned up, they serve
         //the secondary purpose of testing isEmpty but that is not their

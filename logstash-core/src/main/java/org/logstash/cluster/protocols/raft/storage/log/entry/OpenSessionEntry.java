@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.storage.log.entry;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.utils.TimestampPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Open session entry.
@@ -91,7 +90,7 @@ public class OpenSessionEntry extends TimestampedEntry {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .add("timestamp", new TimestampPrinter(timestamp))
             .add("node", memberId)

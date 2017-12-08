@@ -26,7 +26,7 @@ import static org.junit.Assert.assertEquals;
 public class TimestampPrinterTest {
     @Test
     @Ignore // Timestamp is environment specific
-    public void testTimestampPrinter() throws Exception {
+    public void testTimestampPrinter() {
         TimestampPrinter printer = TimestampPrinter.of(1);
         assertEquals("1969-12-31 04:00:00,001", printer.toString());
     }

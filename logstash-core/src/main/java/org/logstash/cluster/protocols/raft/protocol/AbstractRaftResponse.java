@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Base response for all client responses.
@@ -60,11 +59,11 @@ public abstract class AbstractRaftResponse implements RaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -83,14 +82,14 @@ public abstract class AbstractRaftResponse implements RaftResponse {
         @Override
         @SuppressWarnings("unchecked")
         public T withStatus(Status status) {
-            this.status = checkNotNull(status, "status cannot be null");
+            this.status = Preconditions.checkNotNull(status, "status cannot be null");
             return (T) this;
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public T withError(RaftError error) {
-            this.error = checkNotNull(error, "error cannot be null");
+            this.error = Preconditions.checkNotNull(error, "error cannot be null");
             return (T) this;
         }
 
@@ -98,12 +97,12 @@ public abstract class AbstractRaftResponse implements RaftResponse {
          * Validates the builder.
          */
         protected void validate() {
-            checkNotNull(status, "status cannot be null");
+            Preconditions.checkNotNull(status, "status cannot be null");
         }
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();

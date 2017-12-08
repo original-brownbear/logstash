@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Base session request.
@@ -57,7 +56,7 @@ public abstract class SessionRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("session", session)
             .toString();
     }
@@ -76,14 +75,14 @@ public abstract class SessionRequest extends AbstractRaftRequest {
          */
         @SuppressWarnings("unchecked")
         public T withSession(long session) {
-            checkArgument(session > 0, "session must be positive");
+            Preconditions.checkArgument(session > 0, "session must be positive");
             this.session = session;
             return (T) this;
         }
 
         @Override
         protected void validate() {
-            checkArgument(session > 0, "session must be positive");
+            Preconditions.checkArgument(session > 0, "session must be positive");
         }
     }
 }

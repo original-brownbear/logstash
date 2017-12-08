@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.storage.log.entry;
 
+import com.google.common.base.MoreObjects;
 import java.util.Collection;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
 import org.logstash.cluster.utils.TimestampPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Stores a cluster configuration.
@@ -47,7 +46,7 @@ public class ConfigurationEntry extends TimestampedEntry {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .add("timestamp", new TimestampPrinter(timestamp))
             .add("members", members)

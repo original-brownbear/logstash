@@ -17,6 +17,7 @@
 package org.logstash.cluster.primitives.multimap.impl;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +27,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * AsyncConsistentMultimap state machine commands.
@@ -108,7 +107,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
         }
 
         public KeyOperation(String key) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
         }
 
         public String key() {
@@ -134,7 +133,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
         }
 
         public ValueOperation(byte[] value) {
-            this.value = checkNotNull(value);
+            this.value = Preconditions.checkNotNull(value);
         }
 
         /**
@@ -191,8 +190,8 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
         }
 
         public ContainsEntry(String key, byte[] value) {
-            this.key = checkNotNull(key);
-            this.value = checkNotNull(value);
+            this.key = Preconditions.checkNotNull(key);
+            this.value = Preconditions.checkNotNull(value);
         }
 
         public String key() {
@@ -224,7 +223,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
         }
 
         public RemoveAll(String key, Match<Long> versionMatch) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
             this.versionMatch = versionMatch;
         }
 
@@ -259,7 +258,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
 
         public MultiRemove(String key, Collection<byte[]> valueMatches,
             Match<Long> versionMatch) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
             this.values = valueMatches;
             this.versionMatch = versionMatch;
         }
@@ -299,7 +298,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
         }
 
         public Put(String key, Collection<? extends byte[]> values, Match<Long> versionMatch) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
             this.values = values;
             this.versionMatch = versionMatch;
         }
@@ -340,7 +339,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
 
         public Replace(String key, Collection<byte[]> values,
             Match<Long> versionMatch) {
-            this.key = checkNotNull(key);
+            this.key = Preconditions.checkNotNull(key);
             this.values = values;
             this.versionMatch = versionMatch;
         }

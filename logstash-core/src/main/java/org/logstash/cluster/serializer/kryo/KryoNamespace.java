@@ -197,6 +197,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param obj Object to serialize
      * @return serialized bytes
      */
+    @Override
     public byte[] serialize(final Object obj) {
         return serialize(obj, DEFAULT_BUFFER_SIZE);
     }
@@ -207,6 +208,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param bufferSize maximum size of serialized bytes
      * @return serialized bytes
      */
+    @Override
     public byte[] serialize(final Object obj, final int bufferSize) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream(bufferSize);
         Output out = new Output(outputStream);
@@ -222,6 +224,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param obj Object to serialize
      * @param buffer to write to
      */
+    @Override
     public void serialize(final Object obj, final ByteBuffer buffer) {
         ByteBufferOutput out = new ByteBufferOutput(buffer);
         Kryo kryo = borrow();
@@ -238,6 +241,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param obj Object to serialize
      * @param stream to write to
      */
+    @Override
     public void serialize(final Object obj, final OutputStream stream) {
         serialize(obj, stream, DEFAULT_BUFFER_SIZE);
     }
@@ -248,6 +252,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param stream to write to
      * @param bufferSize size of the buffer in front of the stream
      */
+    @Override
     public void serialize(final Object obj, final OutputStream stream, final int bufferSize) {
         ByteBufferOutput out = new ByteBufferOutput(stream, bufferSize);
         Kryo kryo = borrow();
@@ -265,6 +270,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param <T> deserialized Object type
      * @return deserialized Object
      */
+    @Override
     public <T> T deserialize(final byte[] bytes) {
         Input in = new Input(new ByteArrayInputStream(bytes));
         Kryo kryo = borrow();
@@ -283,6 +289,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param <T> deserialized Object type
      * @return deserialized Object
      */
+    @Override
     public <T> T deserialize(final ByteBuffer buffer) {
         ByteBufferInput in = new ByteBufferInput(buffer);
         Kryo kryo = borrow();
@@ -301,6 +308,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param <T> deserialized Object type
      * @return deserialized Object
      */
+    @Override
     public <T> T deserialize(final InputStream stream) {
         return deserialize(stream, DEFAULT_BUFFER_SIZE);
     }
@@ -312,6 +320,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
      * @param bufferSize size of the buffer in front of the stream
      * @return deserialized Object
      */
+    @Override
     public <T> T deserialize(final InputStream stream, final int bufferSize) {
         ByteBufferInput in = new ByteBufferInput(stream, bufferSize);
         Kryo kryo = borrow();
@@ -356,7 +365,7 @@ public final class KryoNamespace implements Namespace, KryoFactory, KryoPool {
     public static final class Builder {
         private int blockHeadId = INITIAL_ID;
         private List<Pair<Class<?>[], Serializer<?>>> types = new ArrayList<>();
-        private List<KryoNamespace.RegistrationBlock> blocks = new ArrayList<>();
+        private final List<KryoNamespace.RegistrationBlock> blocks = new ArrayList<>();
         private boolean registrationRequired = true;
         private boolean compatible = false;
 

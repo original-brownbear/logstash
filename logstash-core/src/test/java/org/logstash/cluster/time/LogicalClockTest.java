@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class LogicalClockTest {
     @Test
-    public void testLogicalClock() throws Exception {
+    public void testLogicalClock() {
         LogicalClock clock = new LogicalClock();
         assertEquals(1, clock.increment().value());
         assertEquals(1, clock.getTime().value());

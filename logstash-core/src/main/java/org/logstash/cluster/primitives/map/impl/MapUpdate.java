@@ -17,12 +17,10 @@
 package org.logstash.cluster.primitives.map.impl;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import java.util.function.Function;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Map update operation.
@@ -161,7 +159,7 @@ public final class MapUpdate<K, V> {
      */
     public static final class Builder<K, V> {
 
-        private MapUpdate<K, V> update = new MapUpdate<>();
+        private final MapUpdate<K, V> update = new MapUpdate<>();
 
         public MapUpdate<K, V> build() {
             validateInputs();
@@ -169,22 +167,22 @@ public final class MapUpdate<K, V> {
         }
 
         private void validateInputs() {
-            checkNotNull(update.type, "type must be specified");
+            Preconditions.checkNotNull(update.type, "type must be specified");
             switch (update.type) {
                 case VERSION_MATCH:
                     break;
                 case LOCK:
-                    checkNotNull(update.key, "key must be specified");
-                    checkState(update.version >= 0, "version must be specified");
+                    Preconditions.checkNotNull(update.key, "key must be specified");
+                    Preconditions.checkState(update.version >= 0, "version must be specified");
                     break;
                 case PUT_IF_VERSION_MATCH:
-                    checkNotNull(update.key, "key must be specified");
-                    checkNotNull(update.value, "value must be specified.");
-                    checkState(update.version >= 0, "version must be specified");
+                    Preconditions.checkNotNull(update.key, "key must be specified");
+                    Preconditions.checkNotNull(update.value, "value must be specified.");
+                    Preconditions.checkState(update.version >= 0, "version must be specified");
                     break;
                 case REMOVE_IF_VERSION_MATCH:
-                    checkNotNull(update.key, "key must be specified");
-                    checkState(update.version >= 0, "version must be specified");
+                    Preconditions.checkNotNull(update.key, "key must be specified");
+                    Preconditions.checkState(update.version >= 0, "version must be specified");
                     break;
                 default:
                     throw new IllegalStateException("Unknown operation type");
@@ -193,12 +191,12 @@ public final class MapUpdate<K, V> {
         }
 
         public Builder<K, V> withType(Type type) {
-            update.type = checkNotNull(type, "type cannot be null");
+            update.type = Preconditions.checkNotNull(type, "type cannot be null");
             return this;
         }
 
         public Builder<K, V> withKey(K key) {
-            update.key = checkNotNull(key, "key cannot be null");
+            update.key = Preconditions.checkNotNull(key, "key cannot be null");
             return this;
         }
 

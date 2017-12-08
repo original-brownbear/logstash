@@ -15,12 +15,11 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Arrays;
 import java.util.Objects;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Session keep alive request.
@@ -94,7 +93,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("sessionIds", ArraySizeHashPrinter.of(sessionIds))
             .add("commandSequences", ArraySizeHashPrinter.of(commandSequences))
             .add("eventIndexes", ArraySizeHashPrinter.of(eventIndexes))
@@ -116,7 +115,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code sessionIds} is {@code null}
          */
         public Builder withSessionIds(long[] sessionIds) {
-            this.sessionIds = checkNotNull(sessionIds, "sessionIds cannot be null");
+            this.sessionIds = Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             return this;
         }
 
@@ -127,7 +126,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code commandSequences} is {@code null}
          */
         public Builder withCommandSequences(long[] commandSequences) {
-            this.commandSequences = checkNotNull(commandSequences, "commandSequences cannot be null");
+            this.commandSequences = Preconditions.checkNotNull(commandSequences, "commandSequences cannot be null");
             return this;
         }
 
@@ -138,7 +137,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code eventIndexes} is {@code null}
          */
         public Builder withEventIndexes(long[] eventIndexes) {
-            this.eventIndexes = checkNotNull(eventIndexes, "eventIndexes cannot be null");
+            this.eventIndexes = Preconditions.checkNotNull(eventIndexes, "eventIndexes cannot be null");
             return this;
         }
 
@@ -151,9 +150,9 @@ public class KeepAliveRequest extends AbstractRaftRequest {
         @Override
         protected void validate() {
             super.validate();
-            this.sessionIds = checkNotNull(sessionIds, "sessionIds cannot be null");
-            this.commandSequences = checkNotNull(commandSequences, "commandSequences cannot be null");
-            this.eventIndexes = checkNotNull(eventIndexes, "eventIndexes cannot be null");
+            this.sessionIds = Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
+            this.commandSequences = Preconditions.checkNotNull(commandSequences, "commandSequences cannot be null");
+            this.eventIndexes = Preconditions.checkNotNull(eventIndexes, "eventIndexes cannot be null");
         }
     }
 }

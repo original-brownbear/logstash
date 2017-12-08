@@ -15,12 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Server join configuration change response.
@@ -52,12 +50,12 @@ public class JoinResponse extends ConfigurationResponse {
         @Override
         protected void validate() {
             // JoinResponse allows null errors indicating the client should retry.
-            checkNotNull(status, "status cannot be null");
+            Preconditions.checkNotNull(status, "status cannot be null");
             if (status == Status.OK) {
-                checkArgument(index >= 0, "index must be positive");
-                checkArgument(term >= 0, "term must be positive");
-                checkArgument(timestamp > 0, "time must be positive");
-                checkNotNull(members, "members cannot be null");
+                Preconditions.checkArgument(index >= 0, "index must be positive");
+                Preconditions.checkArgument(term >= 0, "term must be positive");
+                Preconditions.checkArgument(timestamp > 0, "time must be positive");
+                Preconditions.checkNotNull(members, "members cannot be null");
             }
         }
     }

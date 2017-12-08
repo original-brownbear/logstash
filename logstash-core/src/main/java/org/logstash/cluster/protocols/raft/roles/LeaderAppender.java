@@ -50,7 +50,7 @@ final class LeaderAppender extends AbstractAppender {
     private final long heartbeatInterval;
     private final Map<Long, CompletableFuture<Long>> appendFutures = new HashMap<>();
     private final List<LeaderAppender.TimestampedFuture<Long>> heartbeatFutures = new ArrayList<>();
-    private long heartbeatTime;
+    private final long heartbeatTime;
 
     LeaderAppender(LeaderRole leader) {
         super(leader.raft);
@@ -392,6 +392,7 @@ final class LeaderAppender extends AbstractAppender {
     /**
      * Handles a {@link org.logstash.cluster.protocols.raft.protocol.RaftResponse.Status#ERROR} response.
      */
+    @Override
     protected void handleAppendResponseError(RaftMemberContext member, AppendRequest request, AppendResponse response) {
         // If we've received a greater term, update the term and transition back to follower.
         if (response.term() > raft.getTerm()) {

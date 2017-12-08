@@ -15,14 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.cluster.RaftMember;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Configuration installation request.
@@ -115,7 +113,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .add("leader", leader)
             .add("index", index)
@@ -141,7 +139,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if the {@code term} is not positive
          */
         public Builder withTerm(long term) {
-            checkArgument(term > 0, "term must be positive");
+            Preconditions.checkArgument(term > 0, "term must be positive");
             this.term = term;
             return this;
         }
@@ -153,7 +151,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @throws IllegalArgumentException if the {@code leader} is not positive
          */
         public Builder withLeader(MemberId leader) {
-            this.leader = checkNotNull(leader, "leader cannot be null").id();
+            this.leader = Preconditions.checkNotNull(leader, "leader cannot be null").id();
             return this;
         }
 
@@ -163,7 +161,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @return The request builder.
          */
         public Builder withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
         }
@@ -174,7 +172,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @return The request builder.
          */
         public Builder withTime(long timestamp) {
-            checkArgument(timestamp > 0, "timestamp must be positive");
+            Preconditions.checkArgument(timestamp > 0, "timestamp must be positive");
             this.timestamp = timestamp;
             return this;
         }
@@ -186,7 +184,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code member} is null
          */
         public Builder withMembers(Collection<RaftMember> members) {
-            this.members = checkNotNull(members, "members cannot be null");
+            this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }
 
@@ -202,11 +200,11 @@ public class ConfigureRequest extends AbstractRaftRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(term > 0, "term must be positive");
-            checkNotNull(leader, "leader cannot be null");
-            checkArgument(index >= 0, "index must be positive");
-            checkArgument(timestamp > 0, "timestamp must be positive");
-            checkNotNull(members, "members cannot be null");
+            Preconditions.checkArgument(term > 0, "term must be positive");
+            Preconditions.checkNotNull(leader, "leader cannot be null");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(timestamp > 0, "timestamp must be positive");
+            Preconditions.checkNotNull(members, "members cannot be null");
         }
     }
 

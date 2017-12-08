@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.lock.impl;
 
+import com.google.common.base.MoreObjects;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -30,10 +31,6 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.utils.concurrent.Scheduled;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static org.logstash.cluster.primitives.lock.impl.RaftDistributedLockOperations.LOCK;
-import static org.logstash.cluster.primitives.lock.impl.RaftDistributedLockOperations.UNLOCK;
 
 /**
  * Raft atomic value service.
@@ -51,8 +48,8 @@ public class RaftDistributedLockService extends AbstractRaftService {
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
-        executor.register(LOCK, SERIALIZER::decode, this::lock);
-        executor.register(UNLOCK, SERIALIZER::decode, this::unlock);
+        executor.register(RaftDistributedLockOperations.LOCK, SERIALIZER::decode, this::lock);
+        executor.register(RaftDistributedLockOperations.UNLOCK, SERIALIZER::decode, this::unlock);
     }
 
     @Override
@@ -194,7 +191,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("id", id)
                 .add("index", index)
                 .add("session", session)

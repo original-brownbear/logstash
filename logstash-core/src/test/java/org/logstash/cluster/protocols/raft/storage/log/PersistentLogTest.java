@@ -29,7 +29,7 @@ public abstract class PersistentLogTest extends AbstractLogTest {
      * Tests reading from a compacted log.
      */
     @Test
-    public void testCompactAndRecover() throws Exception {
+    public void testCompactAndRecover() {
         RaftLog log = createLog();
 
         // Write three segments to the log.

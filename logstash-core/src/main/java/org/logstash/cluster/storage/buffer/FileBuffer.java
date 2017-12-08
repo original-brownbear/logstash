@@ -1,25 +1,9 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.storage.buffer;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
 import java.nio.channels.FileChannel;
 import org.logstash.cluster.utils.memory.Memory;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * File buffer.
@@ -69,7 +53,7 @@ public class FileBuffer extends AbstractBuffer {
      * @see FileBuffer#allocate(File, int, int)
      */
     public static FileBuffer allocate(File file, String mode, int initialCapacity, int maxCapacity) {
-        checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
+        Preconditions.checkArgument(initialCapacity <= maxCapacity, "initial capacity cannot be greater than maximum capacity");
         return new FileBuffer(new FileBytes(file, mode, (int) Math.min(Memory.Util.toPow2(initialCapacity), maxCapacity)), 0, initialCapacity, maxCapacity);
     }
 
@@ -113,7 +97,7 @@ public class FileBuffer extends AbstractBuffer {
      * @return The underlying file.
      */
     public File file() {
-        return ((FileBytes) bytes).file();
+        return bytes.file();
     }
 
     /**
@@ -138,7 +122,7 @@ public class FileBuffer extends AbstractBuffer {
      * {@link java.nio.MappedByteBuffer} count: {@link Integer#MAX_VALUE}
      */
     public MappedBuffer map(int offset, int size, FileChannel.MapMode mode) {
-        return new MappedBuffer(((FileBytes) bytes).map(offset, size, mode), 0, size, size);
+        return new MappedBuffer(bytes.map(offset, size, mode), 0, size, size);
     }
 
     /**

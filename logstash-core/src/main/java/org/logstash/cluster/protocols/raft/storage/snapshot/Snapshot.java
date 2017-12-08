@@ -15,12 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.service.ServiceId;
 import org.logstash.cluster.time.WallClockTimestamp;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Manages reading and writing a single snapshot file.
@@ -59,8 +57,8 @@ public abstract class Snapshot implements AutoCloseable {
     private SnapshotWriter writer;
 
     protected Snapshot(SnapshotDescriptor descriptor, SnapshotStore store) {
-        this.descriptor = checkNotNull(descriptor, "descriptor cannot be null");
-        this.store = checkNotNull(store, "store cannot be null");
+        this.descriptor = Preconditions.checkNotNull(descriptor, "descriptor cannot be null");
+        this.store = Preconditions.checkNotNull(store, "store cannot be null");
     }
 
     /**
@@ -95,8 +93,8 @@ public abstract class Snapshot implements AutoCloseable {
      */
     protected SnapshotWriter openWriter(SnapshotWriter writer, SnapshotDescriptor descriptor) {
         checkWriter();
-        checkState(!descriptor.isLocked(), "cannot write to locked snapshot descriptor");
-        this.writer = checkNotNull(writer, "writer cannot be null");
+        Preconditions.checkState(!descriptor.isLocked(), "cannot write to locked snapshot descriptor");
+        this.writer = Preconditions.checkNotNull(writer, "writer cannot be null");
         return writer;
     }
 
@@ -104,7 +102,7 @@ public abstract class Snapshot implements AutoCloseable {
      * Checks that the snapshot can be written.
      */
     protected void checkWriter() {
-        checkState(writer == null, "cannot create multiple writers for the same snapshot");
+        Preconditions.checkState(writer == null, "cannot create multiple writers for the same snapshot");
     }
 
     /**
@@ -129,7 +127,7 @@ public abstract class Snapshot implements AutoCloseable {
      * Opens the given snapshot reader.
      */
     protected static SnapshotReader openReader(SnapshotReader reader, SnapshotDescriptor descriptor) {
-        checkState(descriptor.isLocked(), "cannot read from unlocked snapshot descriptor");
+        Preconditions.checkState(descriptor.isLocked(), "cannot read from unlocked snapshot descriptor");
         return reader;
     }
 

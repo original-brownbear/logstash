@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.value.impl;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -22,8 +23,6 @@ import java.util.function.Function;
 import org.logstash.cluster.primitives.value.AsyncAtomicValue;
 import org.logstash.cluster.primitives.value.AtomicValueEvent;
 import org.logstash.cluster.primitives.value.AtomicValueEventListener;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Transcoding async atomic value.
@@ -94,7 +93,7 @@ public class TranscodingAsyncAtomicValue<V1, V2> implements AsyncAtomicValue<V1>
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("backingValue", backingValue)
             .toString();
     }

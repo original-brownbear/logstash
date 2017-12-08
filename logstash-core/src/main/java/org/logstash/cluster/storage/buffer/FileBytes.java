@@ -249,14 +249,14 @@ public class FileBytes extends AbstractBytes {
         if (bytes.hasArray()) {
             try {
                 seekToOffset(position);
-                randomAccessFile.write(bytes.array(), (int) offset, (int) length);
+                randomAccessFile.write(bytes.array(), offset, length);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
             try {
                 seekToOffset(position);
-                byte[] writeBytes = new byte[(int) length];
+                byte[] writeBytes = new byte[length];
                 bytes.read(offset, writeBytes, 0, length);
                 randomAccessFile.write(writeBytes);
             } catch (IOException e) {
@@ -271,7 +271,7 @@ public class FileBytes extends AbstractBytes {
         checkWrite(position, length);
         try {
             seekToOffset(position);
-            randomAccessFile.write(bytes, (int) offset, (int) length);
+            randomAccessFile.write(bytes, offset, length);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -380,14 +380,14 @@ public class FileBytes extends AbstractBytes {
         if (bytes.hasArray()) {
             try {
                 seekToOffset(position);
-                randomAccessFile.read(bytes.array(), (int) offset, (int) length);
+                randomAccessFile.read(bytes.array(), offset, length);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
         } else {
             try {
                 seekToOffset(position);
-                byte[] readBytes = new byte[(int) length];
+                byte[] readBytes = new byte[length];
                 randomAccessFile.read(readBytes);
                 bytes.write(offset, readBytes, 0, length);
             } catch (IOException e) {
@@ -402,7 +402,7 @@ public class FileBytes extends AbstractBytes {
         checkRead(position, length);
         try {
             seekToOffset(position);
-            randomAccessFile.read(bytes, (int) offset, (int) length);
+            randomAccessFile.read(bytes, offset, length);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

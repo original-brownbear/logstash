@@ -44,7 +44,7 @@ public class RaftIdGeneratorTest extends AbstractRaftPrimitiveTest<RaftAtomicCou
      * Tests generating IDs.
      */
     @Test
-    public void testNextId() throws Throwable {
+    public void testNextId() {
         RaftIdGenerator idGenerator1 = new RaftIdGenerator(newPrimitive("testNextId"));
         RaftIdGenerator idGenerator2 = new RaftIdGenerator(newPrimitive("testNextId"));
 
@@ -74,7 +74,7 @@ public class RaftIdGeneratorTest extends AbstractRaftPrimitiveTest<RaftAtomicCou
      * Tests generating IDs.
      */
     @Test
-    public void testNextIdBatchRollover() throws Throwable {
+    public void testNextIdBatchRollover() {
         RaftIdGenerator idGenerator1 = new RaftIdGenerator(newPrimitive("testNextIdBatchRollover"), 2);
         RaftIdGenerator idGenerator2 = new RaftIdGenerator(newPrimitive("testNextIdBatchRollover"), 2);
 

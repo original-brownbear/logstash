@@ -15,13 +15,12 @@
  */
 package org.logstash.cluster.primitives.value.impl;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
 import org.logstash.cluster.protocols.raft.operation.OperationType;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Counter commands.
@@ -95,7 +94,7 @@ public enum RaftAtomicValueOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("value", ArraySizeHashPrinter.of(value))
                 .toString();
         }
@@ -134,7 +133,7 @@ public enum RaftAtomicValueOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("expect", ArraySizeHashPrinter.of(expect))
                 .add("update", ArraySizeHashPrinter.of(update))
                 .toString();
@@ -164,7 +163,7 @@ public enum RaftAtomicValueOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("value", ArraySizeHashPrinter.of(value))
                 .toString();
         }

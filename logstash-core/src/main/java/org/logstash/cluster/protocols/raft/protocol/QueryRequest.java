@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.operation.RaftOperation;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Client query request.
@@ -74,7 +73,7 @@ public class QueryRequest extends OperationRequest {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("session", session)
             .add("sequence", sequence)
             .add("operation", operation)
@@ -95,7 +94,7 @@ public class QueryRequest extends OperationRequest {
          * @throws IllegalArgumentException if {@code index} is less than {@code 0}
          */
         public Builder withIndex(long index) {
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
         }
@@ -112,7 +111,7 @@ public class QueryRequest extends OperationRequest {
         @Override
         protected void validate() {
             super.validate();
-            checkArgument(index >= 0, "index must be positive");
+            Preconditions.checkArgument(index >= 0, "index must be positive");
         }
     }
 

@@ -65,11 +65,11 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
      * Tests various basic map operations.
      */
     @Test
-    public void testBasicMapOperations() throws Throwable {
+    public void testBasicMapOperations() {
         basicMapOperationTests();
     }
 
-    protected void basicMapOperationTests() throws Throwable {
+    protected void basicMapOperationTests() {
         final byte[] rawFooValue = "Hello foo!".getBytes();
         final byte[] rawBarValue = "Hello bar!".getBytes();
 
@@ -207,11 +207,11 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
      * Tests various map compute* operations on different cluster sizes.
      */
     @Test
-    public void testMapComputeOperations() throws Throwable {
+    public void testMapComputeOperations() {
         mapComputeOperationTests();
     }
 
-    public void mapComputeOperationTests() throws Throwable {
+    public void mapComputeOperationTests() {
         final byte[] value1 = "value1".getBytes();
         final byte[] value2 = "value2".getBytes();
         final byte[] value3 = "value3".getBytes();
@@ -251,7 +251,7 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
      * Tests null values.
      */
     @Test
-    public void testNullValues() throws Throwable {
+    public void testNullValues() {
         final byte[] rawFooValue = "Hello foo!".getBytes();
         final byte[] rawBarValue = "Hello bar!".getBytes();
 
@@ -356,11 +356,11 @@ public class RaftConsistentMapTest extends AbstractRaftPrimitiveTest<RaftConsist
      * Tests map transaction prepare.
      */
     @Test
-    public void testTransactionPrepare() throws Throwable {
+    public void testTransactionPrepare() {
         transactionPrepareTests();
     }
 
-    protected void transactionPrepareTests() throws Throwable {
+    protected void transactionPrepareTests() {
         RaftConsistentMap map = newPrimitive("testPrepareTestsMap");
 
         TransactionId transactionId1 = TransactionId.from("tx1");

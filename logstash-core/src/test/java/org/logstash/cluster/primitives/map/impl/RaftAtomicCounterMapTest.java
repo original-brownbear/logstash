@@ -27,7 +27,7 @@ public class RaftAtomicCounterMapTest extends AbstractRaftPrimitiveTest<RaftAtom
      * Tests basic counter map operations.
      */
     @Test
-    public void testBasicCounterMapOperations() throws Throwable {
+    public void testBasicCounterMapOperations() {
         RaftAtomicCounterMap map = newPrimitive("testBasicCounterMapOperationMap");
 
         map.isEmpty().thenAccept(isEmpty -> {

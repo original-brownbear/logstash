@@ -15,10 +15,9 @@
  */
 package org.logstash.cluster.storage.journal;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.serializer.Serializer;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Log segment.
@@ -115,7 +114,7 @@ public class JournalSegment<E> implements AutoCloseable {
      * Checks whether the segment is open.
      */
     private void checkOpen() {
-        checkState(open, "Segment not open");
+        Preconditions.checkState(open, "Segment not open");
     }
 
     /**
@@ -154,7 +153,7 @@ public class JournalSegment<E> implements AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id())
             .add("version", version())
             .toString();

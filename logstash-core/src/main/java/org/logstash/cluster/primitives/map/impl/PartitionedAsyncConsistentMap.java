@@ -15,6 +15,7 @@
  */
 package org.logstash.cluster.primitives.map.impl;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -43,8 +44,6 @@ import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.Match;
 import org.logstash.cluster.utils.concurrent.Futures;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * {@link AsyncConsistentMap} that has its entries partitioned horizontally across
  * several {@link AsyncConsistentMap maps}.
@@ -61,8 +60,8 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
         Map<Integer, AsyncConsistentMap<K, V>> partitions,
         Hasher<K> keyHasher) {
         this.name = name;
-        this.partitions.putAll(checkNotNull(partitions));
-        this.keyHasher = checkNotNull(keyHasher);
+        this.partitions.putAll(Preconditions.checkNotNull(partitions));
+        this.keyHasher = Preconditions.checkNotNull(keyHasher);
     }
 
     @Override

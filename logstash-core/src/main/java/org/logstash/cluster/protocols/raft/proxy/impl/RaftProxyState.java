@@ -15,14 +15,13 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.Preconditions;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.Consumer;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.SessionId;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Client state.
@@ -126,7 +125,7 @@ public final class RaftProxyState {
      * @param listener The state change listener callback.
      */
     public void addStateChangeListener(Consumer<RaftProxy.State> listener) {
-        changeListeners.add(checkNotNull(listener));
+        changeListeners.add(Preconditions.checkNotNull(listener));
     }
 
     /**
@@ -134,7 +133,7 @@ public final class RaftProxyState {
      * @param listener the listener to remove
      */
     public void removeStateChangeListener(Consumer<RaftProxy.State> listener) {
-        changeListeners.remove(checkNotNull(listener));
+        changeListeners.remove(Preconditions.checkNotNull(listener));
     }
 
     /**

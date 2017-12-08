@@ -55,7 +55,7 @@ import org.logstash.cluster.time.WallClockTimestamp;
  * Passive state.
  */
 public class PassiveRole extends InactiveRole {
-    private final Map<Long, PendingSnapshot> pendingSnapshots = new HashMap<>();
+    private final Map<Long, PassiveRole.PendingSnapshot> pendingSnapshots = new HashMap<>();
 
     public PassiveRole(RaftContext context) {
         super(context);
@@ -70,7 +70,7 @@ public class PassiveRole extends InactiveRole {
 
     @Override
     public CompletableFuture<Void> close() {
-        for (PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
+        for (PassiveRole.PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
             pendingSnapshot.rollback();
         }
         return super.close();
@@ -186,7 +186,7 @@ public class PassiveRole extends InactiveRole {
         }
 
         // Get the pending snapshot for the associated snapshot ID.
-        PendingSnapshot pendingSnapshot = pendingSnapshots.get(request.serviceId());
+        PassiveRole.PendingSnapshot pendingSnapshot = pendingSnapshots.get(request.serviceId());
 
         // If a snapshot is currently being received and the snapshot versions don't match, simply
         // close the existing snapshot. This is a naive implementation that assumes that the leader
@@ -214,7 +214,7 @@ public class PassiveRole extends InactiveRole {
                 request.serviceName(),
                 request.snapshotIndex(),
                 WallClockTimestamp.from(request.snapshotTimestamp()));
-            pendingSnapshot = new PendingSnapshot(snapshot);
+            pendingSnapshot = new PassiveRole.PendingSnapshot(snapshot);
         }
 
         // If the request offset is greater than the next expected snapshot offset, fail the request.

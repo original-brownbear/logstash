@@ -35,7 +35,7 @@ public class MemberSelectorTest {
      * Tests selecting members using the ANY selector.
      */
     @Test
-    public void testSelectAny() throws Exception {
+    public void testSelectAny() {
         MemberSelectorManager selectorManager = new MemberSelectorManager();
         MemberSelector selector = selectorManager.createSelector(CommunicationStrategy.ANY);
 
@@ -77,7 +77,7 @@ public class MemberSelectorTest {
      * Tests selecting members using the FOLLOWER selector.
      */
     @Test
-    public void testSelectFollower() throws Exception {
+    public void testSelectFollower() {
         MemberSelectorManager selectorManager = new MemberSelectorManager();
         MemberSelector selector = selectorManager.createSelector(CommunicationStrategy.FOLLOWERS);
 
@@ -110,7 +110,7 @@ public class MemberSelectorTest {
      * Tests the member selector.
      */
     @Test
-    public void testSelectLeader() throws Exception {
+    public void testSelectLeader() {
         MemberSelectorManager selectorManager = new MemberSelectorManager();
         MemberSelector selector = selectorManager.createSelector(CommunicationStrategy.LEADER);
 

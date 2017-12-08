@@ -57,8 +57,8 @@ public class DefaultClusterService implements ManagedClusterService {
         Threads.namedThreads("atomix-cluster-heartbeat-sender", LOGGER));
     private final ExecutorService heartbeatExecutor = Executors.newSingleThreadExecutor(
         Threads.namedThreads("atomix-cluster-heartbeat-receiver", LOGGER));
-    private int heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
-    private int phiFailureThreshold = DEFAULT_PHI_FAILURE_THRESHOLD;
+    private final int heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
+    private final int phiFailureThreshold = DEFAULT_PHI_FAILURE_THRESHOLD;
     private ScheduledFuture<?> heartbeatFuture;
 
     public DefaultClusterService(ClusterMetadata clusterMetadata, MessagingService messagingService) {

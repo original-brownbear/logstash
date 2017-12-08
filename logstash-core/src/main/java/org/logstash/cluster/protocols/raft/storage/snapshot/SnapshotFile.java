@@ -16,9 +16,8 @@
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import java.io.File;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents a snapshot file on disk.
@@ -42,7 +41,7 @@ public final class SnapshotFile {
      * @throws NullPointerException if {@code file} is null
      */
     public static boolean isSnapshotFile(File file) {
-        checkNotNull(file, "file cannot be null");
+        Preconditions.checkNotNull(file, "file cannot be null");
         String fileName = file.getName();
 
         // The file name should contain an extension separator.

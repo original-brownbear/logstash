@@ -68,10 +68,6 @@ public class TestRaftServerCommunicator implements RaftServerProtocol {
     private final Serializer serializer;
     private final ClusterCommunicationService clusterCommunicator;
 
-    public TestRaftServerCommunicator(Serializer serializer, ClusterCommunicationService clusterCommunicator) {
-        this(null, serializer, clusterCommunicator);
-    }
-
     public TestRaftServerCommunicator(String prefix, Serializer serializer, ClusterCommunicationService clusterCommunicator) {
         this.context = new TestRaftMessageContext(prefix);
         this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");

@@ -15,14 +15,13 @@
  */
 package org.logstash.cluster.protocols.raft.protocol;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.Objects;
 import org.logstash.cluster.protocols.raft.RaftError;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Session keep alive response.
@@ -97,14 +96,14 @@ public class KeepAliveResponse extends AbstractRaftResponse {
     @Override
     public String toString() {
         if (status == Status.OK) {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("leader", leader)
                 .add("members", members)
                 .add("sessionIds", ArraySizeHashPrinter.of(sessionIds))
                 .toString();
         } else {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("error", error)
                 .toString();
@@ -136,7 +135,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
          * @throws NullPointerException if {@code members} is null
          */
         public Builder withMembers(Collection<MemberId> members) {
-            this.members = checkNotNull(members, "members cannot be null");
+            this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }
 
@@ -146,7 +145,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
          * @return the response builder
          */
         public Builder withSessionIds(long[] sessionIds) {
-            this.sessionIds = checkNotNull(sessionIds, "sessionIds cannot be null");
+            this.sessionIds = Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             return this;
         }
 
@@ -163,8 +162,8 @@ public class KeepAliveResponse extends AbstractRaftResponse {
         protected void validate() {
             super.validate();
             if (status == Status.OK) {
-                checkNotNull(members, "members cannot be null");
-                checkNotNull(sessionIds, "sessionIds cannot be null");
+                Preconditions.checkNotNull(members, "members cannot be null");
+                Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             }
         }
     }

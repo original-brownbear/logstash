@@ -15,9 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Operation result.
@@ -117,7 +116,7 @@ public final class OperationResult {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index)
             .add("eventIndex", eventIndex)
             .add("error", error)

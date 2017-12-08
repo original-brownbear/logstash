@@ -15,7 +15,7 @@
  */
 package org.logstash.cluster.storage.journal;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Journal reader delegate.
@@ -69,7 +69,7 @@ public class DelegatingJournalReader<E> implements JournalReader<E> {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("delegate", delegate)
             .toString();
     }

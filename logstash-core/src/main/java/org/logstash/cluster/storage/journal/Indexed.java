@@ -15,7 +15,7 @@
  */
 package org.logstash.cluster.storage.journal;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Indexed journal entry.
@@ -74,7 +74,7 @@ public class Indexed<E> {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index)
             .add("entry", entry)
             .toString();

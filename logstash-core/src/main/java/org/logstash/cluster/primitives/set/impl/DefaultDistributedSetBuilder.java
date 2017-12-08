@@ -12,7 +12,7 @@ import org.logstash.cluster.serializer.Serializer;
  */
 public class DefaultDistributedSetBuilder<E> extends DistributedSetBuilder<E> {
 
-    private ConsistentMapBuilder<E, Boolean> mapBuilder;
+    private final ConsistentMapBuilder<E, Boolean> mapBuilder;
 
     public DefaultDistributedSetBuilder(Supplier<ConsistentMapBuilder<E, Boolean>> mapBuilderSupplier) {
         this.mapBuilder = mapBuilderSupplier.get();

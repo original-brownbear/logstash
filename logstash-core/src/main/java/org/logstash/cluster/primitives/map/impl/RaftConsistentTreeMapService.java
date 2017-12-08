@@ -31,22 +31,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.CEILING_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.CEILING_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.FIRST_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.FIRST_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.FLOOR_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.FLOOR_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.HIGHER_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.HIGHER_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.LAST_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.LAST_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.LOWER_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.LOWER_KEY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.POLL_FIRST_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.POLL_LAST_ENTRY;
-import static org.logstash.cluster.primitives.map.impl.RaftConsistentTreeMapOperations.SUB_MAP;
-
 /**
  * State machine corresponding to {@link RaftConsistentTreeMap} backed by a
  * {@link TreeMap}.
@@ -86,21 +70,21 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
     @Override
     public void configure(RaftServiceExecutor executor) {
         super.configure(executor);
-        executor.register(SUB_MAP, serializer()::decode, this::subMap, serializer()::encode);
-        executor.register(FIRST_KEY, (Commit<Void> c) -> firstKey(), serializer()::encode);
-        executor.register(LAST_KEY, (Commit<Void> c) -> lastKey(), serializer()::encode);
-        executor.register(FIRST_ENTRY, (Commit<Void> c) -> firstEntry(), serializer()::encode);
-        executor.register(LAST_ENTRY, (Commit<Void> c) -> lastEntry(), serializer()::encode);
-        executor.register(POLL_FIRST_ENTRY, (Commit<Void> c) -> pollFirstEntry(), serializer()::encode);
-        executor.register(POLL_LAST_ENTRY, (Commit<Void> c) -> pollLastEntry(), serializer()::encode);
-        executor.register(LOWER_ENTRY, serializer()::decode, this::lowerEntry, serializer()::encode);
-        executor.register(LOWER_KEY, serializer()::decode, this::lowerKey, serializer()::encode);
-        executor.register(FLOOR_ENTRY, serializer()::decode, this::floorEntry, serializer()::encode);
-        executor.register(FLOOR_KEY, serializer()::decode, this::floorKey, serializer()::encode);
-        executor.register(CEILING_ENTRY, serializer()::decode, this::ceilingEntry, serializer()::encode);
-        executor.register(CEILING_KEY, serializer()::decode, this::ceilingKey, serializer()::encode);
-        executor.register(HIGHER_ENTRY, serializer()::decode, this::higherEntry, serializer()::encode);
-        executor.register(HIGHER_KEY, serializer()::decode, this::higherKey, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.SUB_MAP, serializer()::decode, this::subMap, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.FIRST_KEY, (Commit<Void> c) -> firstKey(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.LAST_KEY, (Commit<Void> c) -> lastKey(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.FIRST_ENTRY, (Commit<Void> c) -> firstEntry(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.LAST_ENTRY, (Commit<Void> c) -> lastEntry(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.POLL_FIRST_ENTRY, (Commit<Void> c) -> pollFirstEntry(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.POLL_LAST_ENTRY, (Commit<Void> c) -> pollLastEntry(), serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.LOWER_ENTRY, serializer()::decode, this::lowerEntry, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.LOWER_KEY, serializer()::decode, this::lowerKey, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.FLOOR_ENTRY, serializer()::decode, this::floorEntry, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.FLOOR_KEY, serializer()::decode, this::floorKey, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.CEILING_ENTRY, serializer()::decode, this::ceilingEntry, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.CEILING_KEY, serializer()::decode, this::ceilingKey, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.HIGHER_ENTRY, serializer()::decode, this::higherEntry, serializer()::encode);
+        executor.register(RaftConsistentTreeMapOperations.HIGHER_KEY, serializer()::decode, this::higherKey, serializer()::encode);
     }
 
     protected String firstKey() {

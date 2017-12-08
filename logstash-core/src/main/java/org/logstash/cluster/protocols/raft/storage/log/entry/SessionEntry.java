@@ -15,9 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.storage.log.entry;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.utils.TimestampPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Base class for session-related entries.
@@ -40,7 +39,7 @@ public abstract class SessionEntry extends TimestampedEntry {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("term", term)
             .add("timestamp", new TimestampPrinter(timestamp))
             .add("session", session)

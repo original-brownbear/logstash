@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.logstash.cluster.protocols.raft.event.RaftEvent;
@@ -26,9 +28,6 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxyClient;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.SessionId;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Handles submitting state machine {@link RaftOperation operations} to the Raft cluster.
@@ -60,8 +59,8 @@ public class DiscreteRaftProxyClient implements RaftProxyClient {
         RaftProxyManager sessionManager,
         CommunicationStrategy communicationStrategy,
         ThreadContext context) {
-        this.state = checkNotNull(state, "state cannot be null");
-        this.sessionManager = checkNotNull(sessionManager, "sessionManager cannot be null");
+        this.state = Preconditions.checkNotNull(state, "state cannot be null");
+        this.sessionManager = Preconditions.checkNotNull(sessionManager, "sessionManager cannot be null");
 
         // Create command/query connections.
         RaftProxyConnection leaderConnection = new RaftProxyConnection(
@@ -171,7 +170,7 @@ public class DiscreteRaftProxyClient implements RaftProxyClient {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", state.getSessionId())
             .toString();
     }

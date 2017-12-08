@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.utils;
 
+import com.google.common.base.MoreObjects;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.function.Function;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Utility class for checking matching values.
@@ -147,7 +146,7 @@ public final class Match<T> {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("matchAny", matchAny)
             .add("negation", negation)
             .add("value", value)

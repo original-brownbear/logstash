@@ -15,9 +15,8 @@
  */
 package org.logstash.cluster.utils;
 
+import com.google.common.base.Preconditions;
 import java.util.Objects;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Abstract identifier backed by another value, e.g. string, int.
@@ -38,13 +37,14 @@ public class AbstractIdentifier<T extends Comparable<T>> implements Identifier<T
      * @param value the backing value
      */
     protected AbstractIdentifier(T value) {
-        this.identifier = checkNotNull(value, "Identifier cannot be null.");
+        this.identifier = Preconditions.checkNotNull(value, "Identifier cannot be null.");
     }
 
     /**
      * Returns the backing identifier value.
      * @return identifier
      */
+    @Override
     public T id() {
         return identifier;
     }

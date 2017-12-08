@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.primitives.map.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Set;
 import org.logstash.cluster.primitives.TransactionId;
 import org.logstash.cluster.primitives.TransactionLog;
@@ -24,9 +26,6 @@ import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 import org.logstash.cluster.time.Versioned;
 import org.logstash.cluster.utils.ArraySizeHashPrinter;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * {@link RaftConsistentMap} resource state machine operations.
@@ -117,7 +116,7 @@ public enum RaftConsistentMapOperations implements OperationId {
     public abstract static class MapOperation {
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .toString();
         }
     }
@@ -133,7 +132,7 @@ public enum RaftConsistentMapOperations implements OperationId {
         }
 
         public KeyOperation(String key) {
-            this.key = checkNotNull(key, "key cannot be null");
+            this.key = Preconditions.checkNotNull(key, "key cannot be null");
         }
 
         /**
@@ -146,7 +145,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("key", key)
                 .toString();
         }
@@ -176,7 +175,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("value", value)
                 .toString();
         }
@@ -207,7 +206,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("key", key)
                 .add("value", ArraySizeHashPrinter.of(value))
                 .toString();
@@ -239,7 +238,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("key", key)
                 .add("version", version)
                 .toString();
@@ -358,7 +357,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("key", key)
                 .add("oldValue", ArraySizeHashPrinter.of(oldValue))
                 .add("newValue", ArraySizeHashPrinter.of(newValue))
@@ -392,7 +391,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("key", key)
                 .add("oldVersion", oldVersion)
                 .add("newValue", ArraySizeHashPrinter.of(newValue))
@@ -438,7 +437,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("transactionLog", transactionLog)
                 .toString();
         }
@@ -481,7 +480,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("transactionId", transactionId)
                 .toString();
         }
@@ -511,7 +510,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(getClass())
+            return MoreObjects.toStringHelper(getClass())
                 .add("transactionId", transactionId)
                 .toString();
         }
@@ -554,7 +553,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("keys", keys)
                 .toString();
         }
@@ -585,7 +584,7 @@ public enum RaftConsistentMapOperations implements OperationId {
 
         @Override
         public String toString() {
-            return toStringHelper(this)
+            return MoreObjects.toStringHelper(this)
                 .add("key", key)
                 .add("defaultValue", ArraySizeHashPrinter.of(defaultValue))
                 .toString();

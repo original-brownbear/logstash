@@ -35,7 +35,7 @@ public class JournalTest {
         .build());
 
     @Test
-    public void testLogWriteRead() throws Exception {
+    public void testLogWriteRead() {
         Journal<TestEntry> journal = createJournal();
         JournalWriter<TestEntry> writer = journal.writer();
         JournalReader<TestEntry> reader = journal.openReader(1);

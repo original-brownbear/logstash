@@ -15,9 +15,8 @@
  */
 package org.logstash.cluster.storage.journal;
 
+import com.google.common.base.Preconditions;
 import java.io.File;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Segment file utility.
@@ -51,8 +50,8 @@ public final class JournalSegmentFile {
      * @throws NullPointerException if {@code file} is null
      */
     public static boolean isSegmentFile(String journalName, String fileName) {
-        checkNotNull(journalName, "journalName cannot be null");
-        checkNotNull(fileName, "fileName cannot be null");
+        Preconditions.checkNotNull(journalName, "journalName cannot be null");
+        Preconditions.checkNotNull(fileName, "fileName cannot be null");
 
         int partSeparator = fileName.lastIndexOf(PART_SEPARATOR);
         int extensionSeparator = fileName.lastIndexOf(EXTENSION_SEPARATOR);
@@ -77,7 +76,7 @@ public final class JournalSegmentFile {
      * Creates a segment file for the given directory, log name, segment ID, and segment version.
      */
     static File createSegmentFile(String name, File directory, long id) {
-        return new File(directory, String.format("%s-%d.log", checkNotNull(name, "name cannot be null"), id));
+        return new File(directory, String.format("%s-%d.log", Preconditions.checkNotNull(name, "name cannot be null"), id));
     }
 
     /**

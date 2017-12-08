@@ -43,7 +43,7 @@ public class RaftDistributedLockTest extends AbstractRaftPrimitiveTest<RaftDistr
      * Tests locking and unlocking a lock.
      */
     @Test
-    public void testLockUnlock() throws Throwable {
+    public void testLockUnlock() {
         RaftDistributedLock lock = newPrimitive("test-lock-unlock");
         lock.lock().join();
         lock.unlock().join();
@@ -53,7 +53,7 @@ public class RaftDistributedLockTest extends AbstractRaftPrimitiveTest<RaftDistr
      * Tests releasing a lock when the client's session is closed.
      */
     @Test
-    public void testReleaseOnClose() throws Throwable {
+    public void testReleaseOnClose() {
         RaftDistributedLock lock1 = newPrimitive("test-lock-on-close");
         RaftDistributedLock lock2 = newPrimitive("test-lock-on-close");
         lock1.lock().join();
@@ -66,7 +66,7 @@ public class RaftDistributedLockTest extends AbstractRaftPrimitiveTest<RaftDistr
      * Tests attempting to acquire a lock with a timeout.
      */
     @Test
-    public void testTryLockFail() throws Throwable {
+    public void testTryLockFail() {
         RaftDistributedLock lock1 = newPrimitive("test-try-lock-fail");
         RaftDistributedLock lock2 = newPrimitive("test-try-lock-fail");
 
@@ -79,7 +79,7 @@ public class RaftDistributedLockTest extends AbstractRaftPrimitiveTest<RaftDistr
      * Tests unlocking a lock with a blocking call in the event thread.
      */
     @Test
-    public void testBlockingUnlock() throws Throwable {
+    public void testBlockingUnlock() {
         RaftDistributedLock lock1 = newPrimitive("test-blocking-unlock");
         RaftDistributedLock lock2 = newPrimitive("test-blocking-unlock");
 

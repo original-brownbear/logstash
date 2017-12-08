@@ -15,13 +15,12 @@
  */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import org.logstash.cluster.protocols.raft.service.RaftService;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * State machine registry.
@@ -44,7 +43,7 @@ public class RaftServiceFactoryRegistry {
      * @return The state machine registry.
      */
     public RaftServiceFactoryRegistry register(String type, Supplier<RaftService> factory) {
-        stateMachines.put(checkNotNull(type, "type cannot be null"), checkNotNull(factory, "factory cannot be null"));
+        stateMachines.put(Preconditions.checkNotNull(type, "type cannot be null"), Preconditions.checkNotNull(factory, "factory cannot be null"));
         return this;
     }
 
@@ -69,7 +68,7 @@ public class RaftServiceFactoryRegistry {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("stateMachines", stateMachines)
             .toString();
     }

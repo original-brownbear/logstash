@@ -1,14 +1,13 @@
 package org.logstash.cluster.storage.journal;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.Bytes;
 import org.logstash.cluster.storage.buffer.FileBuffer;
 import org.logstash.cluster.storage.buffer.HeapBuffer;
 import org.logstash.cluster.storage.buffer.MappedBuffer;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Stores information about a {@link JournalSegment} of the log.
@@ -66,13 +65,13 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
     private final int maxEntries;
     private volatile Buffer buffer;
     private volatile long updated;
-    private volatile boolean locked;
+    private final boolean locked;
 
     /**
      * @throws NullPointerException if {@code buffer} is null
      */
     public JournalSegmentDescriptor(Buffer buffer) {
-        this.buffer = checkNotNull(buffer, "buffer cannot be null");
+        this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null");
         this.version = buffer.readInt();
         this.id = buffer.readLong();
         this.index = buffer.readLong();
@@ -216,7 +215,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("version", version)
             .add("id", id)
             .add("index", index)
@@ -231,7 +230,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
         private final Buffer buffer;
 
         private Builder(Buffer buffer) {
-            this.buffer = checkNotNull(buffer, "buffer cannot be null")
+            this.buffer = Preconditions.checkNotNull(buffer, "buffer cannot be null")
                 .writeInt(VERSION_POSITION, VERSION);
         }
 

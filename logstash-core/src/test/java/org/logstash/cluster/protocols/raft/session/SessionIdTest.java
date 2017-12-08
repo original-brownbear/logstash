@@ -24,7 +24,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class SessionIdTest {
     @Test
-    public void testSessionId() throws Exception {
+    public void testSessionId() {
         SessionId sessionId = SessionId.from(1);
         assertEquals(Long.valueOf(1), sessionId.id());
     }

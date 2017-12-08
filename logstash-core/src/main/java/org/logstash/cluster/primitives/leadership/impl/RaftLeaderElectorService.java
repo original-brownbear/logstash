@@ -49,7 +49,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     private long term;
     private long termStartTime;
     private List<Registration> registrations = new LinkedList<>();
-    private AtomicLong termCounter = new AtomicLong();
+    private final AtomicLong termCounter = new AtomicLong();
     private Map<Long, RaftSession> listeners = new LinkedHashMap<>();
 
     @Override

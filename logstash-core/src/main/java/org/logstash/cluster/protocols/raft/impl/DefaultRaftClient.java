@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -35,9 +37,6 @@ import org.logstash.cluster.protocols.raft.proxy.impl.RetryingRaftProxyClient;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 /**
  * Default Raft client implementation.
  */
@@ -56,9 +55,9 @@ public class DefaultRaftClient implements RaftClient {
         final Collection<MemberId> cluster,
         final RaftClientProtocol protocol,
         final ThreadContextFactory threadContextFactory) {
-        this.clientId = checkNotNull(clientId, "clientId cannot be null");
-        this.cluster = checkNotNull(cluster, "cluster cannot be null");
-        this.threadContextFactory = checkNotNull(threadContextFactory, "threadContextFactory cannot be null");
+        this.clientId = Preconditions.checkNotNull(clientId, "clientId cannot be null");
+        this.cluster = Preconditions.checkNotNull(cluster, "cluster cannot be null");
+        this.threadContextFactory = Preconditions.checkNotNull(threadContextFactory, "threadContextFactory cannot be null");
         this.threadContext = threadContextFactory.createContext();
         this.metadata = new DefaultRaftMetadataClient(protocol, selectorManager, threadContextFactory.createContext());
         this.sessionManager = new RaftProxyManager(clientId, nodeId, protocol, selectorManager, threadContextFactory);
@@ -114,7 +113,7 @@ public class DefaultRaftClient implements RaftClient {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", clientId)
             .toString();
     }
@@ -129,7 +128,7 @@ public class DefaultRaftClient implements RaftClient {
 
         @Override
         public RaftClient build() {
-            checkNotNull(nodeId, "nodeId cannot be null");
+            Preconditions.checkNotNull(nodeId, "nodeId cannot be null");
             return new DefaultRaftClient(
                 clientId, nodeId, cluster, protocol,
                 threadModel.factory(

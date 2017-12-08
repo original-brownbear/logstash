@@ -15,7 +15,7 @@
  */
 package org.logstash.cluster.storage.buffer;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Direct memory bit set.
@@ -134,7 +134,7 @@ public class BitArray implements AutoCloseable {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("size", size)
             .toString();
     }

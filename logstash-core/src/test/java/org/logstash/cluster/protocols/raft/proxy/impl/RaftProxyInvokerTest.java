@@ -240,7 +240,7 @@ public class RaftProxyInvokerTest {
      * Tests that the client's session is expired when an UnknownSessionException is received from the cluster.
      */
     @Test
-    public void testExpireSessionOnCommandFailure() throws Throwable {
+    public void testExpireSessionOnCommandFailure() {
         CompletableFuture<CommandResponse> future = new CompletableFuture<>();
 
         RaftProxyConnection connection = mock(RaftProxyConnection.class);
@@ -267,7 +267,7 @@ public class RaftProxyInvokerTest {
      * Tests that the client's session is expired when an UnknownSessionException is received from the cluster.
      */
     @Test
-    public void testExpireSessionOnQueryFailure() throws Throwable {
+    public void testExpireSessionOnQueryFailure() {
         CompletableFuture<QueryResponse> future = new CompletableFuture<>();
 
         RaftProxyConnection connection = mock(RaftProxyConnection.class);

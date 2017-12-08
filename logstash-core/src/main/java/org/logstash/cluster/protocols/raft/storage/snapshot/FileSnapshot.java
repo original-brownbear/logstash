@@ -15,15 +15,13 @@
  */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.FileBuffer;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * File-based snapshot backed by a {@link FileBuffer}.
@@ -33,7 +31,7 @@ final class FileSnapshot extends Snapshot {
 
     FileSnapshot(SnapshotFile file, SnapshotDescriptor descriptor, SnapshotStore store) {
         super(descriptor, store);
-        this.file = checkNotNull(file, "file cannot be null");
+        this.file = Preconditions.checkNotNull(file, "file cannot be null");
     }
 
     @Override
@@ -60,7 +58,7 @@ final class FileSnapshot extends Snapshot {
 
     @Override
     public synchronized SnapshotReader openReader() {
-        checkState(file.file().exists(), "missing snapshot file: %s", file.file());
+        Preconditions.checkState(file.file().exists(), "missing snapshot file: %s", file.file());
         Buffer buffer = FileBuffer.allocate(file.file(), SnapshotDescriptor.BYTES);
         SnapshotDescriptor descriptor = new SnapshotDescriptor(buffer);
         int length = buffer.position(SnapshotDescriptor.BYTES).readInt();
@@ -71,7 +69,7 @@ final class FileSnapshot extends Snapshot {
     public Snapshot complete() {
         Buffer buffer = FileBuffer.allocate(file.file(), SnapshotDescriptor.BYTES);
         try (SnapshotDescriptor descriptor = new SnapshotDescriptor(buffer)) {
-            checkState(!descriptor.isLocked(), "cannot complete locked snapshot descriptor");
+            Preconditions.checkState(!descriptor.isLocked(), "cannot complete locked snapshot descriptor");
             descriptor.lock();
         }
         return super.complete();
@@ -98,7 +96,7 @@ final class FileSnapshot extends Snapshot {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("index", index())
             .toString();
     }

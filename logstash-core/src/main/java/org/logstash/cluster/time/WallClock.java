@@ -15,7 +15,7 @@
  */
 package org.logstash.cluster.time;
 
-import static com.google.common.base.MoreObjects.toStringHelper;
+import com.google.common.base.MoreObjects;
 
 /**
  * Wall clock.
@@ -23,7 +23,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 public class WallClock implements Clock<WallClockTimestamp> {
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("time", getTime())
             .toString();
     }

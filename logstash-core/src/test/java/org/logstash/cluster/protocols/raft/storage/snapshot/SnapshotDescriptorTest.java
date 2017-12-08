@@ -27,7 +27,7 @@ import static org.junit.Assert.assertEquals;
 public class SnapshotDescriptorTest {
 
     @Test
-    public void testSnapshotDescriptor() throws Exception {
+    public void testSnapshotDescriptor() {
         SnapshotDescriptor descriptor = SnapshotDescriptor.builder()
             .withServiceId(1)
             .withIndex(2)
@@ -39,7 +39,7 @@ public class SnapshotDescriptorTest {
     }
 
     @Test
-    public void testCopySnapshotDescriptor() throws Exception {
+    public void testCopySnapshotDescriptor() {
         SnapshotDescriptor descriptor = SnapshotDescriptor.builder()
             .withServiceId(1)
             .withIndex(2)

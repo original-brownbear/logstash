@@ -25,7 +25,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class RaftSessionMetadataTest {
     @Test
-    public void testRaftSessionMetadata() throws Exception {
+    public void testRaftSessionMetadata() {
         RaftSessionMetadata metadata = new RaftSessionMetadata(1, "foo", "test");
         assertEquals(SessionId.from(1), metadata.sessionId());
         assertEquals("foo", metadata.serviceName());

@@ -30,14 +30,6 @@ import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.serializer.kryo.KryoNamespace;
 import org.logstash.cluster.serializer.kryo.KryoNamespaces;
 
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueEvents.CHANGE;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.ADD_LISTENER;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.COMPARE_AND_SET;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.GET;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.GET_AND_SET;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.REMOVE_LISTENER;
-import static org.logstash.cluster.primitives.value.impl.RaftAtomicValueOperations.SET;
-
 /**
  * Raft atomic value service.
  */
@@ -53,12 +45,12 @@ public class RaftAtomicValueService extends AbstractRaftService {
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
-        executor.register(SET, SERIALIZER::decode, this::set);
-        executor.register(GET, this::get, SERIALIZER::encode);
-        executor.register(COMPARE_AND_SET, SERIALIZER::decode, this::compareAndSet, SERIALIZER::encode);
-        executor.register(GET_AND_SET, SERIALIZER::decode, this::getAndSet, SERIALIZER::encode);
-        executor.register(ADD_LISTENER, (Commit<Void> c) -> listeners.add(c.session()));
-        executor.register(REMOVE_LISTENER, (Commit<Void> c) -> listeners.remove(c.session()));
+        executor.register(RaftAtomicValueOperations.SET, SERIALIZER::decode, this::set);
+        executor.register(RaftAtomicValueOperations.GET, this::get, SERIALIZER::encode);
+        executor.register(RaftAtomicValueOperations.COMPARE_AND_SET, SERIALIZER::decode, this::compareAndSet, SERIALIZER::encode);
+        executor.register(RaftAtomicValueOperations.GET_AND_SET, SERIALIZER::decode, this::getAndSet, SERIALIZER::encode);
+        executor.register(RaftAtomicValueOperations.ADD_LISTENER, (Commit<Void> c) -> listeners.add(c.session()));
+        executor.register(RaftAtomicValueOperations.REMOVE_LISTENER, (Commit<Void> c) -> listeners.remove(c.session()));
     }
 
     @Override
@@ -94,7 +86,7 @@ public class RaftAtomicValueService extends AbstractRaftService {
         byte[] oldValue = this.value;
         this.value = value;
         AtomicValueEvent<byte[]> event = new AtomicValueEvent<>(oldValue, value);
-        listeners.forEach(s -> s.publish(CHANGE, SERIALIZER::encode, event));
+        listeners.forEach(s -> s.publish(RaftAtomicValueEvents.CHANGE, SERIALIZER::encode, event));
         return oldValue;
     }
 

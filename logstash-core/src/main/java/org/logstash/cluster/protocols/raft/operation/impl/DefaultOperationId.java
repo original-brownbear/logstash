@@ -15,11 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft.operation.impl;
 
+import com.google.common.base.MoreObjects;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
 import org.logstash.cluster.protocols.raft.operation.OperationType;
 import org.logstash.cluster.utils.AbstractIdentifier;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Raft operation identifier.
@@ -38,7 +37,7 @@ public class DefaultOperationId extends AbstractIdentifier<String> implements Op
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("id", id())
             .add("type", type())
             .toString();
@@ -48,6 +47,7 @@ public class DefaultOperationId extends AbstractIdentifier<String> implements Op
      * Returns the operation type.
      * @return the operation type
      */
+    @Override
     public OperationType type() {
         return type;
     }
