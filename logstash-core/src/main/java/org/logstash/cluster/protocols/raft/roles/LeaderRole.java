@@ -135,7 +135,7 @@ public final class LeaderRole extends ActiveRole {
         // Look up the client's session.
         RaftSessionContext session = raft.getSessions().getSession(request.session());
         if (session == null) {
-            log.warn("Unknown session {}", request.session());
+            LOGGER.warn("Unknown session {}", request.session());
             return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
                 .withStatus(RaftResponse.Status.ERROR)
                 .withError(RaftError.Type.UNKNOWN_SESSION)
@@ -283,7 +283,7 @@ public final class LeaderRole extends ActiveRole {
                     return;
                 }
 
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
 
                 appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
                     raft.checkThread();
@@ -370,7 +370,7 @@ public final class LeaderRole extends ActiveRole {
                     return;
                 }
 
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
 
                 appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
                     raft.checkThread();
@@ -438,7 +438,7 @@ public final class LeaderRole extends ActiveRole {
                     return;
                 }
 
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
 
                 appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
                     raft.checkThread();
@@ -708,7 +708,7 @@ public final class LeaderRole extends ActiveRole {
         return appendAndCompact(new InitializeEntry(term, appender.getTime()))
             .whenComplete((entry, error) -> {
                 if (error != null) {
-                    log.trace("Appended {}", entry);
+                    LOGGER.trace("Appended {}", entry);
                 }
             }).thenApply(index -> null);
     }
@@ -744,7 +744,7 @@ public final class LeaderRole extends ActiveRole {
         // Set a timer that will be used to periodically synchronize with other nodes
         // in the cluster. This timer acts as a heartbeat to ensure this node remains
         // the leader.
-        log.trace("Starting append timer");
+        LOGGER.trace("Starting append timer");
         appendTimer = raft.getThreadContext().schedule(Duration.ZERO, raft.getHeartbeatInterval(), this::appendMembers);
     }
 
@@ -763,7 +763,7 @@ public final class LeaderRole extends ActiveRole {
      */
     private void startHeartbeatTimer() {
         raft.getSessions().getSessions().forEach(s -> s.resetHeartbeats());
-        log.trace("Starting heartbeat timers");
+        LOGGER.trace("Starting heartbeat timers");
         raft.getSessions().getSessions().stream()
             .map(s -> s.memberId())
             .distinct()
@@ -818,11 +818,11 @@ public final class LeaderRole extends ActiveRole {
                 .filter(m -> m != null)
                 .collect(Collectors.toList()))
             .build();
-        log.trace("Sending {} to {}", request, member);
+        LOGGER.trace("Sending {} to {}", request, member);
         raft.getProtocol().heartbeat(member, request).whenCompleteAsync((response, error) -> {
             long timestamp = System.currentTimeMillis();
             if (error == null && response.status() == RaftResponse.Status.OK) {
-                log.trace("Received {} from {}", response, member);
+                LOGGER.trace("Received {} from {}", response, member);
                 sessions.forEach(s -> s.setLastHeartbeat(timestamp));
             } else {
                 sessions.forEach(session -> {
@@ -845,14 +845,14 @@ public final class LeaderRole extends ActiveRole {
      * Expires the given session.
      */
     private void expireSession(RaftSessionContext session) {
-        log.debug("Expiring session due to heartbeat failure: {}", session);
+        LOGGER.debug("Expiring session due to heartbeat failure: {}", session);
         appendAndCompact(new CloseSessionEntry(raft.getTerm(), System.currentTimeMillis(), session.sessionId().id(), true))
             .whenCompleteAsync((entry, error) -> {
                 if (error != null) {
                     return;
                 }
 
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
                 appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
                     raft.checkThread();
                     if (isOpen() && commitError == null) {
@@ -891,7 +891,7 @@ public final class LeaderRole extends ActiveRole {
 
         return appendAndCompact(new ConfigurationEntry(term, System.currentTimeMillis(), members))
             .thenComposeAsync(entry -> {
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
 
                 // Store the index of the configuration entry in order to prevent other configurations from
                 // being logged and committed concurrently. This is an important safety property of Raft.
@@ -924,7 +924,7 @@ public final class LeaderRole extends ActiveRole {
         appender.appendEntries(raft.getLogWriter().getLastIndex()).whenComplete((result, error) -> {
             if (isOpen()) {
                 if (error == null) {
-                    log.debug("Transferring leadership to {}", request.member());
+                    LOGGER.debug("Transferring leadership to {}", request.member());
                     raft.transition(RaftServer.Role.FOLLOWER);
                     future.complete(logResponse(TransferResponse.builder()
                         .withStatus(RaftResponse.Status.OK)
@@ -999,7 +999,7 @@ public final class LeaderRole extends ActiveRole {
     @Override
     public CompletableFuture<VoteResponse> onVote(final VoteRequest request) {
         if (updateTermAndLeader(request.term(), null)) {
-            log.debug("Received greater term");
+            LOGGER.debug("Received greater term");
             raft.transition(RaftServer.Role.FOLLOWER);
             return super.onVote(request);
         } else {
@@ -1031,7 +1031,7 @@ public final class LeaderRole extends ActiveRole {
                     return;
                 }
 
-                log.trace("Appended {}", entry);
+                LOGGER.trace("Appended {}", entry);
 
                 // Replicate the command to followers.
                 appender.appendEntries(entry.index()).whenComplete((commitIndex, commitError) -> {
@@ -1092,7 +1092,7 @@ public final class LeaderRole extends ActiveRole {
      */
     private void cancelAppendTimer() {
         if (appendTimer != null) {
-            log.trace("Cancelling append timer");
+            LOGGER.trace("Cancelling append timer");
             appendTimer.cancel();
         }
     }
@@ -1101,7 +1101,7 @@ public final class LeaderRole extends ActiveRole {
      * Cancels the heartbeat timers.
      */
     private void cancelHeartbeatTimers() {
-        log.trace("Cancelling heartbeat timers");
+        LOGGER.trace("Cancelling heartbeat timers");
         heartbeatTimers.values().forEach(Scheduled::cancel);
     }
 

@@ -5,6 +5,8 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.DistributedPrimitiveCreator;
 import org.logstash.cluster.primitives.DistributedPrimitives;
@@ -44,16 +46,13 @@ import org.logstash.cluster.protocols.raft.proxy.CommunicationStrategy;
 import org.logstash.cluster.protocols.raft.session.RaftSessionMetadata;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.utils.Managed;
-import org.slf4j.Logger;
-
-import static org.slf4j.LoggerFactory.getLogger;
 
 /**
  * StoragePartition client.
  */
 public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed<RaftPartitionClient> {
 
-    private final Logger log = getLogger(getClass());
+    private static final Logger LOGGER = LogManager.getLogger(RaftPartitionClient.class);
 
     private final RaftPartition partition;
     private final MemberId localMemberId;
@@ -73,9 +72,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
         }
         return client.connect(partition.getMemberIds()).whenComplete((r, e) -> {
             if (e == null) {
-                log.info("Successfully started client for partition {}", partition.id());
+                LOGGER.info("Successfully started client for partition {}", partition.id());
             } else {
-                log.info("Failed to start client for partition {}", partition.id(), e);
+                LOGGER.info("Failed to start client for partition {}", partition.id(), e);
             }
         }).thenApply(v -> null);
     }
@@ -88,7 +87,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
     @Override
     public CompletableFuture<Void> close() {
         return client != null ? client.close() : CompletableFuture.completedFuture(null);
-    }    @Override
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentMap<K, V> newAsyncConsistentMap(String name, Serializer serializer) {
         RaftConsistentMap rawMap = new RaftConsistentMap(client.newProxyBuilder()
@@ -115,7 +116,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
     @Override
     public boolean isClosed() {
         return client == null;
-    }    @Override
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentTreeMap<K, V> newAsyncConsistentTreeMap(String name, Serializer serializer) {
         RaftConsistentTreeMap rawMap =
@@ -147,7 +150,9 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .withMemberId(localMemberId)
             .withProtocol(protocol)
             .build();
-    }    @Override
+    }
+
+    @Override
     @SuppressWarnings("unchecked")
     public <K, V> AsyncConsistentMultimap<K, V> newAsyncConsistentSetMultimap(String name, Serializer serializer) {
         RaftConsistentSetMultimap rawMap =
@@ -304,10 +309,5 @@ public class RaftPartitionClient implements DistributedPrimitiveCreator, Managed
             .map(RaftSessionMetadata::serviceName)
             .collect(Collectors.toSet());
     }
-
-
-
-
-
 
 }

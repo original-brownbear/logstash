@@ -12,8 +12,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Single threaded context.
@@ -22,14 +22,14 @@ import org.slf4j.LoggerFactory;
  * {@link ScheduledExecutorService} to schedule events on the context thread.
  */
 public class SingleThreadContext implements ThreadContext {
-    protected static final Logger LOGGER = LoggerFactory.getLogger(SingleThreadContext.class);
+    protected static final Logger LOGGER = LogManager.getLogger(SingleThreadContext.class);
     private final ScheduledExecutorService executor;
     private final Executor wrappedExecutor = new Executor() {
         @Override
-        public void execute(Runnable command) {
+        public void execute(final Runnable command) {
             try {
                 executor.execute(command);
-            } catch (RejectedExecutionException e) {
+            } catch (final RejectedExecutionException e) {
             }
         }
     };
@@ -41,7 +41,7 @@ public class SingleThreadContext implements ThreadContext {
      * when instantiating the context thread.
      * @param nameFormat The context nameFormat which will be formatted with a thread number.
      */
-    public SingleThreadContext(String nameFormat) {
+    public SingleThreadContext(final String nameFormat) {
         this(Threads.namedThreads(nameFormat, LOGGER));
     }
 
@@ -49,7 +49,7 @@ public class SingleThreadContext implements ThreadContext {
      * Creates a new single thread context.
      * @param factory The thread factory.
      */
-    public SingleThreadContext(ThreadFactory factory) {
+    public SingleThreadContext(final ThreadFactory factory) {
         this(new ScheduledThreadPoolExecutor(1, factory));
     }
 
@@ -57,11 +57,11 @@ public class SingleThreadContext implements ThreadContext {
      * Creates a new single thread context.
      * @param executor The executor on which to schedule events. This must be a single thread scheduled executor.
      */
-    private SingleThreadContext(ScheduledExecutorService executor) {
+    private SingleThreadContext(final ScheduledExecutorService executor) {
         this(getThread(executor), executor);
     }
 
-    private SingleThreadContext(Thread thread, ScheduledExecutorService executor) {
+    private SingleThreadContext(final Thread thread, final ScheduledExecutorService executor) {
         this.executor = executor;
         Preconditions.checkState(thread instanceof AtomixThread, "not a Catalyst thread");
         ((AtomixThread) thread).setContext(this);
@@ -70,7 +70,7 @@ public class SingleThreadContext implements ThreadContext {
     /**
      * Gets the thread from a single threaded executor service.
      */
-    protected static AtomixThread getThread(ExecutorService executor) {
+    protected static AtomixThread getThread(final ExecutorService executor) {
         final AtomicReference<AtomixThread> thread = new AtomicReference<>();
         try {
             executor.submit(() -> {
@@ -83,19 +83,19 @@ public class SingleThreadContext implements ThreadContext {
     }
 
     @Override
-    public Scheduled schedule(Duration delay, Runnable runnable) {
-        ScheduledFuture<?> future = executor.schedule(runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
+    public Scheduled schedule(final Duration delay, final Runnable runnable) {
+        final ScheduledFuture<?> future = executor.schedule(runnable, delay.toMillis(), TimeUnit.MILLISECONDS);
         return () -> future.cancel(false);
     }
 
     @Override
-    public void execute(Runnable command) {
+    public void execute(final Runnable command) {
         wrappedExecutor.execute(command);
     }
 
     @Override
-    public Scheduled schedule(Duration delay, Duration interval, Runnable runnable) {
-        ScheduledFuture<?> future = executor.scheduleAtFixedRate(runnable, delay.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
+    public Scheduled schedule(final Duration delay, final Duration interval, final Runnable runnable) {
+        final ScheduledFuture<?> future = executor.scheduleAtFixedRate(runnable, delay.toMillis(), interval.toMillis(), TimeUnit.MILLISECONDS);
         return () -> future.cancel(false);
     }
 

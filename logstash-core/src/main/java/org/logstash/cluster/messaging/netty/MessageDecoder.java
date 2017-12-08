@@ -7,16 +7,16 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ReplayingDecoder;
 import java.net.InetAddress;
 import java.util.List;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.messaging.Endpoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Decoder for inbound messages.
  */
 public class MessageDecoder extends ReplayingDecoder<DecoderState> {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger log = LogManager.getLogger(MessageDecoder.class);
 
     private InetAddress senderIp;
     private int senderPort;

@@ -380,14 +380,14 @@ public class PassiveRole extends InactiveRole {
         // query to the leader. This ensures that a follower does not tell the client its session
         // doesn't exist if the follower hasn't had a chance to see the session's registration entry.
         if (raft.getLastApplied() < request.session()) {
-            log.trace("State out of sync, forwarding query to leader");
+            LOGGER.trace("State out of sync, forwarding query to leader");
             return queryForward(request);
         }
 
         // Look up the client's session.
         RaftSessionContext session = raft.getSessions().getSession(request.session());
         if (session == null) {
-            log.trace("State out of sync, forwarding query to leader");
+            LOGGER.trace("State out of sync, forwarding query to leader");
             return queryForward(request);
         }
 
@@ -397,7 +397,7 @@ public class PassiveRole extends InactiveRole {
             // If the commit index is not in the log then we've fallen too far behind the leader to perform a local query.
             // Forward the request to the leader.
             if (raft.getLogWriter().getLastIndex() < raft.getCommitIndex()) {
-                log.trace("State out of sync, forwarding query to leader");
+                LOGGER.trace("State out of sync, forwarding query to leader");
                 return queryForward(request);
             }
 
@@ -427,7 +427,7 @@ public class PassiveRole extends InactiveRole {
                 .build()));
         }
 
-        log.trace("Forwarding {}", request);
+        LOGGER.trace("Forwarding {}", request);
         return forward(request, raft.getProtocol()::query)
             .exceptionally(error -> QueryResponse.builder()
                 .withStatus(RaftResponse.Status.ERROR)
@@ -474,7 +474,7 @@ public class PassiveRole extends InactiveRole {
                 .withError(((RaftException) error).getType(), error.getMessage())
                 .build());
         } else {
-            log.warn("An unexpected error occurred: {}", error);
+            LOGGER.warn("An unexpected error occurred: {}", error);
             future.complete(builder.withStatus(RaftResponse.Status.ERROR)
                 .withError(RaftError.Type.PROTOCOL_ERROR, error.getMessage())
                 .build());
@@ -509,7 +509,7 @@ public class PassiveRole extends InactiveRole {
     protected boolean checkTerm(AppendRequest request, CompletableFuture<AppendResponse> future) {
         RaftLogWriter writer = raft.getLogWriter();
         if (request.term() < raft.getTerm()) {
-            log.debug("Rejected {}: request term is less than the current term ({})", request, raft.getTerm());
+            LOGGER.debug("Rejected {}: request term is less than the current term ({})", request, raft.getTerm());
             return failAppend(writer.getLastIndex(), future);
         }
         return true;
@@ -535,7 +535,7 @@ public class PassiveRole extends InactiveRole {
             if (lastEntry != null) {
                 // If the previous log index is greater than the last entry index, fail the attempt.
                 if (request.prevLogIndex() > lastEntry.index()) {
-                    log.debug("Rejected {}: Previous index ({}) is greater than the local log's last index ({})", request, request.prevLogIndex(), lastEntry.index());
+                    LOGGER.debug("Rejected {}: Previous index ({}) is greater than the local log's last index ({})", request, request.prevLogIndex(), lastEntry.index());
                     return failAppend(lastEntry.index(), future);
                 }
 
@@ -546,26 +546,26 @@ public class PassiveRole extends InactiveRole {
 
                     // The previous entry should exist in the log if we've gotten this far.
                     if (!reader.hasNext()) {
-                        log.debug("Rejected {}: Previous entry does not exist in the local log", request);
+                        LOGGER.debug("Rejected {}: Previous entry does not exist in the local log", request);
                         return failAppend(lastEntry.index(), future);
                     }
 
                     // Read the previous entry and validate that the term matches the request previous log term.
                     Indexed<RaftLogEntry> previousEntry = reader.next();
                     if (request.prevLogTerm() != previousEntry.entry().term()) {
-                        log.debug("Rejected {}: Previous entry term ({}) does not match local log's term for the same entry ({})", request, request.prevLogTerm(), previousEntry.entry().term());
+                        LOGGER.debug("Rejected {}: Previous entry term ({}) does not match local log's term for the same entry ({})", request, request.prevLogTerm(), previousEntry.entry().term());
                         return failAppend(request.prevLogIndex() - 1, future);
                     }
                 }
                 // If the previous log term doesn't equal the last entry term, fail the append, sending the prior entry.
                 else if (request.prevLogTerm() != lastEntry.entry().term()) {
-                    log.debug("Rejected {}: Previous entry term ({}) does not equal the local log's last term ({})", request, request.prevLogTerm(), lastEntry.entry().term());
+                    LOGGER.debug("Rejected {}: Previous entry term ({}) does not equal the local log's last term ({})", request, request.prevLogTerm(), lastEntry.entry().term());
                     return failAppend(request.prevLogIndex() - 1, future);
                 }
             } else {
                 // If the previous log index is set and the last entry is null, fail the append.
                 if (request.prevLogIndex() > 0) {
-                    log.debug("Rejected {}: Previous index ({}) is greater than the local log's last index (0)", request, request.prevLogIndex());
+                    LOGGER.debug("Rejected {}: Previous index ({}) is greater than the local log's last index (0)", request, request.prevLogIndex());
                     return failAppend(0, future);
                 }
             }
@@ -593,7 +593,7 @@ public class PassiveRole extends InactiveRole {
             // If the previous term is zero, that indicates the previous index represents the beginning of the log.
             // Reset the log to the previous index plus one.
             if (request.prevLogTerm() == 0) {
-                log.debug("Reset first index to {}", request.prevLogIndex() + 1);
+                LOGGER.debug("Reset first index to {}", request.prevLogIndex() + 1);
                 writer.reset(request.prevLogIndex() + 1);
             }
 
@@ -673,7 +673,7 @@ public class PassiveRole extends InactiveRole {
         // Update the context commit and global indices.
         long previousCommitIndex = raft.setCommitIndex(commitIndex);
         if (previousCommitIndex < commitIndex) {
-            log.trace("Committed entries up to index {}", commitIndex);
+            LOGGER.trace("Committed entries up to index {}", commitIndex);
             raft.getStateMachine().applyAll(commitIndex);
         }
 
@@ -687,9 +687,9 @@ public class PassiveRole extends InactiveRole {
     private boolean appendEntry(long index, RaftLogEntry entry, RaftLogWriter writer, CompletableFuture<AppendResponse> future) {
         try {
             Indexed<RaftLogEntry> indexed = writer.append(entry);
-            log.trace("Appended {}", indexed);
+            LOGGER.trace("Appended {}", indexed);
         } catch (StorageException.OutOfDiskSpace e) {
-            log.trace("Append failed: {}", e);
+            LOGGER.trace("Append failed: {}", e);
             raft.getLogCompactor().compact();
             failAppend(index - 1, future);
             return false;

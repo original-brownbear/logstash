@@ -6,9 +6,9 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToByteEncoder;
 import java.io.IOException;
 import java.net.InetAddress;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.messaging.Endpoint;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Encode InternalMessage out into a byte buffer.
@@ -17,7 +17,7 @@ public class MessageEncoder extends MessageToByteEncoder<Object> {
 // Effectively MessageToByteEncoder<InternalMessage>,
 // had to specify <Object> to avoid Class Loader not being able to find some classes.
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private static final Logger LOGGER = LogManager.getLogger(MessageEncoder.class);
 
     private final Endpoint endpoint;
     private final int preamble;
@@ -32,9 +32,9 @@ public class MessageEncoder extends MessageToByteEncoder<Object> {
     @Override
     public void exceptionCaught(ChannelHandlerContext context, Throwable cause) {
         if (cause instanceof IOException) {
-            log.debug("IOException inside channel handling pipeline.", cause);
+            LOGGER.debug("IOException inside channel handling pipeline.", cause);
         } else {
-            log.error("non-IOException inside channel handling pipeline.", cause);
+            LOGGER.error("non-IOException inside channel handling pipeline.", cause);
         }
         context.close();
     }

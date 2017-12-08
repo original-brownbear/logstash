@@ -6,20 +6,20 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.partition.ManagedPartition;
 import org.logstash.cluster.partition.ManagedPartitionService;
 import org.logstash.cluster.partition.Partition;
 import org.logstash.cluster.partition.PartitionId;
 import org.logstash.cluster.partition.PartitionService;
 import org.logstash.cluster.primitives.DistributedPrimitiveCreator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Default partition service.
  */
 public class DefaultPartitionService implements ManagedPartitionService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultPartitionService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DefaultPartitionService.class);
 
     private final TreeMap<PartitionId, RaftPartition> partitions = new TreeMap<>();
     private final AtomicBoolean open = new AtomicBoolean();

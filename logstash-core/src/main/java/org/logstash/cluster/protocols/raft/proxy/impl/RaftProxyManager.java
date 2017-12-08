@@ -15,6 +15,8 @@
  */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 import java.time.Duration;
@@ -26,7 +28,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import org.logstash.cluster.protocols.raft.RaftClient;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.ReadConsistency;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -46,21 +49,18 @@ import org.logstash.cluster.utils.concurrent.Futures;
 import org.logstash.cluster.utils.concurrent.Scheduled;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * Client session manager.
  */
 public class RaftProxyManager {
+
     private static final double TIMEOUT_FACTOR = .5;
+
     private static final long MIN_TIMEOUT_DELTA = 2500;
 
-    private final Logger log;
+    private static final Logger LOGGER = LogManager.getLogger(RaftProxyManager.class);
+
     private final String clientId;
     private final MemberId memberId;
     private final RaftClientProtocol protocol;
@@ -73,24 +73,17 @@ public class RaftProxyManager {
     private final AtomicBoolean open = new AtomicBoolean();
 
     public RaftProxyManager(String clientId, MemberId memberId, RaftClientProtocol protocol, MemberSelectorManager selectorManager, ThreadContextFactory threadContextFactory) {
-        this.clientId = checkNotNull(clientId, "clientId cannot be null");
-        this.memberId = checkNotNull(memberId, "memberId cannot be null");
-        this.protocol = checkNotNull(protocol, "protocol cannot be null");
-        this.selectorManager = checkNotNull(selectorManager, "selectorManager cannot be null");
+        this.clientId = Preconditions.checkNotNull(clientId, "clientId cannot be null");
+        this.memberId = Preconditions.checkNotNull(memberId, "memberId cannot be null");
+        this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
+        this.selectorManager = Preconditions.checkNotNull(selectorManager, "selectorManager cannot be null");
         this.threadContext = threadContextFactory.createContext();
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftClient.class)
-            .addValue(clientId)
-            .build());
-
         this.connection = new RaftProxyConnection(
             protocol,
             selectorManager.createSelector(CommunicationStrategy.LEADER),
-            threadContextFactory.createContext(),
-            LoggerContext.builder(RaftClient.class)
-                .addValue(clientId)
-                .build());
+            threadContextFactory.createContext());
         protocol.registerHeartbeatHandler(this::handleHeartbeat);
-        this.threadContextFactory = checkNotNull(threadContextFactory, "threadContextFactory cannot be null");
+        this.threadContextFactory = Preconditions.checkNotNull(threadContextFactory, "threadContextFactory cannot be null");
     }
 
     /**
@@ -134,12 +127,12 @@ public class RaftProxyManager {
         CommunicationStrategy communicationStrategy,
         Duration minTimeout,
         Duration maxTimeout) {
-        checkNotNull(serviceName, "serviceName cannot be null");
-        checkNotNull(serviceType, "serviceType cannot be null");
-        checkNotNull(communicationStrategy, "communicationStrategy cannot be null");
-        checkNotNull(maxTimeout, "timeout cannot be null");
+        Preconditions.checkNotNull(serviceName, "serviceName cannot be null");
+        Preconditions.checkNotNull(serviceType, "serviceType cannot be null");
+        Preconditions.checkNotNull(communicationStrategy, "communicationStrategy cannot be null");
+        Preconditions.checkNotNull(maxTimeout, "timeout cannot be null");
 
-        log.debug("Opening session; name: {}, type: {}", serviceName, serviceType);
+        LOGGER.debug("Opening session; name: {}, type: {}", serviceName, serviceType);
         OpenSessionRequest request = OpenSessionRequest.builder()
             .withMemberId(memberId)
             .withServiceName(serviceName)
@@ -203,7 +196,7 @@ public class RaftProxyManager {
             return Futures.exceptionalFuture(new RaftException.UnknownSession("Unknown session: " + sessionId));
         }
 
-        log.info("Closing session {}", sessionId);
+        LOGGER.info("Closing session {}", sessionId);
         CloseSessionRequest request = CloseSessionRequest.builder()
             .withSession(sessionId.id())
             .build();
@@ -286,7 +279,7 @@ public class RaftProxyManager {
             i++;
         }
 
-        log.trace("Keeping {} sessions alive", sessionIds.length);
+        LOGGER.trace("Keeping {} sessions alive", sessionIds.length);
 
         KeepAliveRequest request = KeepAliveRequest.builder()
             .withSessionIds(sessionIds)
@@ -364,12 +357,12 @@ public class RaftProxyManager {
      * Handles a heartbeat request.
      */
     private CompletableFuture<HeartbeatResponse> handleHeartbeat(HeartbeatRequest request) {
-        log.trace("Received {}", request);
+        LOGGER.trace("Received {}", request);
         selectorManager.resetAll(request.leader(), request.members());
         HeartbeatResponse response = HeartbeatResponse.builder()
             .withStatus(RaftResponse.Status.OK)
             .build();
-        log.trace("Sending {}", response);
+        LOGGER.trace("Sending {}", response);
         return CompletableFuture.completedFuture(response);
     }
 
@@ -396,7 +389,7 @@ public class RaftProxyManager {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("client", clientId)
             .toString();
     }

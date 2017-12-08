@@ -9,6 +9,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.messaging.ClusterCommunicationService;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -16,18 +18,17 @@ import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.utils.Managed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * {@link org.logstash.cluster.partition.Partition} server.
  */
 public class RaftPartitionServer implements Managed<RaftPartitionServer> {
 
+    private static final Logger LOGGER = LogManager.getLogger(RaftPartitionServer.class);
+
     private static final int MAX_SEGMENT_SIZE = 1024 * 1024 * 64;
     private static final long ELECTION_TIMEOUT_MILLIS = 2500;
     private static final long HEARTBEAT_INTERVAL_MILLIS = 250;
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final MemberId localMemberId;
     private final RaftPartition partition;
     private final ClusterCommunicationService clusterCommunicator;
@@ -44,7 +45,7 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
 
     @Override
     public CompletableFuture<RaftPartitionServer> open() {
-        log.info("Starting server for partition {}", partition.id());
+        LOGGER.info("Starting server for partition {}", partition.id());
         CompletableFuture<RaftServer> serverOpenFuture;
         if (partition.getMemberIds().contains(localMemberId)) {
             if (server != null && server.isRunning()) {
@@ -59,9 +60,9 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
         }
         return serverOpenFuture.whenComplete((r, e) -> {
             if (e == null) {
-                log.info("Successfully started server for partition {}", partition.id());
+                LOGGER.info("Successfully started server for partition {}", partition.id());
             } else {
-                log.info("Failed to start server for partition {}", partition.id(), e);
+                LOGGER.info("Failed to start server for partition {}", partition.id(), e);
             }
         }).thenApply(v -> this);
     }
@@ -128,18 +129,18 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
                 }
             });
         } catch (IOException e) {
-            log.error("Failed to delete partition: {}", e);
+            LOGGER.error("Failed to delete partition: {}", e);
         }
     }
 
     public CompletableFuture<Void> join(Collection<MemberId> otherMembers) {
-        log.info("Joining partition {} ({})", partition.id(), partition.name());
+        LOGGER.info("Joining partition {} ({})", partition.id(), partition.name());
         server = buildServer();
         return server.join(otherMembers).whenComplete((r, e) -> {
             if (e == null) {
-                log.info("Successfully joined partition {} ({})", partition.id(), partition.name());
+                LOGGER.info("Successfully joined partition {} ({})", partition.id(), partition.name());
             } else {
-                log.info("Failed to join partition {} ({})", partition.id(), partition.name(), e);
+                LOGGER.info("Failed to join partition {} ({})", partition.id(), partition.name(), e);
             }
         }).thenApply(v -> null);
     }

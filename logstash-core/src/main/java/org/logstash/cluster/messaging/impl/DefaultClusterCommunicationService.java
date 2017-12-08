@@ -11,6 +11,8 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.cluster.ClusterService;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
@@ -20,17 +22,17 @@ import org.logstash.cluster.messaging.ManagedClusterCommunicationService;
 import org.logstash.cluster.messaging.MessageSubject;
 import org.logstash.cluster.messaging.MessagingService;
 import org.logstash.cluster.utils.concurrent.Futures;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Cluster communication service implementation.
  */
 public class DefaultClusterCommunicationService implements ManagedClusterCommunicationService {
 
+    private static final Logger LOGGER =
+        LogManager.getLogger(DefaultClusterCommunicationService.class);
+
     protected final ClusterService cluster;
     protected final MessagingService messagingService;
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final NodeId localNodeId;
     private final AtomicBoolean open = new AtomicBoolean();
 
@@ -43,7 +45,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     @Override
     public CompletableFuture<ClusterCommunicationService> open() {
         if (open.compareAndSet(false, true)) {
-            log.info("Started");
+            LOGGER.info("Started");
         }
         return CompletableFuture.completedFuture(this);
     }
@@ -56,7 +58,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
     @Override
     public CompletableFuture<Void> close() {
         if (open.compareAndSet(true, false)) {
-            log.info("Stopped");
+            LOGGER.info("Stopped");
         }
         return CompletableFuture.completedFuture(null);
     }
@@ -148,7 +150,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         final Function<R, byte[]> encoder,
         final Executor executor) {
         messagingService.registerHandler(subject.toString(),
-            new InternalMessageResponder<>(decoder, encoder, m -> {
+            new DefaultClusterCommunicationService.InternalMessageResponder<>(decoder, encoder, m -> {
                 final CompletableFuture<R> responseFuture = new CompletableFuture<>();
                 executor.execute(() -> {
                     try {
@@ -168,7 +170,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         final Function<M, CompletableFuture<R>> handler,
         final Function<R, byte[]> encoder) {
         messagingService.registerHandler(subject.toString(),
-            new InternalMessageResponder<>(decoder, encoder, handler));
+            new DefaultClusterCommunicationService.InternalMessageResponder<>(decoder, encoder, handler));
         return CompletableFuture.completedFuture(null);
     }
 
@@ -178,7 +180,7 @@ public class DefaultClusterCommunicationService implements ManagedClusterCommuni
         final Consumer<M> handler,
         final Executor executor) {
         messagingService.registerHandler(subject.toString(),
-            new InternalMessageConsumer<>(decoder, handler),
+            new DefaultClusterCommunicationService.InternalMessageConsumer<>(decoder, handler),
             executor);
         return CompletableFuture.completedFuture(null);
     }

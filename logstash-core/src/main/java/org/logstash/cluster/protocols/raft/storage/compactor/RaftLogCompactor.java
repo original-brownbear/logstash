@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.storage.compactor;
 
 import java.time.Duration;
@@ -21,20 +6,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.impl.RaftContext;
 import org.logstash.cluster.protocols.raft.service.impl.DefaultServiceContext;
 import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.utils.concurrent.ComposableFuture;
 import org.logstash.cluster.utils.concurrent.OrderedFuture;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Raft log compactor.
  */
 public class RaftLogCompactor {
-    private static final Logger LOGGER = LoggerFactory.getLogger(RaftLogCompactor.class);
+    private static final Logger LOGGER = LogManager.getLogger(RaftLogCompactor.class);
 
     private static final Duration SNAPSHOT_INTERVAL = Duration.ofSeconds(10);
     private static final Duration MIN_COMPACT_INTERVAL = Duration.ofSeconds(10);

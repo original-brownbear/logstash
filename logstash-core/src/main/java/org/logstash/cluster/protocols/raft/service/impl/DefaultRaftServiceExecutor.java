@@ -24,18 +24,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.function.Function;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.operation.OperationId;
 import org.logstash.cluster.protocols.raft.operation.OperationType;
 import org.logstash.cluster.protocols.raft.service.Commit;
-import org.logstash.cluster.protocols.raft.service.RaftService;
 import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
 import org.logstash.cluster.protocols.raft.service.ServiceContext;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.Scheduled;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
@@ -44,20 +42,16 @@ import static com.google.common.base.Preconditions.checkState;
  * Default operation executor.
  */
 public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
-    private final Logger log;
+    private static final Logger LOGGER = LogManager.getLogger(DefaultRaftServiceExecutor.class);
     private final Queue<Runnable> tasks = new LinkedList<>();
-    private final List<ScheduledTask> scheduledTasks = new ArrayList<>();
-    private final List<ScheduledTask> complete = new ArrayList<>();
+    private final List<DefaultRaftServiceExecutor.ScheduledTask> scheduledTasks = new ArrayList<>();
+    private final List<DefaultRaftServiceExecutor.ScheduledTask> complete = new ArrayList<>();
     private final Map<OperationId, Function<Commit<byte[]>, byte[]>> operations = new HashMap<>();
     private OperationType operationType;
     private long timestamp;
 
     public DefaultRaftServiceExecutor(ServiceContext context) {
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftService.class)
-            .addValue(context.serviceId())
-            .add("type", context.serviceType())
-            .add("name", context.serviceName())
-            .build());
+
     }
 
     @Override
@@ -66,13 +60,13 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         if (!scheduledTasks.isEmpty()) {
             // Iterate through scheduled tasks until we reach a task that has not met its scheduled time.
             // The tasks list is sorted by time on insertion.
-            Iterator<ScheduledTask> iterator = scheduledTasks.iterator();
+            Iterator<DefaultRaftServiceExecutor.ScheduledTask> iterator = scheduledTasks.iterator();
             while (iterator.hasNext()) {
-                ScheduledTask task = iterator.next();
+                DefaultRaftServiceExecutor.ScheduledTask task = iterator.next();
                 if (task.isRunnable(unixTimestamp)) {
                     this.timestamp = task.time;
                     this.operationType = OperationType.COMMAND;
-                    log.trace("Executing scheduled task {}", task);
+                    LOGGER.trace("Executing scheduled task {}", task);
                     task.execute();
                     complete.add(task);
                     iterator.remove();
@@ -82,7 +76,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
             }
 
             // Iterate through tasks that were completed and reschedule them.
-            for (ScheduledTask task : complete) {
+            for (DefaultRaftServiceExecutor.ScheduledTask task : complete) {
                 task.reschedule(this.timestamp);
             }
             complete.clear();
@@ -91,7 +85,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
 
     @Override
     public byte[] apply(Commit<byte[]> commit) {
-        log.trace("Executing {}", commit);
+        LOGGER.trace("Executing {}", commit);
 
         this.operationType = commit.operation().type();
         this.timestamp = commit.wallClockTime().unixTimestamp();
@@ -107,7 +101,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
             try {
                 return callback.apply(commit);
             } catch (Exception e) {
-                log.warn("State machine operation failed: {}", e.getMessage());
+                LOGGER.warn("State machine operation failed: {}", e.getMessage());
                 throw new RaftException.ApplicationException(e);
             } finally {
                 runTasks();
@@ -120,7 +114,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         checkNotNull(operationId, "operationId cannot be null");
         checkNotNull(callback, "callback cannot be null");
         operations.put(operationId, callback);
-        log.debug("Registered operation callback {}", operationId);
+        LOGGER.debug("Registered operation callback {}", operationId);
     }
 
     /**
@@ -130,7 +124,7 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
         // Execute any tasks that were queue during execution of the command.
         if (!tasks.isEmpty()) {
             for (Runnable task : tasks) {
-                log.trace("Executing task {}", task);
+                LOGGER.trace("Executing task {}", task);
                 task.run();
             }
             tasks.clear();
@@ -155,15 +149,15 @@ public class DefaultRaftServiceExecutor implements RaftServiceExecutor {
     @Override
     public Scheduled schedule(Duration delay, Runnable callback) {
         checkOperation(OperationType.COMMAND, "callbacks can only be scheduled during command execution");
-        log.trace("Scheduled callback {} with delay {}", callback, delay);
-        return new ScheduledTask(callback, delay.toMillis()).schedule();
+        LOGGER.trace("Scheduled callback {} with delay {}", callback, delay);
+        return new DefaultRaftServiceExecutor.ScheduledTask(callback, delay.toMillis()).schedule();
     }
 
     @Override
     public Scheduled schedule(Duration initialDelay, Duration interval, Runnable callback) {
         checkOperation(OperationType.COMMAND, "callbacks can only be scheduled during command execution");
-        log.trace("Scheduled repeating callback {} with initial delay {} and interval {}", callback, initialDelay, interval);
-        return new ScheduledTask(callback, initialDelay.toMillis(), interval.toMillis()).schedule();
+        LOGGER.trace("Scheduled repeating callback {} with initial delay {} and interval {}", callback, initialDelay, interval);
+        return new DefaultRaftServiceExecutor.ScheduledTask(callback, initialDelay.toMillis(), interval.toMillis()).schedule();
     }
 
     /**

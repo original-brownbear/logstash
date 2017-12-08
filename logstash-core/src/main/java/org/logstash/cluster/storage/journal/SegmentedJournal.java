@@ -1,20 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.storage.journal;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.Collection;
@@ -23,6 +9,8 @@ import java.util.NavigableMap;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.cluster.storage.StorageException;
 import org.logstash.cluster.storage.StorageLevel;
@@ -30,22 +18,16 @@ import org.logstash.cluster.storage.buffer.Buffer;
 import org.logstash.cluster.storage.buffer.FileBuffer;
 import org.logstash.cluster.storage.buffer.HeapBuffer;
 import org.logstash.cluster.storage.buffer.MappedBuffer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Segmented journal implementation.
-
  */
 public class SegmentedJournal<E> implements Journal<E> {
 
+    private static final Logger LOGGER = LogManager.getLogger(SegmentedJournal.class);
+
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 64;
     private static final int SEGMENT_BUFFER_FACTOR = 3;
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final String name;
     private final StorageLevel storageLevel;
     private final File directory;
@@ -57,6 +39,7 @@ public class SegmentedJournal<E> implements Journal<E> {
     private final SegmentedJournalWriter<E> writer;
     private JournalSegment<E> currentSegment;
     private volatile boolean open = true;
+
     public SegmentedJournal(
         String name,
         StorageLevel storageLevel,
@@ -64,10 +47,10 @@ public class SegmentedJournal<E> implements Journal<E> {
         Serializer serializer,
         int maxSegmentSize,
         int maxEntriesPerSegment) {
-        this.name = checkNotNull(name, "name cannot be null");
-        this.storageLevel = checkNotNull(storageLevel, "storageLevel cannot be null");
-        this.directory = checkNotNull(directory, "directory cannot be null");
-        this.serializer = checkNotNull(serializer, "serializer cannot be null");
+        this.name = Preconditions.checkNotNull(name, "name cannot be null");
+        this.storageLevel = Preconditions.checkNotNull(storageLevel, "storageLevel cannot be null");
+        this.directory = Preconditions.checkNotNull(directory, "directory cannot be null");
+        this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
         this.maxSegmentSize = maxSegmentSize;
         this.maxEntriesPerSegment = maxEntriesPerSegment;
         open();
@@ -133,7 +116,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = FileBuffer.allocate(segmentFile, Math.min(DEFAULT_BUFFER_SIZE, descriptor.maxSegmentSize()), Integer.MAX_VALUE);
         descriptor.copyTo(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(segmentFile), descriptor);
-        log.debug("Created disk segment: {}", segment);
+        LOGGER.debug("Created disk segment: {}", segment);
         return segment;
     }
 
@@ -145,7 +128,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = MappedBuffer.allocate(segmentFile, Math.min(DEFAULT_BUFFER_SIZE, descriptor.maxSegmentSize()), Integer.MAX_VALUE);
         descriptor.copyTo(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(segmentFile), descriptor);
-        log.debug("Created memory mapped segment: {}", segment);
+        LOGGER.debug("Created memory mapped segment: {}", segment);
         return segment;
     }
 
@@ -157,7 +140,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = HeapBuffer.allocate(Math.min(DEFAULT_BUFFER_SIZE, descriptor.maxSegmentSize()), Integer.MAX_VALUE);
         descriptor.copyTo(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(segmentFile), descriptor);
-        log.debug("Created memory segment: {}", segment);
+        LOGGER.debug("Created memory segment: {}", segment);
         return segment;
     }
 
@@ -195,7 +178,7 @@ public class SegmentedJournal<E> implements Journal<E> {
                     // If the two segments start at the same index, the segment with the higher version number is used.
                     if (previousSegment.index() == segment.index()) {
                         if (segment.descriptor().version() > previousSegment.descriptor().version()) {
-                            log.debug("Replaced segment {} with newer version: {} ({})", previousSegment.descriptor().id(), segment.descriptor().version(), segmentFile.file().getName());
+                            LOGGER.debug("Replaced segment {} with newer version: {} ({})", previousSegment.descriptor().id(), segment.descriptor().version(), segmentFile.file().getName());
                             segments.remove(previousEntry.getKey());
                             previousSegment.close();
                             previousSegment.delete();
@@ -215,7 +198,7 @@ public class SegmentedJournal<E> implements Journal<E> {
                 }
 
                 // Add the segment to the segments list.
-                log.debug("Found segment: {} ({})", segment.descriptor().id(), segmentFile.file().getName());
+                LOGGER.debug("Found segment: {} ({})", segment.descriptor().id(), segmentFile.file().getName());
                 segments.put(segment.index(), segment);
 
                 // Ensure any segments later in the log with which this segment overlaps are removed.
@@ -259,7 +242,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = FileBuffer.allocate(file, Math.min(DEFAULT_BUFFER_SIZE, maxSegmentSize), Integer.MAX_VALUE);
         JournalSegmentDescriptor descriptor = new JournalSegmentDescriptor(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(file), descriptor);
-        log.debug("Loaded disk segment: {} ({})", descriptor.id(), file.getName());
+        LOGGER.debug("Loaded disk segment: {} ({})", descriptor.id(), file.getName());
         return segment;
     }
 
@@ -271,7 +254,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = MappedBuffer.allocate(file, Math.min(DEFAULT_BUFFER_SIZE, maxSegmentSize), Integer.MAX_VALUE);
         JournalSegmentDescriptor descriptor = new JournalSegmentDescriptor(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(file), descriptor);
-        log.debug("Loaded disk segment: {} ({})", descriptor.id(), file.getName());
+        LOGGER.debug("Loaded disk segment: {} ({})", descriptor.id(), file.getName());
         return segment;
     }
 
@@ -283,7 +266,7 @@ public class SegmentedJournal<E> implements Journal<E> {
         Buffer buffer = HeapBuffer.allocate(Math.min(DEFAULT_BUFFER_SIZE, maxSegmentSize), Integer.MAX_VALUE);
         JournalSegmentDescriptor descriptor = new JournalSegmentDescriptor(buffer);
         JournalSegment<E> segment = newSegment(new JournalSegmentFile(file), descriptor);
-        log.debug("Loaded memory segment: {}", descriptor.id());
+        LOGGER.debug("Loaded memory segment: {}", descriptor.id());
         return segment;
     }
 
@@ -370,7 +353,7 @@ public class SegmentedJournal<E> implements Journal<E> {
      * @throws IllegalStateException if the segment manager is not open
      */
     private void assertOpen() {
-        checkState(currentSegment != null, "journal not open");
+        Preconditions.checkState(currentSegment != null, "journal not open");
     }
 
     /**
@@ -554,7 +537,7 @@ public class SegmentedJournal<E> implements Journal<E> {
     @Override
     public void close() {
         segments.values().forEach(segment -> {
-            log.debug("Closing segment: {}", segment);
+            LOGGER.debug("Closing segment: {}", segment);
             segment.close();
         });
         currentSegment = null;
@@ -596,9 +579,9 @@ public class SegmentedJournal<E> implements Journal<E> {
         if (segmentEntry != null) {
             SortedMap<Long, JournalSegment<E>> compactSegments = segments.headMap(segmentEntry.getValue().index());
             if (!compactSegments.isEmpty()) {
-                log.debug("{} - Compacting {} segment(s)", name, compactSegments.size());
+                LOGGER.debug("{} - Compacting {} segment(s)", name, compactSegments.size());
                 for (JournalSegment segment : compactSegments.values()) {
-                    log.trace("Deleting segment: {}", segment);
+                    LOGGER.trace("Deleting segment: {}", segment);
                     segment.close();
                     segment.delete();
                 }
@@ -632,7 +615,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The storage builder.
          */
         public Builder<E> withName(String name) {
-            this.name = checkNotNull(name, "name cannot be null");
+            this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
 
@@ -644,7 +627,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The storage builder.
          */
         public Builder<E> withStorageLevel(StorageLevel storageLevel) {
-            this.storageLevel = checkNotNull(storageLevel, "storageLevel cannot be null");
+            this.storageLevel = Preconditions.checkNotNull(storageLevel, "storageLevel cannot be null");
             return this;
         }
 
@@ -657,7 +640,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
         public Builder<E> withDirectory(String directory) {
-            return withDirectory(new File(checkNotNull(directory, "directory cannot be null")));
+            return withDirectory(new File(Preconditions.checkNotNull(directory, "directory cannot be null")));
         }
 
         /**
@@ -669,7 +652,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
         public Builder<E> withDirectory(File directory) {
-            this.directory = checkNotNull(directory, "directory cannot be null");
+            this.directory = Preconditions.checkNotNull(directory, "directory cannot be null");
             return this;
         }
 
@@ -679,7 +662,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The journal builder.
          */
         public Builder<E> withSerializer(Serializer serializer) {
-            this.serializer = checkNotNull(serializer, "serializer cannot be null");
+            this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
             return this;
         }
 
@@ -696,7 +679,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @throws IllegalArgumentException If the {@code maxSegmentSize} is not positive
          */
         public Builder<E> withMaxSegmentSize(int maxSegmentSize) {
-            checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
+            Preconditions.checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
             this.maxSegmentSize = maxSegmentSize;
             return this;
         }
@@ -715,8 +698,8 @@ public class SegmentedJournal<E> implements Journal<E> {
          * segment
          */
         public Builder<E> withMaxEntriesPerSegment(int maxEntriesPerSegment) {
-            checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
-            checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
+            Preconditions.checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
+            Preconditions.checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
                 "max entries per segment cannot be greater than " + DEFAULT_MAX_ENTRIES_PER_SEGMENT);
             this.maxEntriesPerSegment = maxEntriesPerSegment;
             return this;

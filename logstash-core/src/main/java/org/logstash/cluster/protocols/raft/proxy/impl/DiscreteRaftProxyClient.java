@@ -26,7 +26,6 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxyClient;
 import org.logstash.cluster.protocols.raft.service.ServiceType;
 import org.logstash.cluster.protocols.raft.session.SessionId;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
-import org.logstash.cluster.utils.logging.LoggerContext;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -68,21 +67,11 @@ public class DiscreteRaftProxyClient implements RaftProxyClient {
         RaftProxyConnection leaderConnection = new RaftProxyConnection(
             protocol,
             selectorManager.createSelector(CommunicationStrategy.LEADER),
-            context,
-            LoggerContext.builder(RaftProxy.class)
-                .addValue(state.getSessionId())
-                .add("type", state.getServiceType())
-                .add("name", state.getServiceName())
-                .build());
+            context);
         RaftProxyConnection sessionConnection = new RaftProxyConnection(
             protocol,
             selectorManager.createSelector(communicationStrategy),
-            context,
-            LoggerContext.builder(RaftProxy.class)
-                .addValue(state.getSessionId())
-                .add("type", state.getServiceType())
-                .add("name", state.getServiceName())
-                .build());
+            context);
 
         // Create proxy submitter/listener.
         RaftProxySequencer sequencer = new RaftProxySequencer(state);

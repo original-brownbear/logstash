@@ -18,7 +18,7 @@ package org.logstash.cluster.utils.concurrent;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import org.slf4j.Logger;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Thread pool context factory.

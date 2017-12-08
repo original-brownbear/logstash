@@ -1,20 +1,6 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.impl;
 
+import com.google.common.base.Preconditions;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Set;
@@ -23,6 +9,8 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.ThreadModel;
@@ -54,13 +42,6 @@ import org.logstash.cluster.utils.concurrent.SingleThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContext;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
 import org.logstash.cluster.utils.concurrent.Threads;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
 
 /**
  * Manages the volatile state and state transitions of a Raft server.
@@ -69,6 +50,9 @@ import static com.google.common.base.Preconditions.checkState;
  * is stored in the cluster state. This includes Raft-specific state like the current leader and term, the log, and the cluster configuration.
  */
 public class RaftContext implements AutoCloseable {
+
+    private static final Logger LOGGER = LogManager.getLogger(RaftContext.class);
+
     private static final int LOAD_WINDOW_SIZE = 5;
     private static final int HIGH_LOAD_THRESHOLD = 500;
     protected final String name;
@@ -79,9 +63,8 @@ public class RaftContext implements AutoCloseable {
     protected final RaftStorage storage;
     protected final RaftServiceRegistry services = new RaftServiceRegistry();
     protected final RaftSessionRegistry sessions = new RaftSessionRegistry();
-    private final Logger log;
     private final Set<Consumer<RaftServer.Role>> roleChangeListeners = new CopyOnWriteArraySet<>();
-    private final Set<Consumer<State>> stateChangeListeners = new CopyOnWriteArraySet<>();
+    private final Set<Consumer<RaftContext.State>> stateChangeListeners = new CopyOnWriteArraySet<>();
     private final Set<Consumer<RaftMember>> electionListeners = new CopyOnWriteArraySet<>();
     private final LoadMonitor loadMonitor;
     private final MetaStore meta;
@@ -95,7 +78,7 @@ public class RaftContext implements AutoCloseable {
     private final ThreadContext loadContext;
     private final ThreadContext compactionContext;
     protected RaftRole role = new InactiveRole(this);
-    private volatile State state = State.ACTIVE;
+    private volatile RaftContext.State state = RaftContext.State.ACTIVE;
     private Duration electionTimeout = Duration.ofMillis(500);
     private Duration heartbeatInterval = Duration.ofMillis(150);
     private int electionThreshold = 3;
@@ -111,27 +94,24 @@ public class RaftContext implements AutoCloseable {
 
     @SuppressWarnings("unchecked")
     public RaftContext(
-        String name,
-        MemberId localMemberId,
-        RaftServerProtocol protocol,
-        RaftStorage storage,
-        RaftServiceFactoryRegistry serviceFactories,
-        ThreadModel threadModel,
-        int threadPoolSize) {
-        this.name = checkNotNull(name, "name cannot be null");
-        this.protocol = checkNotNull(protocol, "protocol cannot be null");
-        this.storage = checkNotNull(storage, "storage cannot be null");
-        this.serviceFactories = checkNotNull(serviceFactories, "registry cannot be null");
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
-            .addValue(name)
-            .build());
+        final String name,
+        final MemberId localMemberId,
+        final RaftServerProtocol protocol,
+        final RaftStorage storage,
+        final RaftServiceFactoryRegistry serviceFactories,
+        final ThreadModel threadModel,
+        final int threadPoolSize) {
+        this.name = Preconditions.checkNotNull(name, "name cannot be null");
+        this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
+        this.storage = Preconditions.checkNotNull(storage, "storage cannot be null");
+        this.serviceFactories = Preconditions.checkNotNull(serviceFactories, "registry cannot be null");
 
-        String baseThreadName = String.format("raft-server-%s", name);
-        this.threadContext = new SingleThreadContext(Threads.namedThreads(baseThreadName, log));
-        this.loadContext = new SingleThreadContext(Threads.namedThreads(baseThreadName + "-load", log));
-        this.compactionContext = new SingleThreadContext(Threads.namedThreads(baseThreadName + "-compaction", log));
+        final String baseThreadName = String.format("raft-server-%s", name);
+        this.threadContext = new SingleThreadContext(Threads.namedThreads(baseThreadName, LOGGER));
+        this.loadContext = new SingleThreadContext(Threads.namedThreads(baseThreadName + "-load", LOGGER));
+        this.compactionContext = new SingleThreadContext(Threads.namedThreads(baseThreadName + "-compaction", LOGGER));
 
-        this.threadContextFactory = threadModel.factory(baseThreadName + "-%d", threadPoolSize, log);
+        this.threadContextFactory = threadModel.factory(baseThreadName + "-%d", threadPoolSize, LOGGER);
 
         this.loadMonitor = new LoadMonitor(LOAD_WINDOW_SIZE, HIGH_LOAD_THRESHOLD, loadContext);
 
@@ -163,7 +143,7 @@ public class RaftContext implements AutoCloseable {
     /**
      * Registers server handlers on the configured protocol.
      */
-    private void registerHandlers(RaftServerProtocol protocol) {
+    private void registerHandlers(final RaftServerProtocol protocol) {
         protocol.registerOpenSessionHandler(request -> runOnContext(() -> role.onOpenSession(request)));
         protocol.registerCloseSessionHandler(request -> runOnContext(() -> role.onCloseSession(request)));
         protocol.registerKeepAliveHandler(request -> runOnContext(() -> role.onKeepAlive(request)));
@@ -181,8 +161,8 @@ public class RaftContext implements AutoCloseable {
         protocol.registerQueryHandler(request -> runOnContext(() -> role.onQuery(request)));
     }
 
-    private <R extends RaftResponse> CompletableFuture<R> runOnContext(Supplier<CompletableFuture<R>> function) {
-        CompletableFuture<R> future = new CompletableFuture<>();
+    private <R extends RaftResponse> CompletableFuture<R> runOnContext(final Supplier<CompletableFuture<R>> function) {
+        final CompletableFuture<R> future = new CompletableFuture<>();
         threadContext.execute(() -> {
             function.get().whenComplete((response, error) -> {
                 if (error == null) {
@@ -207,7 +187,7 @@ public class RaftContext implements AutoCloseable {
      * Adds a role change listener.
      * @param listener The role change listener.
      */
-    public void addRoleChangeListener(Consumer<RaftServer.Role> listener) {
+    public void addRoleChangeListener(final Consumer<RaftServer.Role> listener) {
         roleChangeListeners.add(listener);
     }
 
@@ -215,7 +195,7 @@ public class RaftContext implements AutoCloseable {
      * Removes a role change listener.
      * @param listener The role change listener.
      */
-    public void removeRoleChangeListener(Consumer<RaftServer.Role> listener) {
+    public void removeRoleChangeListener(final Consumer<RaftServer.Role> listener) {
         roleChangeListeners.remove(listener);
     }
 
@@ -224,13 +204,13 @@ public class RaftContext implements AutoCloseable {
      * @param state the state for which to wait
      * @param listener the listener to call when the next state change occurs
      */
-    public void awaitState(State state, Consumer<State> listener) {
+    public void awaitState(final RaftContext.State state, final Consumer<RaftContext.State> listener) {
         if (this.state == state) {
             listener.accept(this.state);
         } else {
-            addStateChangeListener(new Consumer<State>() {
+            addStateChangeListener(new Consumer<RaftContext.State>() {
                 @Override
-                public void accept(State state) {
+                public void accept(final RaftContext.State state) {
                     listener.accept(state);
                     removeStateChangeListener(this);
                 }
@@ -242,7 +222,7 @@ public class RaftContext implements AutoCloseable {
      * Adds a state change listener.
      * @param listener The state change listener.
      */
-    public void addStateChangeListener(Consumer<State> listener) {
+    public void addStateChangeListener(final Consumer<RaftContext.State> listener) {
         stateChangeListeners.add(listener);
     }
 
@@ -250,7 +230,7 @@ public class RaftContext implements AutoCloseable {
      * Removes a state change listener.
      * @param listener The state change listener.
      */
-    public void removeStateChangeListener(Consumer<State> listener) {
+    public void removeStateChangeListener(final Consumer<RaftContext.State> listener) {
         stateChangeListeners.remove(listener);
     }
 
@@ -282,7 +262,7 @@ public class RaftContext implements AutoCloseable {
      * Returns the current server state.
      * @return the current server state
      */
-    public State getState() {
+    public RaftContext.State getState() {
         return state;
     }
 
@@ -298,7 +278,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the election timeout.
      * @param electionTimeout The election timeout.
      */
-    public void setElectionTimeout(Duration electionTimeout) {
+    public void setElectionTimeout(final Duration electionTimeout) {
         this.electionTimeout = electionTimeout;
     }
 
@@ -314,8 +294,8 @@ public class RaftContext implements AutoCloseable {
      * Sets the heartbeat interval.
      * @param heartbeatInterval The Raft heartbeat interval.
      */
-    public void setHeartbeatInterval(Duration heartbeatInterval) {
-        this.heartbeatInterval = checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
+    public void setHeartbeatInterval(final Duration heartbeatInterval) {
+        this.heartbeatInterval = Preconditions.checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
     }
 
     /**
@@ -330,7 +310,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the election threshold.
      * @param electionThreshold the election threshold
      */
-    public void setElectionThreshold(int electionThreshold) {
+    public void setElectionThreshold(final int electionThreshold) {
         this.electionThreshold = electionThreshold;
     }
 
@@ -346,8 +326,8 @@ public class RaftContext implements AutoCloseable {
      * Sets the session timeout.
      * @param sessionTimeout The session timeout.
      */
-    public void setSessionTimeout(Duration sessionTimeout) {
-        this.sessionTimeout = checkNotNull(sessionTimeout, "sessionTimeout cannot be null");
+    public void setSessionTimeout(final Duration sessionTimeout) {
+        this.sessionTimeout = Preconditions.checkNotNull(sessionTimeout, "sessionTimeout cannot be null");
     }
 
     /**
@@ -362,7 +342,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the session failure threshold.
      * @param sessionFailureThreshold the session failure threshold
      */
-    public void setSessionFailureThreshold(int sessionFailureThreshold) {
+    public void setSessionFailureThreshold(final int sessionFailureThreshold) {
         this.sessionFailureThreshold = sessionFailureThreshold;
     }
 
@@ -371,7 +351,7 @@ public class RaftContext implements AutoCloseable {
      * @return Indicates whether this server is the leader.
      */
     public boolean isLeader() {
-        MemberId leader = this.leader;
+        final MemberId leader = this.leader;
         return leader != null && leader.equals(cluster.getMember().memberId());
     }
 
@@ -379,7 +359,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the state leader.
      * @param leader The state leader.
      */
-    public void setLeader(MemberId leader) {
+    public void setLeader(final MemberId leader) {
         if (!Objects.equals(this.leader, leader)) {
             if (leader == null) {
                 this.leader = null;
@@ -388,10 +368,10 @@ public class RaftContext implements AutoCloseable {
                 // ACTIVE members configuration. Note that we don't throw exceptions for unknown members. It's
                 // possible that a failure following a configuration change could result in an unknown leader
                 // sending AppendRequest to this server. Simply configure the leader if it's known.
-                DefaultRaftMember member = cluster.getMember(leader);
+                final DefaultRaftMember member = cluster.getMember(leader);
                 if (member != null) {
                     this.leader = leader;
-                    log.info("Found leader {}", member.memberId());
+                    LOGGER.info("Found leader {}", member.memberId());
                     electionListeners.forEach(l -> l.accept(member));
                 }
             }
@@ -413,14 +393,14 @@ public class RaftContext implements AutoCloseable {
      * Sets the state term.
      * @param term The state term.
      */
-    public void setTerm(long term) {
+    public void setTerm(final long term) {
         if (term > this.term) {
             this.term = term;
             this.leader = null;
             this.lastVotedFor = null;
             meta.storeTerm(this.term);
             meta.storeVote(this.lastVotedFor);
-            log.debug("Set term {}", term);
+            LOGGER.debug("Set term {}", term);
         }
     }
 
@@ -436,7 +416,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the last time a request was received by the node.
      * @param lastHeartbeatTime The last time a request was received
      */
-    public void setLastHeartbeatTime(long lastHeartbeatTime) {
+    public void setLastHeartbeatTime(final long lastHeartbeatTime) {
         this.lastHeartbeatTime = lastHeartbeatTime;
     }
 
@@ -459,18 +439,18 @@ public class RaftContext implements AutoCloseable {
      * Sets the state last voted for candidate.
      * @param candidate The candidate that was voted for.
      */
-    public void setLastVotedFor(MemberId candidate) {
+    public void setLastVotedFor(final MemberId candidate) {
         // If we've already voted for another candidate in this term then the last voted for candidate cannot be overridden.
-        checkState(!(lastVotedFor != null && candidate != null), "Already voted for another candidate");
-        DefaultRaftMember member = cluster.getMember(candidate);
-        checkState(member != null, "Unknown candidate: %d", candidate);
+        Preconditions.checkState(!(lastVotedFor != null && candidate != null), "Already voted for another candidate");
+        final DefaultRaftMember member = cluster.getMember(candidate);
+        Preconditions.checkState(member != null, "Unknown candidate: %d", candidate);
         this.lastVotedFor = candidate;
         meta.storeVote(this.lastVotedFor);
 
         if (candidate != null) {
-            log.debug("Voted for {}", member.memberId());
+            LOGGER.debug("Voted for {}", member.memberId());
         } else {
-            log.trace("Reset last voted for");
+            LOGGER.trace("Reset last voted for");
         }
     }
 
@@ -479,13 +459,13 @@ public class RaftContext implements AutoCloseable {
      * @param commitIndex The commit index.
      * @return the previous commit index
      */
-    public long setCommitIndex(long commitIndex) {
-        checkArgument(commitIndex >= 0, "commitIndex must be positive");
-        long previousCommitIndex = this.commitIndex;
+    public long setCommitIndex(final long commitIndex) {
+        Preconditions.checkArgument(commitIndex >= 0, "commitIndex must be positive");
+        final long previousCommitIndex = this.commitIndex;
         if (commitIndex > previousCommitIndex) {
             this.commitIndex = commitIndex;
             logWriter.commit(Math.min(commitIndex, logWriter.getLastIndex()));
-            long configurationIndex = cluster.getConfiguration().index();
+            final long configurationIndex = cluster.getConfiguration().index();
             if (configurationIndex > previousCommitIndex && configurationIndex <= commitIndex) {
                 cluster.commit();
             }
@@ -514,7 +494,7 @@ public class RaftContext implements AutoCloseable {
      * Sets the first commit index.
      * @param firstCommitIndex The first commit index.
      */
-    public void setFirstCommitIndex(long firstCommitIndex) {
+    public void setFirstCommitIndex(final long firstCommitIndex) {
         if (this.firstCommitIndex == 0) {
             this.firstCommitIndex = firstCommitIndex;
         }
@@ -532,12 +512,12 @@ public class RaftContext implements AutoCloseable {
      * Sets the last applied index.
      * @param lastApplied the last applied index
      */
-    public void setLastApplied(long lastApplied) {
+    public void setLastApplied(final long lastApplied) {
         this.lastApplied = Math.max(this.lastApplied, lastApplied);
-        if (state == State.ACTIVE) {
+        if (state == RaftContext.State.ACTIVE) {
             threadContext.execute(() -> {
-                if (state == State.ACTIVE && this.lastApplied >= firstCommitIndex) {
-                    state = State.READY;
+                if (state == RaftContext.State.ACTIVE && this.lastApplied >= firstCommitIndex) {
+                    state = RaftContext.State.READY;
                     stateChangeListeners.forEach(l -> l.accept(state));
                 }
             });
@@ -656,13 +636,13 @@ public class RaftContext implements AutoCloseable {
             return CompletableFuture.completedFuture(null);
         }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<Void> future = new CompletableFuture<>();
 
         threadContext.execute(() -> {
             // Register a leader election listener to wait for the election of this node.
-            Consumer<RaftMember> electionListener = new Consumer<RaftMember>() {
+            final Consumer<RaftMember> electionListener = new Consumer<RaftMember>() {
                 @Override
-                public void accept(RaftMember member) {
+                public void accept(final RaftMember member) {
                     if (member.memberId().equals(cluster.getMember().memberId())) {
                         future.complete(null);
                     } else {
@@ -675,8 +655,8 @@ public class RaftContext implements AutoCloseable {
 
             // If a leader already exists, request a leadership transfer from it. Otherwise, transition to the candidate
             // state and attempt to get elected.
-            RaftMember member = getCluster().getMember();
-            RaftMember leader = getLeader();
+            final RaftMember member = getCluster().getMember();
+            final RaftMember leader = getLeader();
             if (leader != null) {
                 protocol.transfer(leader.memberId(), TransferRequest.builder()
                     .withMember(member.memberId())
@@ -700,7 +680,7 @@ public class RaftContext implements AutoCloseable {
      * Adds a leader election listener.
      * @param listener The leader election listener.
      */
-    public void addLeaderElectionListener(Consumer<RaftMember> listener) {
+    public void addLeaderElectionListener(final Consumer<RaftMember> listener) {
         electionListeners.add(listener);
     }
 
@@ -708,7 +688,7 @@ public class RaftContext implements AutoCloseable {
      * Removes a leader election listener.
      * @param listener The leader election listener.
      */
-    public void removeLeaderElectionListener(Consumer<RaftMember> listener) {
+    public void removeLeaderElectionListener(final Consumer<RaftMember> listener) {
         electionListeners.remove(listener);
     }
 
@@ -726,21 +706,21 @@ public class RaftContext implements AutoCloseable {
      */
     public DefaultRaftMember getLeader() {
         // Store in a local variable to prevent race conditions and/or multiple volatile lookups.
-        MemberId leader = this.leader;
+        final MemberId leader = this.leader;
         return leader != null ? cluster.getMember(leader) : null;
     }
 
     /**
      * Transition handler.
      */
-    public void transition(RaftServer.Role role) {
+    public void transition(final RaftServer.Role role) {
         checkThread();
 
         if (this.role != null && role == this.role.role()) {
             return;
         }
 
-        log.info("Transitioning to {}", role);
+        LOGGER.info("Transitioning to {}", role);
 
         // Close the old state.
         try {
@@ -770,7 +750,7 @@ public class RaftContext implements AutoCloseable {
     /**
      * Creates an internal state for the given state type.
      */
-    private RaftRole createRole(RaftServer.Role role) {
+    private RaftRole createRole(final RaftServer.Role role) {
         switch (role) {
             case INACTIVE:
                 return new InactiveRole(this);
@@ -792,7 +772,7 @@ public class RaftContext implements AutoCloseable {
     /**
      * Transitions the server to the base state for the given member type.
      */
-    public void transition(RaftMember.Type type) {
+    public void transition(final RaftMember.Type type) {
         switch (type) {
             case ACTIVE:
                 if (!(role instanceof ActiveRole)) {
@@ -825,19 +805,19 @@ public class RaftContext implements AutoCloseable {
         // Close the log.
         try {
             raftLog.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
         }
 
         // Close the metastore.
         try {
             meta.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
         }
 
         // Close the snapshot store.
         try {
             snapshotStore.close();
-        } catch (Exception e) {
+        } catch (final Exception e) {
         }
 
         // Close the state machine and thread context.
@@ -851,7 +831,7 @@ public class RaftContext implements AutoCloseable {
     /**
      * Unregisters server handlers on the configured protocol.
      */
-    private static void unregisterHandlers(RaftServerProtocol protocol) {
+    private static void unregisterHandlers(final RaftServerProtocol protocol) {
         protocol.unregisterOpenSessionHandler();
         protocol.unregisterCloseSessionHandler();
         protocol.unregisterKeepAliveHandler();

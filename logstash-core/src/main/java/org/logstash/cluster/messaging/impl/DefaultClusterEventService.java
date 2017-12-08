@@ -18,6 +18,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.cluster.ClusterService;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
@@ -33,14 +35,12 @@ import org.logstash.cluster.time.LogicalTimestamp;
 import org.logstash.cluster.time.WallClockTimestamp;
 import org.logstash.cluster.utils.concurrent.Futures;
 import org.logstash.cluster.utils.concurrent.Threads;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Cluster event service.
  */
 public class DefaultClusterEventService implements ManagedClusterEventService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusterEventService.class);
+    private static final Logger LOGGER = LogManager.getLogger(DefaultClusterEventService.class);
 
     private static final Serializer SERIALIZER = Serializer.using(KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)

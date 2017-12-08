@@ -108,7 +108,6 @@ idea {
 }
 
 dependencies {
-    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile 'io.netty:netty-all:4.1.13.Final'
     compile 'org.elasticsearch:elasticsearch:6.0.0'
     compile group: 'com.esotericsoftware', name: 'kryo', version: '4.0.1'
@@ -118,6 +117,7 @@ dependencies {
     compile group: 'org.apache.commons', name: 'commons-math3', version: '3.6.1'
     compile 'org.apache.logging.log4j:log4j-api:2.9.1'
     compile 'org.apache.logging.log4j:log4j-core:2.9.1'
+    runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
     // Jackson version moved to versions.yml in the project root (the JrJackson version is there too)
     compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
@@ -143,5 +143,4 @@ dependencies {
     testCompile 'net.javacrumbs.json-unit:json-unit:1.9.0'
     testCompile 'org.elasticsearch:securemock:1.2'
     testCompile 'org.assertj:assertj-core:3.8.0'
-    testCompile "org.jruby:jruby-complete:${jrubyVersion}"
 }

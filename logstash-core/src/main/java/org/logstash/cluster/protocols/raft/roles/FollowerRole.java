@@ -69,7 +69,7 @@ public final class FollowerRole extends ActiveRole {
      * Starts the heartbeat timer.
      */
     private void startHeartbeatTimer() {
-        log.trace("Starting heartbeat timer");
+        LOGGER.trace("Starting heartbeat timer");
         AtomicLong lastHeartbeat = new AtomicLong();
         heartbeatTimer = raft.getThreadContext().schedule(raft.getHeartbeatInterval(), () -> {
             if (raft.getLastHeartbeatTime() > lastHeartbeat.get()) {
@@ -89,7 +89,7 @@ public final class FollowerRole extends ActiveRole {
         heartbeatTimeout = raft.getThreadContext().schedule(delay, () -> {
             if (isOpen()) {
                 if (System.currentTimeMillis() - raft.getLastHeartbeatTime() > raft.getElectionTimeout().toMillis() || failureDetector.phi() >= raft.getElectionThreshold()) {
-                    log.debug("Heartbeat timed out in {}", System.currentTimeMillis() - raft.getLastHeartbeatTime());
+                    LOGGER.debug("Heartbeat timed out in {}", System.currentTimeMillis() - raft.getLastHeartbeatTime());
                     sendPollRequests();
                 } else {
                     resetHeartbeatTimeout();
@@ -104,7 +104,7 @@ public final class FollowerRole extends ActiveRole {
     private void sendPollRequests() {
         // Set a new timer within which other nodes must respond in order for this node to transition to candidate.
         heartbeatTimeout = raft.getThreadContext().schedule(raft.getElectionTimeout(), () -> {
-            log.debug("Failed to poll a majority of the cluster in {}", raft.getElectionTimeout());
+            LOGGER.debug("Failed to poll a majority of the cluster in {}", raft.getElectionTimeout());
             resetHeartbeatTimeout();
         });
 
@@ -143,12 +143,12 @@ public final class FollowerRole extends ActiveRole {
 
         final DefaultRaftMember leader = raft.getLeader();
 
-        log.debug("Polling members {}", votingMembers);
+        LOGGER.debug("Polling members {}", votingMembers);
 
         // Once we got the last log term, iterate through each current member
         // of the cluster and vote each member for a vote.
         for (DefaultRaftMember member : votingMembers) {
-            log.debug("Polling {} for next term {}", member, raft.getTerm() + 1);
+            LOGGER.debug("Polling {} for next term {}", member, raft.getTerm() + 1);
             PollRequest request = PollRequest.builder()
                 .withTerm(raft.getTerm())
                 .withCandidate(raft.getCluster().getMember().memberId())
@@ -159,7 +159,7 @@ public final class FollowerRole extends ActiveRole {
                 raft.checkThread();
                 if (isOpen() && !complete.get()) {
                     if (error != null) {
-                        log.warn("{}", error.getMessage());
+                        LOGGER.warn("{}", error.getMessage());
                         quorum.fail();
                     } else {
                         if (response.term() > raft.getTerm()) {
@@ -167,7 +167,7 @@ public final class FollowerRole extends ActiveRole {
                         }
 
                         if (!response.accepted()) {
-                            log.debug("Received rejected poll from {}", member);
+                            LOGGER.debug("Received rejected poll from {}", member);
                             if (leader != null && response.term() == raft.getTerm() && member.memberId().equals(leader.memberId())) {
                                 quorum.cancel();
                                 resetHeartbeatTimeout();
@@ -175,10 +175,10 @@ public final class FollowerRole extends ActiveRole {
                                 quorum.fail();
                             }
                         } else if (response.term() != raft.getTerm()) {
-                            log.debug("Received accepted poll for a different term from {}", member);
+                            LOGGER.debug("Received accepted poll for a different term from {}", member);
                             quorum.fail();
                         } else {
-                            log.debug("Received accepted poll from {}", member);
+                            LOGGER.debug("Received accepted poll from {}", member);
                             quorum.succeed();
                         }
                     }
@@ -205,7 +205,7 @@ public final class FollowerRole extends ActiveRole {
             heartbeatTimer.cancel();
         }
         if (heartbeatTimeout != null) {
-            log.trace("Cancelling heartbeat timer");
+            LOGGER.trace("Cancelling heartbeat timer");
             heartbeatTimeout.cancel();
         }
     }

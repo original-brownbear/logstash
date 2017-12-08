@@ -15,8 +15,11 @@
  */
 package org.logstash.cluster.protocols.raft.roles;
 
+import com.google.common.base.MoreObjects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.RaftException;
 import org.logstash.cluster.protocols.raft.RaftServer;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
@@ -25,26 +28,19 @@ import org.logstash.cluster.protocols.raft.impl.RaftContext;
 import org.logstash.cluster.protocols.raft.protocol.RaftRequest;
 import org.logstash.cluster.protocols.raft.protocol.RaftResponse;
 import org.logstash.cluster.utils.concurrent.Futures;
-import org.logstash.cluster.utils.logging.ContextualLoggerFactory;
-import org.logstash.cluster.utils.logging.LoggerContext;
-import org.slf4j.Logger;
-
-import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**
  * Abstract state.
  */
 public abstract class AbstractRole implements RaftRole {
-    protected final Logger log;
+
+    protected static final Logger LOGGER = LogManager.getLogger(AbstractRole.class);
+
     protected final RaftContext raft;
     private boolean open = true;
 
     protected AbstractRole(RaftContext raft) {
         this.raft = raft;
-        this.log = ContextualLoggerFactory.getLogger(getClass(), LoggerContext.builder(RaftServer.class)
-            .addValue(raft.getName())
-            .add("role", role())
-            .build());
     }
 
     /**
@@ -57,7 +53,7 @@ public abstract class AbstractRole implements RaftRole {
      * Logs a request.
      */
     protected final <R extends RaftRequest> R logRequest(R request) {
-        log.trace("Received {}", request);
+        LOGGER.trace("Received {}", request);
         return request;
     }
 
@@ -65,7 +61,7 @@ public abstract class AbstractRole implements RaftRole {
      * Logs a response.
      */
     protected final <R extends RaftResponse> R logResponse(R response) {
-        log.trace("Sending {}", response);
+        LOGGER.trace("Sending {}", response);
         return response;
     }
 
@@ -137,7 +133,7 @@ public abstract class AbstractRole implements RaftRole {
 
     @Override
     public String toString() {
-        return toStringHelper(this)
+        return MoreObjects.toStringHelper(this)
             .add("context", raft)
             .toString();
     }

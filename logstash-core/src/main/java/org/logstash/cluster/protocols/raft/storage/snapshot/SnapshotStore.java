@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.storage.snapshot;
 
 import com.google.common.base.Preconditions;
@@ -26,14 +11,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.protocols.raft.service.ServiceId;
 import org.logstash.cluster.protocols.raft.storage.RaftStorage;
 import org.logstash.cluster.storage.StorageLevel;
 import org.logstash.cluster.storage.buffer.FileBuffer;
 import org.logstash.cluster.storage.buffer.HeapBuffer;
 import org.logstash.cluster.time.WallClockTimestamp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Persists server snapshots via the {@link RaftStorage} module.
@@ -72,8 +57,10 @@ import org.slf4j.LoggerFactory;
  * a snapshot may actually only represent a subset of the state machine's state.
  */
 public class SnapshotStore implements AutoCloseable {
+
+    private static final Logger LOGGER = LogManager.getLogger(SnapshotStore.class);
+
     final RaftStorage storage;
-    private final Logger log = LoggerFactory.getLogger(getClass());
     private final Map<Long, Set<Snapshot>> indexSnapshots = new ConcurrentHashMap<>();
     private final Map<ServiceId, Snapshot> serviceSnapshots = new ConcurrentHashMap<>();
 
@@ -125,13 +112,13 @@ public class SnapshotStore implements AutoCloseable {
                 // Valid segments will have been locked. Segments that resulting from failures during log cleaning will be
                 // unlocked and should ultimately be deleted from disk.
                 if (descriptor.isLocked()) {
-                    log.debug("Loaded disk snapshot: {} ({})", descriptor.index(), snapshotFile.file().getName());
+                    LOGGER.debug("Loaded disk snapshot: {} ({})", descriptor.index(), snapshotFile.file().getName());
                     snapshots.add(new FileSnapshot(snapshotFile, descriptor, this));
                     descriptor.close();
                 }
                 // If the segment descriptor wasn't locked, close and delete the descriptor.
                 else {
-                    log.debug("Deleting partial snapshot: {} ({})", descriptor.index(), snapshotFile.file().getName());
+                    LOGGER.debug("Deleting partial snapshot: {} ({})", descriptor.index(), snapshotFile.file().getName());
                     descriptor.close();
                     descriptor.delete();
                 }
@@ -196,7 +183,7 @@ public class SnapshotStore implements AutoCloseable {
     private Snapshot createMemorySnapshot(String serviceName, SnapshotDescriptor descriptor) {
         HeapBuffer buffer = HeapBuffer.allocate(SnapshotDescriptor.BYTES, Integer.MAX_VALUE);
         Snapshot snapshot = new MemorySnapshot(serviceName, buffer, descriptor.copyTo(buffer), this);
-        log.debug("Created memory snapshot: {}", snapshot);
+        LOGGER.debug("Created memory snapshot: {}", snapshot);
         return snapshot;
     }
 
@@ -211,7 +198,7 @@ public class SnapshotStore implements AutoCloseable {
             descriptor.index()
         ));
         Snapshot snapshot = new FileSnapshot(file, descriptor, this);
-        log.debug("Created disk snapshot: {}", snapshot);
+        LOGGER.debug("Created disk snapshot: {}", snapshot);
         return snapshot;
     }
 

@@ -15,10 +15,10 @@
  */
 package org.logstash.cluster.protocols.raft;
 
+import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.utils.concurrent.SingleThreadContextFactory;
 import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
 import org.logstash.cluster.utils.concurrent.ThreadPoolContextFactory;
-import org.slf4j.Logger;
 
 /**
  * Raft thread model.
