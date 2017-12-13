@@ -34,8 +34,11 @@ class LogStash::Inputs::Cluster < LogStash::Inputs::Base
     @wrapped_queue.run
   end
 
+  def stop
+    @wrapped_queue.close unless @wrapped_queue.nil?
+  end
+
   def close
-    # Update cluster configuration here
-    @wrapped_queue.close
+    @wrapped_queue.close unless @wrapped_queue.nil?
   end
 end
