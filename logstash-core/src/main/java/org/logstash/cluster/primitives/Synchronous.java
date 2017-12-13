@@ -1,24 +1,8 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.logstash.cluster.utils.AtomixRuntimeException;
 
 /**
  * DistributedPrimitive that is a synchronous (blocking) version of
@@ -47,8 +31,8 @@ public abstract class Synchronous<T extends AsyncPrimitive> implements SyncPrimi
     public void destroy() {
         try {
             primitive.destroy().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new AtomixRuntimeException(e);
+        } catch (final InterruptedException | ExecutionException | TimeoutException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 
@@ -56,8 +40,8 @@ public abstract class Synchronous<T extends AsyncPrimitive> implements SyncPrimi
     public void close() {
         try {
             primitive.close().get(DEFAULT_OPERATION_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            throw new AtomixRuntimeException(e);
+        } catch (final InterruptedException | ExecutionException | TimeoutException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 }

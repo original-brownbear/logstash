@@ -7,7 +7,6 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.Files;
-import org.logstash.cluster.utils.AtomixIOException;
 
 /**
  * {@link ByteBuffer} based mapped bytes.
@@ -17,6 +16,7 @@ public class MappedBytes extends ByteBufferBytes {
     private final File file;
     private final RandomAccessFile randomAccessFile;
     private final FileChannel.MapMode mode;
+
     protected MappedBytes(File file, RandomAccessFile randomAccessFile, MappedByteBuffer buffer, FileChannel.MapMode mode) {
         super(buffer);
         this.file = file;
@@ -58,8 +58,8 @@ public class MappedBytes extends ByteBufferBytes {
             RandomAccessFile randomAccessFile = new RandomAccessFile(file, parseMode(mode));
             MappedByteBuffer buffer = randomAccessFile.getChannel().map(mode, 0, size);
             return new MappedBytes(file, randomAccessFile, buffer, mode);
-        } catch (IOException e) {
-            throw new AtomixIOException(e);
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 
@@ -76,8 +76,8 @@ public class MappedBytes extends ByteBufferBytes {
     protected ByteBuffer newByteBuffer(int size) {
         try {
             return randomAccessFile.getChannel().map(mode, 0, size);
-        } catch (IOException e) {
-            throw new AtomixIOException(e);
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
         }
     }
 
