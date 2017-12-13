@@ -1,4 +1,4 @@
-package org.logstash.plugins.input;
+package org.logstash.cluster;
 
 import java.io.Serializable;
 import org.logstash.ext.EventQueue;

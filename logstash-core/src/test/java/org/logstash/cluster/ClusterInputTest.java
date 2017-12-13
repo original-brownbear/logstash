@@ -1,4 +1,4 @@
-package org.logstash.plugins.input;
+package org.logstash.cluster;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -12,8 +12,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.logstash.RubyUtil;
 import org.logstash.TestUtils;
-import org.logstash.cluster.LogstashClusterConfig;
-import org.logstash.cluster.LogstashClusterServer;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.cluster.serializer.Serializer;
 import org.logstash.ext.JrubyEventExtLibrary;
