@@ -6,9 +6,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.LogstashClusterServer;
+import org.logstash.cluster.primitives.queue.AsyncWorkQueue;
 import org.logstash.cluster.primitives.queue.Task;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.cluster.serializer.Serializer;
@@ -18,6 +21,8 @@ import org.logstash.ext.JavaQueue;
 public final class ClusterInput implements Runnable, Closeable {
 
     public static final String P2P_QUEUE_NAME = "logstashWorkQueue";
+
+    private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -31,26 +36,27 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final EventQueue queue;
 
-    private final WorkQueue<EnqueueEvent> tasks;
+    private final AsyncWorkQueue<EnqueueEvent> tasks;
 
     public ClusterInput(final IRubyObject queue, final LogstashClusterConfig config) {
         this(new JavaQueue(queue), config);
     }
 
-    public ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
+    ClusterInput(final EventQueue queue, final LogstashClusterConfig config) {
         this.queue = queue;
         cluster = LogstashClusterServer.fromConfig(config);
         tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
-            .withSerializer(Serializer.JAVA).build();
+            .withSerializer(Serializer.JAVA).buildAsync();
     }
 
     @Override
     public void run() {
+        final WorkQueue<EnqueueEvent> work = tasks.asWorkQueue();
         while (running.get()) {
-            final Task<EnqueueEvent> task = tasks.take();
+            final Task<EnqueueEvent> task = work.take();
             if (task != null) {
                 task.payload().enqueue(queue);
-                tasks.complete(task.taskId());
+                work.complete(task.taskId());
             }
         }
         done.countDown();
@@ -58,6 +64,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void close() {
+        LOGGER.info("Closing cluster input.");
         running.set(false);
         try {
             done.await();
