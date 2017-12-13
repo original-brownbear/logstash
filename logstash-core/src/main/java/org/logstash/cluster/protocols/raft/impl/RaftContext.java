@@ -163,15 +163,13 @@ public class RaftContext implements AutoCloseable {
 
     private <R extends RaftResponse> CompletableFuture<R> runOnContext(final Supplier<CompletableFuture<R>> function) {
         final CompletableFuture<R> future = new CompletableFuture<>();
-        threadContext.execute(() -> {
-            function.get().whenComplete((response, error) -> {
-                if (error == null) {
-                    future.complete(response);
-                } else {
-                    future.completeExceptionally(error);
-                }
-            });
-        });
+        threadContext.execute(() -> function.get().whenComplete((response, error) -> {
+            if (error == null) {
+                future.complete(response);
+            } else {
+                future.completeExceptionally(error);
+            }
+        }));
         return future;
     }
 

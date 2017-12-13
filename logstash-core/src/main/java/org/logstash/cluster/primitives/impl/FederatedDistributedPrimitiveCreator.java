@@ -51,7 +51,7 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
     private final List<Integer> sortedMemberPartitionIds;
     private final int buckets;
 
-    public FederatedDistributedPrimitiveCreator(Map<Integer, DistributedPrimitiveCreator> members, int buckets) {
+    public FederatedDistributedPrimitiveCreator(final Map<Integer, DistributedPrimitiveCreator> members, final int buckets) {
         this.members = Maps.newTreeMap();
         this.members.putAll(Preconditions.checkNotNull(members));
         this.sortedMemberPartitionIds = Lists.newArrayList(members.keySet());
@@ -59,10 +59,10 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
     }
 
     @Override
-    public <K, V> AsyncConsistentMap<K, V> newAsyncConsistentMap(String name, Serializer serializer) {
+    public <K, V> AsyncConsistentMap<K, V> newAsyncConsistentMap(final String name, final Serializer serializer) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(serializer);
-        Map<Integer, AsyncConsistentMap<byte[], byte[]>> maps =
+        final Map<Integer, AsyncConsistentMap<byte[], byte[]>> maps =
             Maps.transformValues(members,
                 partition -> DistributedPrimitives.newTranscodingMap(
                     partition.<String, byte[]>newAsyncConsistentMap(name, null),
@@ -70,76 +70,76 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
                     BaseEncoding.base16()::decode,
                     Function.identity(),
                     Function.identity()));
-        Hasher<byte[]> hasher = key -> {
-            int bucket = Math.abs(Hashing.murmur3_32().hashBytes(key).asInt()) % buckets;
+        final Hasher<byte[]> hasher = key -> {
+            final int bucket = Math.abs(Hashing.murmur3_32().hashBytes(key).asInt()) % buckets;
             return sortedMemberPartitionIds.get(Hashing.consistentHash(bucket, sortedMemberPartitionIds.size()));
         };
-        AsyncConsistentMap<byte[], byte[]> partitionedMap = new PartitionedAsyncConsistentMap<>(name, maps, hasher);
+        final AsyncConsistentMap<byte[], byte[]> partitionedMap = new PartitionedAsyncConsistentMap<>(name, maps, hasher);
         return DistributedPrimitives.newTranscodingMap(partitionedMap,
-            key -> serializer.encode(key),
-            bytes -> serializer.decode(bytes),
+            serializer::encode,
+            serializer::decode,
             value -> value == null ? null : serializer.encode(value),
-            bytes -> serializer.decode(bytes));
+            serializer::decode);
     }
 
     @Override
-    public <K, V> AsyncConsistentTreeMap<K, V> newAsyncConsistentTreeMap(String name, Serializer serializer) {
+    public <K, V> AsyncConsistentTreeMap<K, V> newAsyncConsistentTreeMap(final String name, final Serializer serializer) {
         return getCreator(name).newAsyncConsistentTreeMap(name, serializer);
     }
 
     @Override
-    public <K, V> AsyncConsistentMultimap<K, V> newAsyncConsistentSetMultimap(String name, Serializer serializer) {
+    public <K, V> AsyncConsistentMultimap<K, V> newAsyncConsistentSetMultimap(final String name, final Serializer serializer) {
         return getCreator(name).newAsyncConsistentSetMultimap(name, serializer);
     }
 
     @Override
-    public <E> AsyncDistributedSet<E> newAsyncDistributedSet(String name, Serializer serializer) {
+    public <E> AsyncDistributedSet<E> newAsyncDistributedSet(final String name, final Serializer serializer) {
         return DistributedPrimitives.newSetFromMap(newAsyncConsistentMap(name, serializer));
     }
 
     @Override
-    public <K> AsyncAtomicCounterMap<K> newAsyncAtomicCounterMap(String name, Serializer serializer) {
+    public <K> AsyncAtomicCounterMap<K> newAsyncAtomicCounterMap(final String name, final Serializer serializer) {
         return getCreator(name).newAsyncAtomicCounterMap(name, serializer);
     }
 
     @Override
-    public AsyncAtomicCounter newAsyncCounter(String name) {
+    public AsyncAtomicCounter newAsyncCounter(final String name) {
         return getCreator(name).newAsyncCounter(name);
     }
 
     @Override
-    public AsyncAtomicIdGenerator newAsyncIdGenerator(String name) {
+    public AsyncAtomicIdGenerator newAsyncIdGenerator(final String name) {
         return getCreator(name).newAsyncIdGenerator(name);
     }
 
     @Override
-    public <V> AsyncAtomicValue<V> newAsyncAtomicValue(String name, Serializer serializer) {
+    public <V> AsyncAtomicValue<V> newAsyncAtomicValue(final String name, final Serializer serializer) {
         return getCreator(name).newAsyncAtomicValue(name, serializer);
     }
 
     @Override
-    public <T> AsyncLeaderElector<T> newAsyncLeaderElector(String name, Serializer serializer, Duration electionTimeout) {
+    public <T> AsyncLeaderElector<T> newAsyncLeaderElector(final String name, final Serializer serializer, final Duration electionTimeout) {
         return getCreator(name).newAsyncLeaderElector(name, serializer, electionTimeout);
     }
 
     @Override
-    public AsyncDistributedLock newAsyncDistributedLock(String name, Duration timeout) {
+    public AsyncDistributedLock newAsyncDistributedLock(final String name, final Duration timeout) {
         return getCreator(name).newAsyncDistributedLock(name, timeout);
     }
 
     @Override
-    public <E> AsyncWorkQueue<E> newAsyncWorkQueue(String name, Serializer serializer) {
+    public <E> AsyncWorkQueue<E> newAsyncWorkQueue(final String name, final Serializer serializer) {
         return getCreator(name).newAsyncWorkQueue(name, serializer);
     }
 
     @Override
-    public <V> AsyncDocumentTree<V> newAsyncDocumentTree(String name, Serializer serializer, Ordering ordering) {
+    public <V> AsyncDocumentTree<V> newAsyncDocumentTree(final String name, final Serializer serializer, final Ordering ordering) {
         Preconditions.checkNotNull(name);
         Preconditions.checkNotNull(serializer);
-        Map<Integer, AsyncDocumentTree<V>> trees =
+        final Map<Integer, AsyncDocumentTree<V>> trees =
             Maps.transformValues(members, part -> part.<V>newAsyncDocumentTree(name, serializer, ordering));
-        Hasher<DocumentPath> hasher = key -> {
-            int bucket = (key == null) ? 0 :
+        final Hasher<DocumentPath> hasher = key -> {
+            final int bucket = key == null ? 0 :
                 Math.abs(Hashing.murmur3_32()
                     .hashObject(key.pathElements(), STR_LIST_FUNNEL)
                     .asInt()) % buckets;
@@ -149,7 +149,7 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
     }
 
     @Override
-    public Set<String> getPrimitiveNames(DistributedPrimitive.Type primitiveType) {
+    public Set<String> getPrimitiveNames(final DistributedPrimitive.Type primitiveType) {
         return members.values()
             .stream()
             .map(m -> m.getPrimitiveNames(primitiveType))
@@ -162,8 +162,8 @@ public class FederatedDistributedPrimitiveCreator implements DistributedPrimitiv
      * @param name primitive name
      * @return primitive creator
      */
-    private DistributedPrimitiveCreator getCreator(String name) {
-        int hashCode = Hashing.sha256().hashString(name, Charsets.UTF_8).asInt();
+    private DistributedPrimitiveCreator getCreator(final String name) {
+        final int hashCode = Hashing.sha256().hashString(name, Charsets.UTF_8).asInt();
         return members.get(sortedMemberPartitionIds.get(Math.abs(hashCode) % members.size()));
     }
 }
