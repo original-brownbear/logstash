@@ -1,6 +1,7 @@
 package org.logstash.instrument.witness.schedule;
 
-
+import java.time.Duration;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.ErrorHandler;
@@ -12,13 +13,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-
-import java.time.Duration;
-import java.util.stream.Collectors;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link WitnessScheduler}
@@ -42,7 +41,6 @@ public class WitnessSchedulerTest {
         witness2 = new Witness2();
         witness3 = new Witness3();
         when(appender.getName()).thenReturn("junit");
-        when(appender.getHandler()).thenReturn(errorHandler);
         when(appender.isStarted()).thenReturn(true);
         LoggerContext.getContext(false).getLogger(WitnessScheduler.class.getName()).addAppender(appender);
         LoggerContext.getContext(false).getLogger(WitnessScheduler.class.getName()).setLevel(Level.WARN);
@@ -67,7 +65,7 @@ public class WitnessSchedulerTest {
         assertThat(witness3.counter).isBetween(15, 60);
 
         assertThat(Thread.getAllStackTraces().keySet().stream().map(t -> t.getName()).collect(Collectors.toSet())).contains("Witness1-thread").contains("Witness2-thread")
-                .contains("Witness3-thread");
+            .contains("Witness3-thread");
 
         ArgumentCaptor<LogEvent> argument = ArgumentCaptor.forClass(LogEvent.class);
         //tests that Witness3 is the only error and that it only gets logged once
@@ -88,7 +86,6 @@ public class WitnessSchedulerTest {
 
         assertThat(Thread.getAllStackTraces().keySet().stream().map(t -> t.getName()).collect(Collectors.toSet())).doesNotContain("Witness1-thread");
     }
-
 
     class Witness1 implements ScheduledWitness {
 
