@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.core.Appender;
-import org.apache.logging.log4j.core.ErrorHandler;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.junit.After;
@@ -31,9 +30,6 @@ public class WitnessSchedulerTest {
 
     @Mock
     Appender appender;
-
-    @Mock
-    ErrorHandler errorHandler;
 
     @Before
     public void setup() {
