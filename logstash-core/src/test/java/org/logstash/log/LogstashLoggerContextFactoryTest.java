@@ -1,15 +1,12 @@
 package org.logstash.log;
 
-
+import java.net.URI;
 import org.apache.logging.log4j.spi.LoggerContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.runners.MockitoJUnitRunner;
-
-import java.net.URI;
-
+import org.mockito.junit.MockitoJUnitRunner;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
