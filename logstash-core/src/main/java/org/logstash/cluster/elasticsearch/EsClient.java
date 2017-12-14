@@ -17,8 +17,6 @@ import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.cluster.impl.DefaultNode;
 import org.logstash.cluster.messaging.Endpoint;
 
-import static java.util.Collections.singletonMap;
-
 public final class EsClient implements Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(EsClient.class);
@@ -46,7 +44,8 @@ public final class EsClient implements Closeable {
     public Collection<Node> loadBootstrap() {
         try {
             ensureIndex();
-            final Collection<Object> nodes = (Collection<Object>) client.prepareGet().setIndex(index)
+            final Collection<Object> nodes = (Collection<Object>) client.prepareGet()
+                .setIndex(index)
                 .setType(ES_TYPE)
                 .setId(ES_BOOTSTRAP_DOC).setRealtime(true).setRefresh(true)
                 .execute().actionGet()
@@ -80,9 +79,9 @@ public final class EsClient implements Closeable {
             )
         ).collect(Collectors.toList());
         client.prepareUpdate().setId(ES_BOOTSTRAP_DOC)
-            .setDocAsUpsert(true).setDoc(singletonMap(ES_NODES_FIELD, serialized))
+            .setDocAsUpsert(true).setDoc(Collections.singletonMap(ES_NODES_FIELD, serialized))
             .setIndex(index).setType(ES_TYPE)
-            .setUpsert(singletonMap(ES_NODES_FIELD, serialized)).execute().get();
+            .setUpsert(Collections.singletonMap(ES_NODES_FIELD, serialized)).execute().get();
     }
 
     private void ensureIndex() throws ExecutionException, InterruptedException {
