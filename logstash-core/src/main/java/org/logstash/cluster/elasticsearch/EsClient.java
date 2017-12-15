@@ -51,17 +51,8 @@ public final class EsClient implements Closeable {
                 .execute().actionGet()
                 .getSource()
                 .get(ES_NODES_FIELD);
-            return nodes.stream().map(String.class::cast).map(nodeString -> {
-                final String[] parts = BOOTSTRAP_NODES_PATTERN.split(nodeString);
-                try {
-                    return new DefaultNode(
-                        NodeId.from(parts[0]),
-                        new Endpoint(InetAddress.getByName(parts[1]), Integer.parseInt(parts[2]))
-                    );
-                } catch (final UnknownHostException ex) {
-                    throw new IllegalStateException(ex);
-                }
-            }).collect(Collectors.toList());
+            return nodes.stream().map(String.class::cast).map(EsClient::deserializeNode)
+                .collect(Collectors.toList());
         } catch (final InterruptedException | ExecutionException ex) {
             throw new IllegalStateException(ex);
         }
@@ -72,24 +63,41 @@ public final class EsClient implements Closeable {
         LOGGER.info("Saving updated bootstrap node list to Elasticsearch.");
         final Collection<Node> update = new HashSet<>(nodes);
         update.add(localNode);
-        final Collection<String> serialized = update.stream().map(
-            node -> String.format(
-                "%s|%s|%d", node.id(), node.endpoint().host().getHostAddress(),
-                node.endpoint().port()
-            )
-        ).collect(Collectors.toList());
+        final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
+            .collect(Collectors.toList());
         client.prepareUpdate().setId(ES_BOOTSTRAP_DOC)
             .setDocAsUpsert(true).setDoc(Collections.singletonMap(ES_NODES_FIELD, serialized))
             .setIndex(index).setType(ES_TYPE)
             .setUpsert(Collections.singletonMap(ES_NODES_FIELD, serialized)).execute().get();
     }
 
-    private void ensureIndex() throws ExecutionException, InterruptedException {
-        client.admin().indices().prepareCreate(index).execute().get();
-        saveBootstrap(Collections.singleton(localNode));
-    }
-
     @Override
     public void close() {
+    }
+
+    private void ensureIndex() throws ExecutionException, InterruptedException {
+        if (!client.admin().indices().prepareExists(index).get().isExists()) {
+            client.admin().indices().prepareCreate(index).execute().get();
+            saveBootstrap(Collections.singleton(localNode));
+        }
+    }
+
+    private static String serializeNode(final Node node) {
+        return String.format(
+            "%s|%s|%d", node.id(), node.endpoint().host().getHostAddress(),
+            node.endpoint().port()
+        );
+    }
+
+    private static DefaultNode deserializeNode(final CharSequence data) {
+        final String[] parts = BOOTSTRAP_NODES_PATTERN.split(data);
+        try {
+            return new DefaultNode(
+                NodeId.from(parts[0]),
+                new Endpoint(InetAddress.getByName(parts[1]), Integer.parseInt(parts[2]))
+            );
+        } catch (final UnknownHostException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }
