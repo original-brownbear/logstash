@@ -18,7 +18,7 @@ import org.logstash.cluster.messaging.Endpoint;
 public final class EsClientTest extends ESIntegTestCase {
 
     @Test
-    public void clusterBootstrapTest() throws Exception {
+    public void clusterBootstrapTest() {
         ensureGreen();
         final Node local = new DefaultNode(
             NodeId.from("someId"),
