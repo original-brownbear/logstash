@@ -32,10 +32,11 @@ public final class ClusterInputTest {
     public void testSimpleTask() throws Exception {
         final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
+        final String index = "testsimpletask";
         final LogstashClusterConfig config = new LogstashClusterConfig(
             "node1",
             new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
-            Collections.emptyList(), temporaryFolder.newFolder()
+            Collections.emptyList(), temporaryFolder.newFolder(), index
         );
         try (final ClusterInput input =
                  new ClusterInput(
@@ -56,7 +57,7 @@ public final class ClusterInputTest {
                     new LogstashClusterConfig(
                         "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
                         TestUtils.freePort()), Collections.singleton(config.localNode()),
-                        temporaryFolder.newFolder()
+                        temporaryFolder.newFolder(), index
                     )
                 );
                 assertThat(cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME));
