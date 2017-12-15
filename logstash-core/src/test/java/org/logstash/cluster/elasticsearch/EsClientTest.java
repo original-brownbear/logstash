@@ -1,12 +1,15 @@
 package org.logstash.cluster.elasticsearch;
 
 import java.net.InetAddress;
-import java.util.Collection;
+import java.util.Collections;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.logstash.TestUtils;
+import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.cluster.impl.DefaultNode;
@@ -17,6 +20,9 @@ import org.logstash.cluster.messaging.Endpoint;
  */
 public final class EsClientTest extends ESIntegTestCase {
 
+    @Rule
+    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
+
     @Test
     public void clusterBootstrapTest() throws Exception {
         ensureGreen();
@@ -24,9 +30,16 @@ public final class EsClientTest extends ESIntegTestCase {
             NodeId.from("someId"),
             new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
         );
-        try (EsClient client = EsClient.create(client(), "clusterbootstraptest", local)) {
-            final Collection<Node> initial = client.loadBootstrap();
-            MatcherAssert.assertThat(initial, Matchers.contains(local));
+        try (EsClient client =
+                 EsClient.create(
+                     client(),
+                     new LogstashClusterConfig(
+                         local, Collections.emptyList(), temporaryFolder.newFolder(),
+                         "clusterbootstraptest"
+                     )
+                 )
+        ) {
+            MatcherAssert.assertThat(client.currentConfig().getBootstrap(), Matchers.contains(local));
         }
     }
 
@@ -38,17 +51,30 @@ public final class EsClientTest extends ESIntegTestCase {
             TestUtils.freePort())
         );
         final String index = "multiplenodestest";
-        try (final EsClient clientOne = EsClient.create(client(), index, nodeOne)) {
+        try (EsClient clientOne =
+                 EsClient.create(
+                     client(),
+                     new LogstashClusterConfig(
+                         nodeOne, Collections.emptyList(), temporaryFolder.newFolder(), index
+                     )
+                 )
+        ) {
             final Node nodeTwo = new DefaultNode(
                 NodeId.from("id-two"),
                 new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
             );
-            try (EsClient clientTwo = EsClient.create(client(), index, nodeTwo)) {
+            try (EsClient clientTwo =
+                     EsClient.create(
+                         client(), new LogstashClusterConfig(
+                             nodeTwo, Collections.emptyList(), temporaryFolder.newFolder(), index
+                         )
+                     )
+            ) {
                 MatcherAssert.assertThat(
-                    clientOne.loadBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientOne.currentConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
                 );
                 MatcherAssert.assertThat(
-                    clientTwo.loadBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientTwo.currentConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
                 );
             }
         }
