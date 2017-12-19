@@ -9,6 +9,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.logstash.TestUtils;
+import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
@@ -30,8 +31,8 @@ public final class EsClientTest extends ESIntegTestCase {
             NodeId.from("someId"),
             new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
         );
-        try (EsClient client =
-                 EsClient.create(
+        try (ClusterConfigProvider client =
+                 ClusterConfigProvider.esConfigProvider(
                      client(),
                      new LogstashClusterConfig(
                          local, Collections.emptyList(), temporaryFolder.newFolder(),
@@ -51,8 +52,8 @@ public final class EsClientTest extends ESIntegTestCase {
             TestUtils.freePort())
         );
         final String index = "multiplenodestest";
-        try (EsClient clientOne =
-                 EsClient.create(
+        try (ClusterConfigProvider clientOne =
+                 ClusterConfigProvider.esConfigProvider(
                      client(),
                      new LogstashClusterConfig(
                          nodeOne, Collections.emptyList(), temporaryFolder.newFolder(), index
@@ -63,8 +64,8 @@ public final class EsClientTest extends ESIntegTestCase {
                 NodeId.from("id-two"),
                 new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
             );
-            try (EsClient clientTwo =
-                     EsClient.create(
+            try (ClusterConfigProvider clientTwo =
+                     ClusterConfigProvider.esConfigProvider(
                          client(), new LogstashClusterConfig(
                              nodeTwo, Collections.emptyList(), temporaryFolder.newFolder(), index
                          )
