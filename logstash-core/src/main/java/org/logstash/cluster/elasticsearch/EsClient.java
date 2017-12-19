@@ -1,6 +1,5 @@
 package org.logstash.cluster.elasticsearch;
 
-import java.io.Closeable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -13,13 +12,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.Client;
+import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
 import org.logstash.cluster.cluster.impl.DefaultNode;
 import org.logstash.cluster.messaging.Endpoint;
 
-public final class EsClient implements Closeable {
+public final class EsClient implements ClusterConfigProvider {
 
     private static final Logger LOGGER = LogManager.getLogger(EsClient.class);
 
@@ -35,24 +35,20 @@ public final class EsClient implements Closeable {
 
     private final LogstashClusterConfig config;
 
-    public static EsClient create(final Client client, final LogstashClusterConfig config)
-        throws ExecutionException, InterruptedException {
-        return new EsClient(client, config);
-    }
-
-    private EsClient(final Client client, final LogstashClusterConfig config)
+    public EsClient(final Client client, final LogstashClusterConfig config)
         throws ExecutionException, InterruptedException {
         this.client = client;
         this.config = config;
         ensureIndex();
     }
 
+    @Override
     public LogstashClusterConfig currentConfig() {
         return config.withBootstrap(loadBootstrapNodes());
     }
 
-    public void publishBootstrapNodes(final Collection<Node> nodes)
-        throws ExecutionException, InterruptedException {
+    @Override
+    public void publishBootstrapNodes(final Collection<Node> nodes) {
         LOGGER.info("Saving updated bootstrap node list to Elasticsearch.");
         final GetResponse existing = getNodesResponse();
         final Collection<Node> update = new HashSet<>(nodes);
@@ -62,11 +58,15 @@ public final class EsClient implements Closeable {
         update.add(config.localNode());
         final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
             .collect(Collectors.toList());
-        client.prepareUpdate().setId(ES_BOOTSTRAP_DOC).setDoc(
-            Collections.singletonMap(ES_NODES_FIELD, serialized)
-        ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
-            Collections.singletonMap(ES_NODES_FIELD, serialized)
-        ).execute().get();
+        try {
+            client.prepareUpdate().setId(ES_BOOTSTRAP_DOC).setDoc(
+                Collections.singletonMap(ES_NODES_FIELD, serialized)
+            ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
+                Collections.singletonMap(ES_NODES_FIELD, serialized)
+            ).execute().get();
+        } catch (final InterruptedException | ExecutionException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     @Override
