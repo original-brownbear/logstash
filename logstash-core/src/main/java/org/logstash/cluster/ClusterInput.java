@@ -71,7 +71,6 @@ public final class ClusterInput implements Runnable, Closeable {
         } catch (final InterruptedException ex) {
             throw new IllegalStateException(ex);
         } finally {
-            cluster.close().join();
             executor.shutdownNow();
             try {
                 if (!executor.awaitTermination(2L, TimeUnit.MINUTES)) {
@@ -80,6 +79,7 @@ public final class ClusterInput implements Runnable, Closeable {
             } catch (final InterruptedException ex) {
                 throw new IllegalStateException(ex);
             }
+            cluster.close().join();
             LOGGER.info("Closed cluster input.");
         }
     }
