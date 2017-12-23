@@ -1,5 +1,6 @@
 package org.logstash.cluster;
 
+import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
@@ -7,7 +8,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
-import java.util.concurrent.TimeUnit;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.instanceOf;
 /**
  * Tests for {@link ClusterInput}.
  */
+@ThreadLeakLingering(linger = 25000)
 public final class ClusterInputTest extends ESIntegTestCase {
 
     @Rule
@@ -54,33 +55,31 @@ public final class ClusterInputTest extends ESIntegTestCase {
             )
         ) {
             exec.execute(input);
-            try {
-                final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
-                    new LogstashClusterConfig(
-                        "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
-                        TestUtils.freePort()), configProvider.currentConfig().getBootstrap(),
-                        temporaryFolder.newFolder(), index
-                    )
-                );
-                MatcherAssert.assertThat(
-                    cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME)
-                );
-                final WorkQueue<EnqueueEvent> tasks =
-                    cluster.<EnqueueEvent>workQueueBuilder().withName(ClusterInput.P2P_QUEUE_NAME)
-                        .withSerializer(Serializer.JAVA).build();
-                tasks.addOne(
-                    events -> events.push(
-                        new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
-                    )
-                );
-                MatcherAssert.assertThat(
-                    queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
-                );
-                cluster.close().join();
-            } finally {
-                exec.shutdownNow();
-                exec.awaitTermination(2L, TimeUnit.MINUTES);
-            }
+            final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
+                new LogstashClusterConfig(
+                    "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
+                    TestUtils.freePort()), configProvider.currentConfig().getBootstrap(),
+                    temporaryFolder.newFolder(), index
+                )
+            );
+            MatcherAssert.assertThat(
+                cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME)
+            );
+            final WorkQueue<EnqueueEvent> tasks =
+                cluster.<EnqueueEvent>workQueueBuilder().withName(ClusterInput.P2P_QUEUE_NAME)
+                    .withSerializer(Serializer.JAVA).build();
+            tasks.addOne(
+                events -> events.push(
+                    new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
+                )
+            );
+            MatcherAssert.assertThat(
+                queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
+            );
+            tasks.close();
+            cluster.close().join();
+        } finally {
+            exec.shutdownNow();
         }
     }
 }
