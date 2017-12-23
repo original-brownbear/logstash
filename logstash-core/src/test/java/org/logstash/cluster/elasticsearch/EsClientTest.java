@@ -40,7 +40,7 @@ public final class EsClientTest extends ESIntegTestCase {
                      )
                  )
         ) {
-            MatcherAssert.assertThat(client.currentConfig().getBootstrap(), Matchers.contains(local));
+            MatcherAssert.assertThat(client.currentClusterConfig().getBootstrap(), Matchers.contains(local));
         }
     }
 
@@ -72,10 +72,10 @@ public final class EsClientTest extends ESIntegTestCase {
                      )
             ) {
                 MatcherAssert.assertThat(
-                    clientOne.currentConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientOne.currentClusterConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
                 );
                 MatcherAssert.assertThat(
-                    clientTwo.currentConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientTwo.currentClusterConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
                 );
             }
         }

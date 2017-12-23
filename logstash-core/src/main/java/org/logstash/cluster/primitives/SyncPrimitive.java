@@ -3,7 +3,7 @@ package org.logstash.cluster.primitives;
 /**
  * Synchronous primitive.
  */
-public interface SyncPrimitive extends DistributedPrimitive {
+public interface SyncPrimitive extends DistributedPrimitive, AutoCloseable {
 
     /**
      * Purges state associated with this primitive.
@@ -14,10 +14,5 @@ public interface SyncPrimitive extends DistributedPrimitive {
      */
     default void destroy() {
     }
-
-    /**
-     * Closes the primitive.
-     */
-    void close();
 
 }
