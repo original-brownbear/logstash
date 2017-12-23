@@ -1,19 +1,3 @@
-/*
- * Copyright 2016-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package org.logstash.cluster.primitives.tree.impl;
 
 import com.google.common.base.MoreObjects;
@@ -52,11 +36,11 @@ public enum RaftDocumentTreeOperations implements OperationId {
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
         .register(LinkedHashMap.class)
-        .register(Listen.class)
-        .register(Unlisten.class)
-        .register(Get.class)
-        .register(GetChildren.class)
-        .register(Update.class)
+        .register(RaftDocumentTreeOperations.Listen.class)
+        .register(RaftDocumentTreeOperations.Unlisten.class)
+        .register(RaftDocumentTreeOperations.Get.class)
+        .register(RaftDocumentTreeOperations.GetChildren.class)
+        .register(RaftDocumentTreeOperations.Update.class)
         .register(TransactionId.class)
         .register(TransactionLog.class)
         .register(PrepareResult.class)
@@ -98,7 +82,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * Base class for document tree operations that serialize a {@link DocumentPath}.
      */
     @SuppressWarnings("serial")
-    public abstract static class PathOperation extends DocumentTreeOperation {
+    public abstract static class PathOperation extends RaftDocumentTreeOperations.DocumentTreeOperation {
         private final DocumentPath path;
 
         PathOperation(DocumentPath path) {
@@ -114,7 +98,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * DocumentTree#get query.
      */
     @SuppressWarnings("serial")
-    public static class Get extends PathOperation {
+    public static class Get extends RaftDocumentTreeOperations.PathOperation {
         public Get() {
             super(null);
         }
@@ -135,7 +119,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * DocumentTree#getChildren query.
      */
     @SuppressWarnings("serial")
-    public static class GetChildren extends PathOperation {
+    public static class GetChildren extends RaftDocumentTreeOperations.PathOperation {
         public GetChildren() {
             super(null);
         }
@@ -156,7 +140,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * DocumentTree update command.
      */
     @SuppressWarnings("serial")
-    public static class Update extends PathOperation {
+    public static class Update extends RaftDocumentTreeOperations.PathOperation {
         private final Optional<byte[]> value;
         private final Match<byte[]> valueMatch;
         private final Match<Long> versionMatch;
@@ -202,7 +186,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * Change listen.
      */
     @SuppressWarnings("serial")
-    public static class Listen extends PathOperation {
+    public static class Listen extends RaftDocumentTreeOperations.PathOperation {
         public Listen() {
             this(DocumentPath.from("root"));
         }
@@ -223,7 +207,7 @@ public enum RaftDocumentTreeOperations implements OperationId {
      * Change unlisten.
      */
     @SuppressWarnings("serial")
-    public static class Unlisten extends PathOperation {
+    public static class Unlisten extends RaftDocumentTreeOperations.PathOperation {
         public Unlisten() {
             this(DocumentPath.from("root"));
         }

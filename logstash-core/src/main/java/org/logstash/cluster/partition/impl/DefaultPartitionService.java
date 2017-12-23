@@ -61,7 +61,7 @@ public class DefaultPartitionService implements ManagedPartitionService {
 
     @Override
     public CompletableFuture<Void> close() {
-        List<CompletableFuture<Void>> futures = partitions.values().stream()
+        final List<CompletableFuture<Void>> futures = partitions.values().stream()
             .map(ManagedPartition::close)
             .collect(Collectors.toList());
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).thenRun(() -> {

@@ -38,7 +38,7 @@ import org.logstash.cluster.utils.concurrent.ThreadContextFactory;
 /**
  * Client session manager.
  */
-public final class RaftProxyManager {
+public class RaftProxyManager {
 
     private static final double TIMEOUT_FACTOR = .5;
 

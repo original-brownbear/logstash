@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.storage.buffer;
 
 import java.nio.BufferOverflowException;
@@ -25,7 +10,6 @@ import java.nio.charset.StandardCharsets;
  * Abstract bytes implementation.
  * <p>
  * This class provides common state and bounds checking functionality for all {@link Bytes} implementations.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public abstract class AbstractBytes implements Bytes {
     private boolean open = true;
@@ -73,7 +57,9 @@ public abstract class AbstractBytes implements Bytes {
     @Override
     public int readUnsignedByte(int offset) {
         return readByte(offset) & 0xFF;
-    }    @Override
+    }
+
+    @Override
     public boolean isDirect() {
         return false;
     }
@@ -81,7 +67,9 @@ public abstract class AbstractBytes implements Bytes {
     @Override
     public int readUnsignedShort(int offset) {
         return readShort(offset) & 0xFFFF;
-    }    @Override
+    }
+
+    @Override
     public boolean isFile() {
         return false;
     }
@@ -91,7 +79,9 @@ public abstract class AbstractBytes implements Bytes {
         return (readByte(offset)) << 16
             | (readByte(offset + 1) & 0xff) << 8
             | (readByte(offset + 2) & 0xff);
-    }    @Override
+    }
+
+    @Override
     public ByteOrder order() {
         return ByteOrder.BIG_ENDIAN;
     }
@@ -101,7 +91,9 @@ public abstract class AbstractBytes implements Bytes {
         return (readByte(offset) & 0xff) << 16
             | (readByte(offset + 1) & 0xff) << 8
             | (readByte(offset + 2) & 0xff);
-    }    @Override
+    }
+
+    @Override
     public Bytes order(ByteOrder order) {
         if (order == null)
             throw new NullPointerException("order cannot be null");
@@ -202,14 +194,6 @@ public abstract class AbstractBytes implements Bytes {
     public Bytes flush() {
         return this;
     }
-
-
-
-
-
-
-
-
 
     @Override
     public void close() {

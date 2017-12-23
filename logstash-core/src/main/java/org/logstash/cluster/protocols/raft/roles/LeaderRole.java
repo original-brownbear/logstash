@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.protocols.raft.roles;
 
 import java.time.Duration;
@@ -20,6 +5,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.OptionalLong;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -90,7 +76,7 @@ public final class LeaderRole extends ActiveRole {
     private long configuring;
     private boolean transferring;
 
-    public LeaderRole(RaftContext context) {
+    public LeaderRole(final RaftContext context) {
         super(context);
         this.appender = new LeaderAppender(this);
     }
@@ -133,7 +119,7 @@ public final class LeaderRole extends ActiveRole {
         }
 
         // Look up the client's session.
-        RaftSessionContext session = raft.getSessions().getSession(request.session());
+        final RaftSessionContext session = raft.getSessions().getSession(request.session());
         if (session == null) {
             LOGGER.warn("Unknown session {}", request.session());
             return CompletableFuture.completedFuture(logResponse(QueryResponse.builder()
@@ -170,7 +156,7 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
-    public CompletableFuture<MetadataResponse> onMetadata(MetadataRequest request) {
+    public CompletableFuture<MetadataResponse> onMetadata(final MetadataRequest request) {
         raft.checkThread();
         logRequest(request);
 
@@ -181,8 +167,8 @@ public final class LeaderRole extends ActiveRole {
                 .build()));
         }
 
-        CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
-        Indexed<MetadataEntry> entry = new Indexed<>(
+        final CompletableFuture<MetadataResponse> future = new CompletableFuture<>();
+        final Indexed<MetadataEntry> entry = new Indexed<>(
             raft.getLastApplied(),
             new MetadataEntry(raft.getTerm(), System.currentTimeMillis(), request.session()), 0);
         raft.getStateMachine().<MetadataResult>apply(entry).whenComplete((result, error) -> {
@@ -214,7 +200,7 @@ public final class LeaderRole extends ActiveRole {
         }
 
         // Get the client's server session. If the session doesn't exist, return an unknown session error.
-        RaftSessionContext session = raft.getSessions().getSession(request.session());
+        final RaftSessionContext session = raft.getSessions().getSession(request.session());
         if (session == null) {
             return CompletableFuture.completedFuture(logResponse(CommandResponse.builder()
                 .withStatus(RaftResponse.Status.ERROR)
@@ -242,7 +228,7 @@ public final class LeaderRole extends ActiveRole {
         // If the command has already been applied to the state machine then return a cached result if possible, otherwise
         // return null.
         if (sequenceNumber <= session.getCommandSequence()) {
-            OperationResult result = session.getResult(sequenceNumber);
+            final OperationResult result = session.getResult(sequenceNumber);
             if (result != null) {
                 completeOperation(result, CommandResponse.builder(), null, future);
             } else {
@@ -264,14 +250,14 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
-    public CompletableFuture<KeepAliveResponse> onKeepAlive(KeepAliveRequest request) {
+    public CompletableFuture<KeepAliveResponse> onKeepAlive(final KeepAliveRequest request) {
         final long term = raft.getTerm();
         final long timestamp = System.currentTimeMillis();
 
         raft.checkThread();
         logRequest(request);
 
-        CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
+        final CompletableFuture<KeepAliveResponse> future = new CompletableFuture<>();
         appendAndCompact(new KeepAliveEntry(term, timestamp, request.sessionIds(), request.commandSequenceNumbers(), request.eventIndexes()))
             .whenCompleteAsync((entry, error) -> {
                 if (error != null) {
@@ -296,7 +282,7 @@ public final class LeaderRole extends ActiveRole {
                                         .withLeader(raft.getCluster().getMember().memberId())
                                         .withMembers(raft.getCluster().getMembers().stream()
                                             .map(RaftMember::memberId)
-                                            .filter(m -> m != null)
+                                            .filter(Objects::nonNull)
                                             .collect(Collectors.toList()))
                                         .withSessionIds(sessionResult)
                                         .build()));
@@ -328,7 +314,7 @@ public final class LeaderRole extends ActiveRole {
                                 .build()));
                         }
                     } else {
-                        RaftMember leader = raft.getLeader();
+                        final RaftMember leader = raft.getLeader();
                         future.complete(logResponse(KeepAliveResponse.builder()
                             .withStatus(RaftResponse.Status.ERROR)
                             .withLeader(leader != null ? leader.memberId() : null)
@@ -342,7 +328,7 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
-    public CompletableFuture<OpenSessionResponse> onOpenSession(OpenSessionRequest request) {
+    public CompletableFuture<OpenSessionResponse> onOpenSession(final OpenSessionRequest request) {
         final long term = raft.getTerm();
         final long timestamp = System.currentTimeMillis();
         final long minTimeout = request.minTimeout();
@@ -359,7 +345,7 @@ public final class LeaderRole extends ActiveRole {
         raft.checkThread();
         logRequest(request);
 
-        CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
+        final CompletableFuture<OpenSessionResponse> future = new CompletableFuture<>();
         appendAndCompact(new OpenSessionEntry(term, timestamp, request.member(), request.serviceName(), request.serviceType(), request.readConsistency(), minTimeout, maxTimeout))
             .whenCompleteAsync((entry, error) -> {
                 if (error != null) {
@@ -420,14 +406,14 @@ public final class LeaderRole extends ActiveRole {
     }
 
     @Override
-    public CompletableFuture<CloseSessionResponse> onCloseSession(CloseSessionRequest request) {
+    public CompletableFuture<CloseSessionResponse> onCloseSession(final CloseSessionRequest request) {
         final long term = raft.getTerm();
         final long timestamp = System.currentTimeMillis();
 
         raft.checkThread();
         logRequest(request);
 
-        CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
+        final CompletableFuture<CloseSessionResponse> future = new CompletableFuture<>();
         appendAndCompact(new CloseSessionEntry(term, timestamp, request.session(), false))
             .whenCompleteAsync((entry, error) -> {
                 if (error != null) {
@@ -510,14 +496,14 @@ public final class LeaderRole extends ActiveRole {
                 .build()));
         }
 
-        RaftMember member = request.member();
+        final RaftMember member = request.member();
 
         // Add the joining member to the members list. If the joining member's type is ACTIVE, join the member in the
         // PROMOTABLE state to allow it to get caught up without impacting the quorum size.
-        Collection<RaftMember> members = raft.getCluster().getMembers();
+        final Collection<RaftMember> members = raft.getCluster().getMembers();
         members.add(new DefaultRaftMember(member.memberId(), member.getType(), Instant.now()));
 
-        CompletableFuture<JoinResponse> future = new CompletableFuture<>();
+        final CompletableFuture<JoinResponse> future = new CompletableFuture<>();
         configure(members).whenComplete((index, error) -> {
             if (error == null) {
                 future.complete(logResponse(JoinResponse.builder()
@@ -553,7 +539,7 @@ public final class LeaderRole extends ActiveRole {
         }
 
         // If the member is not a known member of the cluster, fail the promotion.
-        DefaultRaftMember existingMember = raft.getCluster().getMember(request.member().memberId());
+        final DefaultRaftMember existingMember = raft.getCluster().getMember(request.member().memberId());
         if (existingMember == null) {
             return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
                 .withStatus(RaftResponse.Status.ERROR)
@@ -573,7 +559,7 @@ public final class LeaderRole extends ActiveRole {
 
         // If the member type has not changed, complete the configuration change successfully.
         if (existingMember.getType() == request.member().getType()) {
-            Configuration configuration = raft.getCluster().getConfiguration();
+            final Configuration configuration = raft.getCluster().getConfiguration();
             return CompletableFuture.completedFuture(logResponse(ReconfigureResponse.builder()
                 .withStatus(RaftResponse.Status.OK)
                 .withIndex(configuration.index())
@@ -586,9 +572,9 @@ public final class LeaderRole extends ActiveRole {
         // Update the member type.
         existingMember.update(request.member().getType(), Instant.now());
 
-        Collection<RaftMember> members = raft.getCluster().getMembers();
+        final Collection<RaftMember> members = raft.getCluster().getMembers();
 
-        CompletableFuture<ReconfigureResponse> future = new CompletableFuture<>();
+        final CompletableFuture<ReconfigureResponse> future = new CompletableFuture<>();
         configure(members).whenComplete((index, error) -> {
             if (error == null) {
                 future.complete(logResponse(ReconfigureResponse.builder()
@@ -631,12 +617,12 @@ public final class LeaderRole extends ActiveRole {
                 .build()));
         }
 
-        RaftMember member = request.member();
+        final RaftMember member = request.member();
 
-        Collection<RaftMember> members = raft.getCluster().getMembers();
+        final Collection<RaftMember> members = raft.getCluster().getMembers();
         members.remove(member);
 
-        CompletableFuture<LeaveResponse> future = new CompletableFuture<>();
+        final CompletableFuture<LeaveResponse> future = new CompletableFuture<>();
         configure(members).whenComplete((index, error) -> {
             if (error == null) {
                 future.complete(logResponse(LeaveResponse.builder()
@@ -671,7 +657,7 @@ public final class LeaderRole extends ActiveRole {
      * Bounded linearizable queries succeed as long as this server remains the leader. This is possible
      * since the leader will step down in the event it fails to contact a majority of the cluster.
      */
-    private CompletableFuture<QueryResponse> queryBoundedLinearizable(Indexed<QueryEntry> entry) {
+    private CompletableFuture<QueryResponse> queryBoundedLinearizable(final Indexed<QueryEntry> entry) {
         return applyQuery(entry);
     }
 
@@ -681,7 +667,7 @@ public final class LeaderRole extends ActiveRole {
      * Linearizable queries are first sequenced with commands and then applied to the state machine. Once
      * applied, we verify the node's leadership prior to responding successfully to the query.
      */
-    private CompletableFuture<QueryResponse> queryLinearizable(Indexed<QueryEntry> entry) {
+    private CompletableFuture<QueryResponse> queryLinearizable(final Indexed<QueryEntry> entry) {
         return applyQuery(entry)
             .thenComposeAsync(response -> appender.appendEntries()
                 .thenApply(index -> response)
@@ -721,7 +707,7 @@ public final class LeaderRole extends ActiveRole {
         // at least one entry from their current term has been stored on a majority of servers. Thus,
         // we force entries to be appended up to the leader's no-op entry. The LeaderAppender will ensure
         // that the commitIndex is not increased until the no-op entry (appender.index()) is committed.
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         appender.appendEntries(appender.getIndex()).whenComplete((resultIndex, error) -> {
             raft.checkThread();
             if (isOpen()) {
@@ -762,10 +748,10 @@ public final class LeaderRole extends ActiveRole {
      * Starts checking for session heartbeat timeouts.
      */
     private void startHeartbeatTimer() {
-        raft.getSessions().getSessions().forEach(s -> s.resetHeartbeats());
+        raft.getSessions().getSessions().forEach(RaftSessionContext::resetHeartbeats);
         LOGGER.trace("Starting heartbeat timers");
         raft.getSessions().getSessions().stream()
-            .map(s -> s.memberId())
+            .map(RaftSessionContext::memberId)
             .distinct()
             .forEach(this::resetHeartbeatTimer);
     }
@@ -773,16 +759,16 @@ public final class LeaderRole extends ActiveRole {
     /**
      * Resets the heartbeat timer.
      */
-    private void resetHeartbeatTimer(MemberId member) {
+    private void resetHeartbeatTimer(final MemberId member) {
         // Compute the smallest timeout of all open sessions for the member.
-        OptionalLong minTimeout = raft.getSessions().getSessions().stream()
+        final OptionalLong minTimeout = raft.getSessions().getSessions().stream()
             .filter(s -> s.memberId().equals(member))
-            .mapToLong(s -> s.minTimeout())
+            .mapToLong(RaftSessionContext::minTimeout)
             .min();
 
-        Scheduled oldTimer;
+        final Scheduled oldTimer;
         if (minTimeout.isPresent()) {
-            Scheduled newTimer = raft.getThreadContext().schedule(
+            final Scheduled newTimer = raft.getThreadContext().schedule(
                 Duration.ZERO,
                 Duration.ofMillis(minTimeout.getAsLong()),
                 () -> sendHeartbeats(member));
@@ -801,7 +787,7 @@ public final class LeaderRole extends ActiveRole {
      * Sends heartbeats to sessions of the given member.
      * @param member the member to which to send heartbeats
      */
-    private void sendHeartbeats(MemberId member) {
+    private void sendHeartbeats(final MemberId member) {
         sendHeartbeat(member, raft.getSessions().getSessions().stream()
             .filter(s -> s.memberId().equals(member))
             .collect(Collectors.toList()));
@@ -810,17 +796,17 @@ public final class LeaderRole extends ActiveRole {
     /**
      * Attempts to send a heartbeat to the given session.
      */
-    private void sendHeartbeat(MemberId member, Collection<RaftSessionContext> sessions) {
-        HeartbeatRequest request = HeartbeatRequest.builder()
+    private void sendHeartbeat(final MemberId member, final Collection<RaftSessionContext> sessions) {
+        final HeartbeatRequest request = HeartbeatRequest.builder()
             .withLeader(raft.getCluster().getMember().memberId())
             .withMembers(raft.getCluster().getMembers().stream()
                 .map(RaftMember::memberId)
-                .filter(m -> m != null)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList()))
             .build();
         LOGGER.trace("Sending {} to {}", request, member);
         raft.getProtocol().heartbeat(member, request).whenCompleteAsync((response, error) -> {
-            long timestamp = System.currentTimeMillis();
+            final long timestamp = System.currentTimeMillis();
             if (error == null && response.status() == RaftResponse.Status.OK) {
                 LOGGER.trace("Received {} from {}", response, member);
                 sessions.forEach(s -> s.setLastHeartbeat(timestamp));
@@ -844,7 +830,7 @@ public final class LeaderRole extends ActiveRole {
     /**
      * Expires the given session.
      */
-    private void expireSession(RaftSessionContext session) {
+    private void expireSession(final RaftSessionContext session) {
         LOGGER.debug("Expiring session due to heartbeat failure: {}", session);
         appendAndCompact(new CloseSessionEntry(raft.getTerm(), System.currentTimeMillis(), session.sessionId().id(), true))
             .whenCompleteAsync((entry, error) -> {
@@ -884,7 +870,7 @@ public final class LeaderRole extends ActiveRole {
     /**
      * Commits the given configuration.
      */
-    protected CompletableFuture<Long> configure(Collection<RaftMember> members) {
+    protected CompletableFuture<Long> configure(final Collection<RaftMember> members) {
         raft.checkThread();
 
         final long term = raft.getTerm();
@@ -910,7 +896,7 @@ public final class LeaderRole extends ActiveRole {
     public CompletableFuture<TransferResponse> onTransfer(final TransferRequest request) {
         logRequest(request);
 
-        RaftMemberContext member = raft.getCluster().getMemberState(request.member());
+        final RaftMemberContext member = raft.getCluster().getMemberState(request.member());
         if (member == null) {
             return CompletableFuture.completedFuture(logResponse(TransferResponse.builder()
                 .withStatus(RaftResponse.Status.ERROR)
@@ -920,7 +906,7 @@ public final class LeaderRole extends ActiveRole {
 
         transferring = true;
 
-        CompletableFuture<TransferResponse> future = new CompletableFuture<>();
+        final CompletableFuture<TransferResponse> future = new CompletableFuture<>();
         appender.appendEntries(raft.getLogWriter().getLastIndex()).whenComplete((result, error) -> {
             if (isOpen()) {
                 if (error == null) {
@@ -959,7 +945,7 @@ public final class LeaderRole extends ActiveRole {
     public CompletableFuture<AppendResponse> onAppend(final AppendRequest request) {
         raft.checkThread();
         if (updateTermAndLeader(request.term(), request.leader())) {
-            CompletableFuture<AppendResponse> future = super.onAppend(request);
+            final CompletableFuture<AppendResponse> future = super.onAppend(request);
             raft.transition(RaftServer.Role.FOLLOWER);
             return future;
         } else if (request.term() < raft.getTerm()) {
@@ -984,7 +970,7 @@ public final class LeaderRole extends ActiveRole {
         // If a member sends a PollRequest to the leader, that indicates that it likely healed from
         // a network partition and may have had its status set to UNAVAILABLE by the leader. In order
         // to ensure heartbeats are immediately stored to the member, update its status if necessary.
-        RaftMemberContext member = raft.getCluster().getMemberState(request.candidate());
+        final RaftMemberContext member = raft.getCluster().getMemberState(request.candidate());
         if (member != null) {
             member.resetFailureCount();
         }
@@ -1017,7 +1003,7 @@ public final class LeaderRole extends ActiveRole {
      * @param request the command request
      * @param future the command response future
      */
-    private void commitCommand(CommandRequest request, CompletableFuture<CommandResponse> future) {
+    private void commitCommand(final CommandRequest request, final CompletableFuture<CommandResponse> future) {
         final long term = raft.getTerm();
         final long timestamp = System.currentTimeMillis();
 
@@ -1064,7 +1050,7 @@ public final class LeaderRole extends ActiveRole {
      * @param <E> the entry type
      * @return a completable future to be completed once the entry has been appended
      */
-    private <E extends RaftLogEntry> CompletableFuture<Indexed<E>> appendAndCompact(E entry) {
+    private <E extends RaftLogEntry> CompletableFuture<Indexed<E>> appendAndCompact(final E entry) {
         return appendAndCompact(entry, 0);
     }
 
@@ -1075,13 +1061,13 @@ public final class LeaderRole extends ActiveRole {
      * @param <E> the entry type
      * @return a completable future to be completed once the entry has been appended
      */
-    protected <E extends RaftLogEntry> CompletableFuture<Indexed<E>> appendAndCompact(E entry, int attempt) {
+    protected <E extends RaftLogEntry> CompletableFuture<Indexed<E>> appendAndCompact(final E entry, final int attempt) {
         if (attempt == MAX_APPEND_ATTEMPTS) {
             return Futures.exceptionalFuture(new StorageException.OutOfDiskSpace("Not enough space to append entry"));
         } else {
             try {
                 return CompletableFuture.completedFuture(raft.getLogWriter().append(entry));
-            } catch (StorageException.OutOfDiskSpace e) {
+            } catch (final StorageException.OutOfDiskSpace e) {
                 return raft.getLogCompactor().compact().thenCompose(v -> appendAndCompact(entry, attempt + 1));
             }
         }

@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.leadership.impl;
 
 import com.google.common.base.MoreObjects;
@@ -33,7 +18,7 @@ public class TranscodingAsyncLeaderElector<V1, V2> implements AsyncLeaderElector
     private final AsyncLeaderElector<V2> backingElector;
     private final Function<V1, V2> valueEncoder;
     private final Function<V2, V1> valueDecoder;
-    private final Map<LeadershipEventListener<V1>, InternalLeadershipEventListener> listeners = Maps.newIdentityHashMap();
+    private final Map<LeadershipEventListener<V1>, TranscodingAsyncLeaderElector.InternalLeadershipEventListener> listeners = Maps.newIdentityHashMap();
 
     public TranscodingAsyncLeaderElector(AsyncLeaderElector<V2> backingElector, Function<V1, V2> valueEncoder, Function<V2, V1> valueDecoder) {
         this.backingElector = backingElector;
@@ -79,8 +64,8 @@ public class TranscodingAsyncLeaderElector<V1, V2> implements AsyncLeaderElector
     @Override
     public CompletableFuture<Void> addListener(LeadershipEventListener<V1> listener) {
         synchronized (listeners) {
-            InternalLeadershipEventListener internalListener =
-                listeners.computeIfAbsent(listener, k -> new InternalLeadershipEventListener(listener));
+            TranscodingAsyncLeaderElector.InternalLeadershipEventListener internalListener =
+                listeners.computeIfAbsent(listener, k -> new TranscodingAsyncLeaderElector.InternalLeadershipEventListener(listener));
             return backingElector.addListener(internalListener);
         }
     }
@@ -88,7 +73,7 @@ public class TranscodingAsyncLeaderElector<V1, V2> implements AsyncLeaderElector
     @Override
     public CompletableFuture<Void> removeListener(LeadershipEventListener<V1> listener) {
         synchronized (listeners) {
-            InternalLeadershipEventListener internalListener = listeners.remove(listener);
+            TranscodingAsyncLeaderElector.InternalLeadershipEventListener internalListener = listeners.remove(listener);
             if (internalListener != null) {
                 return backingElector.removeListener(internalListener);
             } else {

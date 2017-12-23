@@ -68,7 +68,7 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
     }
 
     private RaftServer buildServer() {
-        RaftServer.Builder builder = RaftServer.builder(localMemberId)
+        final RaftServer.Builder builder = RaftServer.builder(localMemberId)
             .withName(partition.name())
             .withProtocol(new RaftServerCommunicator(
                 partition.name(),
@@ -94,20 +94,16 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
 
     @Override
     public CompletableFuture<Void> close() {
-        return server.shutdown();
+        if (server != null) {
+            return server.shutdown();
+        } else {
+            return CompletableFuture.completedFuture(null);
+        }
     }
 
     @Override
     public boolean isClosed() {
         return !isOpen();
-    }
-
-    /**
-     * Closes the server and exits the partition.
-     * @return future that is completed when the operation is complete
-     */
-    public CompletableFuture<Void> closeAndExit() {
-        return server.leave();
     }
 
     /**

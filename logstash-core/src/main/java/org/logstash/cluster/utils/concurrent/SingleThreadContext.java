@@ -73,9 +73,7 @@ public class SingleThreadContext implements ThreadContext {
     protected static AtomixThread getThread(final ExecutorService executor) {
         final AtomicReference<AtomixThread> thread = new AtomicReference<>();
         try {
-            executor.submit(() -> {
-                thread.set((AtomixThread) Thread.currentThread());
-            }).get();
+            executor.submit(() -> thread.set((AtomixThread) Thread.currentThread())).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new IllegalStateException("failed to initialize thread state", e);
         }
