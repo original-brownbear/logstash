@@ -110,6 +110,13 @@ public final class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncW
         return proxy.invoke(RaftWorkQueueOperations.TAKE, SERIALIZER::encode, new RaftWorkQueueOperations.Take(maxTasks), SERIALIZER::decode);
     }
 
+    @Override
+    public CompletableFuture<Void> close() {
+        timer.cancel();
+        executor.shutdownNow();
+        return super.close();
+    }
+
     private CompletableFuture<Void> unregister() {
         return proxy.invoke(RaftWorkQueueOperations.UNREGISTER).thenRun(() -> isRegistered.set(false));
     }
@@ -127,7 +134,9 @@ public final class RaftWorkQueue extends AbstractRaftPrimitive implements AsyncW
             .whenCompleteAsync((tasks, e) -> activeProcessor.accept(tasks), executor);
     }
 
-    // TaskId accumulator for paced triggering of task completion calls.
+    /**
+     * TaskId accumulator for paced triggering of task completion calls.
+     */
     private class CompletedTaskAccumulator extends AbstractAccumulator<String> {
         CompletedTaskAccumulator(final Timer timer, final int maxTasksToBatch, final int maxBatchMillis) {
             super(timer, maxTasksToBatch, maxBatchMillis, Integer.MAX_VALUE);

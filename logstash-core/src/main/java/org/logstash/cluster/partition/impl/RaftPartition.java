@@ -88,10 +88,10 @@ public final class RaftPartition implements ManagedPartition {
     private final RaftPartitionServer server;
 
     public RaftPartition(
-        NodeId nodeId,
-        PartitionMetadata partition,
-        ClusterCommunicationService clusterCommunicator,
-        File dataDir) {
+        final NodeId nodeId,
+        final PartitionMetadata partition,
+        final ClusterCommunicationService clusterCommunicator,
+        final File dataDir) {
         this.localNodeId = nodeId;
         this.partition = partition;
         this.clusterCommunicator = clusterCommunicator;
@@ -193,9 +193,7 @@ public final class RaftPartition implements ManagedPartition {
 
     @Override
     public CompletableFuture<Void> close() {
-        // We do not explicitly close the server and instead let the cluster
-        // deal with this as an unclean exit.
-        return client.close();
+        return server.close().thenCompose(v -> client.close());
     }
 
     @Override
@@ -274,7 +272,7 @@ public final class RaftPartition implements ManagedPartition {
     }
 
     @Override
-    public Set<String> getPrimitiveNames(DistributedPrimitive.Type primitiveType) {
+    public Set<String> getPrimitiveNames(final DistributedPrimitive.Type primitiveType) {
         return getPrimitiveCreator().getPrimitiveNames(primitiveType);
     }
 

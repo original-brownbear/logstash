@@ -29,7 +29,7 @@ public class DefaultRaftServer implements RaftServer {
     private volatile CompletableFuture<Void> closeFuture;
     private volatile boolean started;
 
-    public DefaultRaftServer(RaftContext context) {
+    public DefaultRaftServer(final RaftContext context) {
         this.context = Preconditions.checkNotNull(context, "context cannot be null");
     }
 
@@ -51,32 +51,32 @@ public class DefaultRaftServer implements RaftServer {
     }
 
     @Override
-    public Role getRole() {
+    public RaftServer.Role getRole() {
         return context.getRole();
     }
 
     @Override
-    public void addRoleChangeListener(Consumer<Role> listener) {
+    public void addRoleChangeListener(final Consumer<RaftServer.Role> listener) {
         context.addRoleChangeListener(listener);
     }
 
     @Override
-    public void removeRoleChangeListener(Consumer<Role> listener) {
+    public void removeRoleChangeListener(final Consumer<RaftServer.Role> listener) {
         context.removeRoleChangeListener(listener);
     }
 
     @Override
-    public CompletableFuture<RaftServer> bootstrap(Collection<MemberId> cluster) {
+    public CompletableFuture<RaftServer> bootstrap(final Collection<MemberId> cluster) {
         return start(() -> cluster().bootstrap(cluster));
     }
 
     @Override
-    public CompletableFuture<RaftServer> join(Collection<MemberId> cluster) {
+    public CompletableFuture<RaftServer> join(final Collection<MemberId> cluster) {
         return start(() -> cluster().join(cluster));
     }
 
     @Override
-    public CompletableFuture<RaftServer> listen(Collection<MemberId> cluster) {
+    public CompletableFuture<RaftServer> listen(final Collection<MemberId> cluster) {
         return start(() -> cluster().listen(cluster));
     }
 
@@ -104,10 +104,10 @@ public class DefaultRaftServer implements RaftServer {
             return Futures.exceptionalFuture(new IllegalStateException("context not open"));
         }
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         context.getThreadContext().execute(() -> {
             started = false;
-            context.transition(Role.INACTIVE);
+            context.transition(RaftServer.Role.INACTIVE);
             future.complete(null);
         });
 
@@ -132,21 +132,19 @@ public class DefaultRaftServer implements RaftServer {
                 if (closeFuture == null) {
                     closeFuture = new CompletableFuture<>();
                     if (openFuture == null) {
-                        cluster().leave().whenComplete((leaveResult, leaveError) -> {
-                            shutdown().whenComplete((shutdownResult, shutdownError) -> {
+                        cluster().leave().whenComplete(
+                            (leaveResult, leaveError) -> shutdown().whenComplete((shutdownResult, shutdownError) -> {
                                 context.delete();
                                 closeFuture.complete(null);
-                            });
-                        });
+                            })
+                        );
                     } else {
                         openFuture.whenComplete((openResult, openError) -> {
                             if (openError == null) {
-                                cluster().leave().whenComplete((leaveResult, leaveError) -> {
-                                    shutdown().whenComplete((shutdownResult, shutdownError) -> {
-                                        context.delete();
-                                        closeFuture.complete(null);
-                                    });
-                                });
+                                cluster().leave().whenComplete((leaveResult, leaveError) -> shutdown().whenComplete((shutdownResult, shutdownError) -> {
+                                    context.delete();
+                                    closeFuture.complete(null);
+                                }));
                             } else {
                                 closeFuture.complete(null);
                             }
@@ -162,14 +160,14 @@ public class DefaultRaftServer implements RaftServer {
     /**
      * Starts the server.
      */
-    private CompletableFuture<RaftServer> start(Supplier<CompletableFuture<Void>> joiner) {
+    private CompletableFuture<RaftServer> start(final Supplier<CompletableFuture<Void>> joiner) {
         if (started)
             return CompletableFuture.completedFuture(this);
 
         if (openFuture == null) {
             synchronized (this) {
                 if (openFuture == null) {
-                    CompletableFuture<RaftServer> future = new CompletableFuture<>();
+                    final CompletableFuture<RaftServer> future = new CompletableFuture<>();
                     openFuture = future;
                     joiner.get().whenComplete((result, error) -> {
                         if (error == null) {
@@ -198,7 +196,7 @@ public class DefaultRaftServer implements RaftServer {
      * Default Raft server builder.
      */
     public static class Builder extends RaftServer.Builder {
-        public Builder(MemberId localMemberId) {
+        public Builder(final MemberId localMemberId) {
             super(localMemberId);
         }
 
@@ -218,7 +216,7 @@ public class DefaultRaftServer implements RaftServer {
                 storage = RaftStorage.builder().build();
             }
 
-            RaftContext raft = new RaftContext(name, localMemberId, protocol, storage, serviceRegistry, threadModel, threadPoolSize);
+            final RaftContext raft = new RaftContext(name, localMemberId, protocol, storage, serviceRegistry, threadModel, threadPoolSize);
             raft.setElectionTimeout(electionTimeout);
             raft.setHeartbeatInterval(heartbeatInterval);
             raft.setElectionThreshold(electionThreshold);

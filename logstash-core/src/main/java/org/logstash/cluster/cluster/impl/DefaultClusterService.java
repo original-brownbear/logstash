@@ -7,8 +7,8 @@ import com.google.common.collect.Sets;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -34,7 +34,7 @@ import org.logstash.cluster.utils.concurrent.Threads;
 /**
  * Default cluster implementation.
  */
-public class DefaultClusterService implements ManagedClusterService {
+public final class DefaultClusterService implements ManagedClusterService {
 
     private static final Logger LOGGER = LogManager.getLogger(DefaultClusterService.class);
 
@@ -55,13 +55,11 @@ public class DefaultClusterService implements ManagedClusterService {
     private final Set<ClusterEventListener> eventListeners = Sets.newCopyOnWriteArraySet();
     private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(
         Threads.namedThreads("atomix-cluster-heartbeat-sender", LOGGER));
-    private final ExecutorService heartbeatExecutor = Executors.newSingleThreadExecutor(
-        Threads.namedThreads("atomix-cluster-heartbeat-receiver", LOGGER));
     private final int heartbeatInterval = DEFAULT_HEARTBEAT_INTERVAL;
     private final int phiFailureThreshold = DEFAULT_PHI_FAILURE_THRESHOLD;
     private ScheduledFuture<?> heartbeatFuture;
 
-    public DefaultClusterService(ClusterMetadata clusterMetadata, MessagingService messagingService) {
+    public DefaultClusterService(final ClusterMetadata clusterMetadata, final MessagingService messagingService) {
         this.messagingService = Preconditions.checkNotNull(messagingService, "messagingService cannot be null");
         this.localNode = (DefaultNode) clusterMetadata.localNode();
         if (clusterMetadata.bootstrapNodes().contains(localNode)) {
@@ -71,7 +69,8 @@ public class DefaultClusterService implements ManagedClusterService {
         }
         nodes.put(localNode.id(), localNode);
         clusterMetadata.bootstrapNodes().forEach(n -> nodes.putIfAbsent(n.id(), ((DefaultNode) n).setType(Node.Type.CORE)));
-        messagingService.registerHandler(HEARTBEAT_MESSAGE, this::handleHeartbeat, heartbeatExecutor);
+        //TODO: Evil hack using fork join pool here
+        messagingService.registerHandler(HEARTBEAT_MESSAGE, this::handleHeartbeat, ForkJoinPool.commonPool());
     }
 
     /**
@@ -79,14 +78,14 @@ public class DefaultClusterService implements ManagedClusterService {
      */
     private void sendHeartbeats() {
         try {
-            Set<DefaultNode> peers = nodes.values()
+            final Set<DefaultNode> peers = nodes.values()
                 .stream()
                 .filter(node -> !node.id().equals(getLocalNode().id()))
                 .collect(Collectors.toSet());
-            byte[] payload = SERIALIZER.encode(localNode.id());
-            peers.forEach((node) -> {
+            final byte[] payload = SERIALIZER.encode(localNode.id());
+            peers.forEach(node -> {
                 sendHeartbeat(node.endpoint(), payload);
-                double phi = failureDetectors.computeIfAbsent(node.id(), n -> new PhiAccrualFailureDetector()).phi();
+                final double phi = failureDetectors.computeIfAbsent(node.id(), n -> new PhiAccrualFailureDetector()).phi();
                 if (phi >= phiFailureThreshold) {
                     if (node.state() == Node.State.ACTIVE) {
                         deactivateNode(node);
@@ -97,7 +96,7 @@ public class DefaultClusterService implements ManagedClusterService {
                     }
                 }
             });
-        } catch (Exception e) {
+        } catch (final Exception e) {
             LOGGER.debug("Failed to send heartbeat", e);
         }
     }
@@ -113,14 +112,14 @@ public class DefaultClusterService implements ManagedClusterService {
     }
 
     @Override
-    public Node getNode(NodeId nodeId) {
+    public Node getNode(final NodeId nodeId) {
         return nodes.get(nodeId);
     }
 
     /**
      * Sends a heartbeat to the given peer.
      */
-    private void sendHeartbeat(Endpoint endpoint, byte[] payload) {
+    private void sendHeartbeat(final Endpoint endpoint, final byte[] payload) {
         messagingService.sendAsync(endpoint, HEARTBEAT_MESSAGE, payload).whenComplete((result, error) -> {
             if (error != null) {
                 LOGGER.trace("Sending heartbeat to {} failed", endpoint, error);
@@ -131,8 +130,8 @@ public class DefaultClusterService implements ManagedClusterService {
     /**
      * Activates the given node.
      */
-    private void activateNode(DefaultNode node) {
-        DefaultNode existingNode = nodes.get(node.id());
+    private void activateNode(final DefaultNode node) {
+        final DefaultNode existingNode = nodes.get(node.id());
         if (existingNode == null) {
             node.setState(Node.State.ACTIVE);
             nodes.put(node.id(), node);
@@ -147,8 +146,8 @@ public class DefaultClusterService implements ManagedClusterService {
     /**
      * Deactivates the given node.
      */
-    private void deactivateNode(DefaultNode node) {
-        DefaultNode existingNode = nodes.get(node.id());
+    private void deactivateNode(final DefaultNode node) {
+        final DefaultNode existingNode = nodes.get(node.id());
         if (existingNode != null && existingNode.state() == Node.State.ACTIVE) {
             existingNode.setState(Node.State.INACTIVE);
             switch (existingNode.type()) {
@@ -168,19 +167,19 @@ public class DefaultClusterService implements ManagedClusterService {
     /**
      * Handles a heartbeat message.
      */
-    private void handleHeartbeat(Endpoint endpoint, byte[] message) {
-        NodeId nodeId = SERIALIZER.decode(message);
+    private void handleHeartbeat(final Endpoint endpoint, final byte[] message) {
+        final NodeId nodeId = SERIALIZER.decode(message);
         failureDetectors.computeIfAbsent(nodeId, n -> new PhiAccrualFailureDetector()).report();
         activateNode(new DefaultNode(nodeId, endpoint));
     }
 
     @Override
-    public void addListener(ClusterEventListener listener) {
+    public void addListener(final ClusterEventListener listener) {
         eventListeners.add(listener);
     }
 
     @Override
-    public void removeListener(ClusterEventListener listener) {
+    public void removeListener(final ClusterEventListener listener) {
         eventListeners.remove(listener);
     }
 
@@ -188,7 +187,9 @@ public class DefaultClusterService implements ManagedClusterService {
     public CompletableFuture<ClusterService> open() {
         if (open.compareAndSet(false, true)) {
             localNode.setState(Node.State.ACTIVE);
-            heartbeatFuture = heartbeatScheduler.scheduleWithFixedDelay(this::sendHeartbeats, 0, heartbeatInterval, TimeUnit.MILLISECONDS);
+            heartbeatFuture = heartbeatScheduler.scheduleWithFixedDelay(
+                this::sendHeartbeats, 0L, heartbeatInterval, TimeUnit.MILLISECONDS
+            );
         }
         LOGGER.info("Started");
         return CompletableFuture.completedFuture(this);
@@ -204,6 +205,7 @@ public class DefaultClusterService implements ManagedClusterService {
         if (open.compareAndSet(true, false)) {
             localNode.setState(Node.State.INACTIVE);
             heartbeatFuture.cancel(true);
+            heartbeatScheduler.shutdownNow();
         }
         LOGGER.info("Stopped");
         return CompletableFuture.completedFuture(null);

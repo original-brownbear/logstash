@@ -43,30 +43,30 @@ public class DefaultClusterServiceTest {
     public DefaultClusterServiceTest() {
         try {
             localhost = InetAddress.getByName("127.0.0.1");
-        } catch (UnknownHostException e) {
+        } catch (final UnknownHostException e) {
             throw new AssertionError();
         }
     }
 
     @Test
     public void testClusterService() throws Exception {
-        TestMessagingServiceFactory messagingServiceFactory = new TestMessagingServiceFactory();
+        final TestMessagingServiceFactory messagingServiceFactory = new TestMessagingServiceFactory();
 
-        ClusterMetadata clusterMetadata1 = buildClusterMetadata(1, 1, 2, 3);
-        ManagedClusterService clusterService1 = new DefaultClusterService(
+        final ClusterMetadata clusterMetadata1 = buildClusterMetadata(1, 1, 2, 3);
+        final ManagedClusterService clusterService1 = new DefaultClusterService(
             clusterMetadata1, messagingServiceFactory.newMessagingService(clusterMetadata1.localNode().endpoint()).open().join());
-        ClusterMetadata clusterMetadata2 = buildClusterMetadata(2, 1, 2, 3);
-        ManagedClusterService clusterService2 = new DefaultClusterService(
+        final ClusterMetadata clusterMetadata2 = buildClusterMetadata(2, 1, 2, 3);
+        final ManagedClusterService clusterService2 = new DefaultClusterService(
             clusterMetadata2, messagingServiceFactory.newMessagingService(clusterMetadata2.localNode().endpoint()).open().join());
-        ClusterMetadata clusterMetadata3 = buildClusterMetadata(3, 1, 2, 3);
-        ManagedClusterService clusterService3 = new DefaultClusterService(
+        final ClusterMetadata clusterMetadata3 = buildClusterMetadata(3, 1, 2, 3);
+        final ManagedClusterService clusterService3 = new DefaultClusterService(
             clusterMetadata3, messagingServiceFactory.newMessagingService(clusterMetadata3.localNode().endpoint()).open().join());
 
         assertEquals(State.INACTIVE, clusterService1.getNode(NodeId.from("1")).state());
         assertEquals(State.INACTIVE, clusterService1.getNode(NodeId.from("2")).state());
         assertEquals(State.INACTIVE, clusterService1.getNode(NodeId.from("3")).state());
 
-        CompletableFuture<ClusterService>[] futures = new CompletableFuture[3];
+        final CompletableFuture<ClusterService>[] futures = new CompletableFuture[3];
         futures[0] = clusterService1.open();
         futures[1] = clusterService2.open();
         futures[2] = clusterService3.open();
@@ -89,9 +89,9 @@ public class DefaultClusterServiceTest {
         assertEquals(State.ACTIVE, clusterService1.getNode(NodeId.from("2")).state());
         assertEquals(State.ACTIVE, clusterService1.getNode(NodeId.from("3")).state());
 
-        ClusterMetadata clientMetadata = buildClusterMetadata(4, 1, 2, 3);
+        final ClusterMetadata clientMetadata = buildClusterMetadata(4, 1, 2, 3);
 
-        ManagedClusterService clientClusterService = new DefaultClusterService(
+        final ManagedClusterService clientClusterService = new DefaultClusterService(
             clientMetadata, messagingServiceFactory.newMessagingService(clientMetadata.localNode().endpoint()).open().join());
 
         assertEquals(State.INACTIVE, clientClusterService.getLocalNode().state());
@@ -155,14 +155,14 @@ public class DefaultClusterServiceTest {
         assertNull(clusterService2.getNode(NodeId.from("4")));
     }
 
-    private ClusterMetadata buildClusterMetadata(int nodeId, int... bootstrapNodes) {
-        ClusterMetadata.Builder metadataBuilder = ClusterMetadata.builder()
+    private ClusterMetadata buildClusterMetadata(final int nodeId, final int... bootstrapNodes) {
+        final ClusterMetadata.Builder metadataBuilder = ClusterMetadata.builder()
             .withLocalNode(Node.builder()
                 .withId(NodeId.from(String.valueOf(nodeId)))
                 .withEndpoint(new Endpoint(localhost, nodeId))
                 .build());
-        List<Node> bootstrap = new ArrayList<>();
-        for (int bootstrapNode : bootstrapNodes) {
+        final List<Node> bootstrap = new ArrayList<>();
+        for (final int bootstrapNode : bootstrapNodes) {
             bootstrap.add(Node.builder()
                 .withId(NodeId.from(String.valueOf(bootstrapNode)))
                 .withEndpoint(new Endpoint(localhost, bootstrapNode))

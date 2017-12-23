@@ -1,18 +1,3 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.primitives.map.impl;
 
 import org.logstash.cluster.protocols.raft.operation.OperationId;
@@ -43,18 +28,18 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(IncrementAndGet.class)
-        .register(DecrementAndGet.class)
-        .register(GetAndIncrement.class)
-        .register(GetAndDecrement.class)
-        .register(AddAndGet.class)
-        .register(GetAndAdd.class)
-        .register(Get.class)
-        .register(Put.class)
-        .register(PutIfAbsent.class)
-        .register(Replace.class)
-        .register(Remove.class)
-        .register(RemoveValue.class)
+        .register(RaftAtomicCounterMapOperations.IncrementAndGet.class)
+        .register(RaftAtomicCounterMapOperations.DecrementAndGet.class)
+        .register(RaftAtomicCounterMapOperations.GetAndIncrement.class)
+        .register(RaftAtomicCounterMapOperations.GetAndDecrement.class)
+        .register(RaftAtomicCounterMapOperations.AddAndGet.class)
+        .register(RaftAtomicCounterMapOperations.GetAndAdd.class)
+        .register(RaftAtomicCounterMapOperations.Get.class)
+        .register(RaftAtomicCounterMapOperations.Put.class)
+        .register(RaftAtomicCounterMapOperations.PutIfAbsent.class)
+        .register(RaftAtomicCounterMapOperations.Replace.class)
+        .register(RaftAtomicCounterMapOperations.Remove.class)
+        .register(RaftAtomicCounterMapOperations.RemoveValue.class)
         .build(RaftAtomicCounterMapOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
@@ -77,7 +62,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
     public abstract static class AtomicCounterMapOperation<V> {
     }
 
-    public abstract static class KeyOperation extends AtomicCounterMapOperation {
+    public abstract static class KeyOperation extends RaftAtomicCounterMapOperations.AtomicCounterMapOperation {
         private String key;
 
         public KeyOperation() {
@@ -92,7 +77,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class KeyValueOperation extends KeyOperation {
+    public static class KeyValueOperation extends RaftAtomicCounterMapOperations.KeyOperation {
         private long value;
 
         public KeyValueOperation() {
@@ -108,7 +93,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class Get extends KeyOperation {
+    public static class Get extends RaftAtomicCounterMapOperations.KeyOperation {
         public Get() {
         }
 
@@ -117,7 +102,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class Put extends KeyValueOperation {
+    public static class Put extends RaftAtomicCounterMapOperations.KeyValueOperation {
         public Put() {
         }
 
@@ -126,7 +111,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class PutIfAbsent extends KeyValueOperation {
+    public static class PutIfAbsent extends RaftAtomicCounterMapOperations.KeyValueOperation {
         public PutIfAbsent() {
         }
 
@@ -135,7 +120,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class Replace extends KeyOperation {
+    public static class Replace extends RaftAtomicCounterMapOperations.KeyOperation {
         private long replace;
         private long value;
 
@@ -157,7 +142,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class Remove extends KeyOperation {
+    public static class Remove extends RaftAtomicCounterMapOperations.KeyOperation {
         public Remove() {
         }
 
@@ -166,7 +151,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class RemoveValue extends KeyValueOperation {
+    public static class RemoveValue extends RaftAtomicCounterMapOperations.KeyValueOperation {
         public RemoveValue() {
         }
 
@@ -175,7 +160,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class IncrementAndGet extends KeyOperation {
+    public static class IncrementAndGet extends RaftAtomicCounterMapOperations.KeyOperation {
         public IncrementAndGet() {
         }
 
@@ -184,7 +169,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class DecrementAndGet extends KeyOperation {
+    public static class DecrementAndGet extends RaftAtomicCounterMapOperations.KeyOperation {
         public DecrementAndGet(String key) {
             super(key);
         }
@@ -193,7 +178,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class GetAndIncrement extends KeyOperation {
+    public static class GetAndIncrement extends RaftAtomicCounterMapOperations.KeyOperation {
         public GetAndIncrement() {
         }
 
@@ -202,7 +187,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class GetAndDecrement extends KeyOperation {
+    public static class GetAndDecrement extends RaftAtomicCounterMapOperations.KeyOperation {
         public GetAndDecrement() {
         }
 
@@ -211,7 +196,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public abstract static class DeltaOperation extends KeyOperation {
+    public abstract static class DeltaOperation extends RaftAtomicCounterMapOperations.KeyOperation {
         private long delta;
 
         public DeltaOperation() {
@@ -227,7 +212,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class AddAndGet extends DeltaOperation {
+    public static class AddAndGet extends RaftAtomicCounterMapOperations.DeltaOperation {
         public AddAndGet() {
         }
 
@@ -236,7 +221,7 @@ public enum RaftAtomicCounterMapOperations implements OperationId {
         }
     }
 
-    public static class GetAndAdd extends DeltaOperation {
+    public static class GetAndAdd extends RaftAtomicCounterMapOperations.DeltaOperation {
         public GetAndAdd() {
         }
 
