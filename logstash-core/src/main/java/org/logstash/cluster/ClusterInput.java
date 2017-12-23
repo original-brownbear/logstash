@@ -1,6 +1,7 @@
 package org.logstash.cluster;
 
 import java.io.Closeable;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +19,8 @@ import org.logstash.ext.JavaQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
 
+    public static final String LEADERSHIP_IDENTIFIER = "lsclusterleader";
+
     public static final String P2P_QUEUE_NAME = "logstashWorkQueue";
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
@@ -30,6 +33,8 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final LogstashClusterServer cluster;
 
+    private final ClusterConfigProvider configProvider;
+
     private final EventQueue queue;
 
     private final AsyncWorkQueue<EnqueueEvent> tasks;
@@ -40,9 +45,22 @@ public final class ClusterInput implements Runnable, Closeable {
 
     ClusterInput(final EventQueue queue, final ClusterConfigProvider provider) {
         this.queue = queue;
-        cluster = LogstashClusterServer.fromConfig(provider.currentConfig());
+        this.configProvider = provider;
+        cluster = LogstashClusterServer.fromConfig(provider.currentClusterConfig());
         tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
             .withSerializer(Serializer.JAVA).buildAsync();
+    }
+
+    public Map<String, String> getConfig() {
+        return configProvider.currentJobSettings();
+    }
+
+    public LogstashClusterServer getCluster() {
+        return cluster;
+    }
+
+    public AsyncWorkQueue<EnqueueEvent> getTasks() {
+        return tasks;
     }
 
     @Override

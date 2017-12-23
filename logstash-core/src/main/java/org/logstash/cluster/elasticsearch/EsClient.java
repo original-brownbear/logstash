@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -43,8 +44,12 @@ public final class EsClient implements ClusterConfigProvider {
     }
 
     @Override
-    public LogstashClusterConfig currentConfig() {
+    public LogstashClusterConfig currentClusterConfig() {
         return config.withBootstrap(loadBootstrapNodes());
+    }
+
+    public Map<String, String> currentJobSettings() {
+        return Collections.emptyMap();
     }
 
     @Override

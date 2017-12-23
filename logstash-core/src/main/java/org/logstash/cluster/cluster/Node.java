@@ -23,7 +23,7 @@ public abstract class Node {
      * Returns a new node builder.
      * @return a new node builder
      */
-    public static Builder builder() {
+    public static Node.Builder builder() {
         return new DefaultNode.Builder();
     }
 
@@ -47,13 +47,13 @@ public abstract class Node {
      * Returns the node type.
      * @return the node type
      */
-    public abstract Type type();
+    public abstract Node.Type type();
 
     /**
      * Returns the node state.
      * @return the node state
      */
-    public abstract State state();
+    public abstract Node.State state();
 
     @Override
     public int hashCode() {
@@ -118,7 +118,7 @@ public abstract class Node {
          * @param id the node identifier
          * @return the node builder
          */
-        public Builder withId(NodeId id) {
+        public Node.Builder withId(NodeId id) {
             this.id = Preconditions.checkNotNull(id, "id cannot be null");
             return this;
         }
@@ -128,7 +128,7 @@ public abstract class Node {
          * @param endpoint the node endpoint
          * @return the node builder
          */
-        public Builder withEndpoint(Endpoint endpoint) {
+        public Node.Builder withEndpoint(Endpoint endpoint) {
             this.endpoint = Preconditions.checkNotNull(endpoint, "endpoint cannot be null");
             return this;
         }

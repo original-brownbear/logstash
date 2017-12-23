@@ -58,7 +58,7 @@ public final class ClusterInputTest extends ESIntegTestCase {
             final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
                 new LogstashClusterConfig(
                     "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
-                    TestUtils.freePort()), configProvider.currentConfig().getBootstrap(),
+                    TestUtils.freePort()), configProvider.currentClusterConfig().getBootstrap(),
                     temporaryFolder.newFolder(), index
                 )
             );

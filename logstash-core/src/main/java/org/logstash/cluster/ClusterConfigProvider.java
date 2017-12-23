@@ -2,6 +2,7 @@ package org.logstash.cluster;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import org.elasticsearch.client.Client;
 import org.logstash.cluster.cluster.Node;
@@ -9,7 +10,9 @@ import org.logstash.cluster.elasticsearch.EsClient;
 
 public interface ClusterConfigProvider extends Closeable {
 
-    LogstashClusterConfig currentConfig();
+    LogstashClusterConfig currentClusterConfig();
+
+    Map<String, String> currentJobSettings();
 
     void publishBootstrapNodes(Collection<Node> nodes);
 
