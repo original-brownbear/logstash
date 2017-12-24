@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -28,6 +29,10 @@ public final class EsClient implements ClusterConfigProvider {
 
     private static final String ES_BOOTSTRAP_DOC = "bootstrapNodes";
 
+    private static final String ES_JOB_SETTINGS_DOC = "jobSettings";
+
+    private static final String ES_JOB_SETTINGS_FIELD = "settings";
+
     private static final String ES_NODES_FIELD = "nodes";
 
     private static final Pattern BOOTSTRAP_NODES_PATTERN = Pattern.compile("\\|");
@@ -48,8 +53,35 @@ public final class EsClient implements ClusterConfigProvider {
         return config.withBootstrap(loadBootstrapNodes());
     }
 
+    @Override
     public Map<String, String> currentJobSettings() {
-        return Collections.emptyMap();
+        try {
+            ensureIndex();
+        } catch (final InterruptedException | ExecutionException ex) {
+            throw new IllegalStateException(ex);
+        }
+        return deserializeJobSettingsResponse(getSettingsResponse());
+    }
+
+    @Override
+    public void publishJobSettings(final Map<String, String> settings) {
+        final GetResponse existing = getSettingsResponse();
+        final Map<String, String> existingSettings;
+        if (existing.isExists()) {
+            existingSettings = deserializeJobSettingsResponse(existing);
+        } else {
+            existingSettings = new HashMap<>();
+        }
+        existingSettings.putAll(settings);
+        try {
+            client.prepareUpdate().setId(ES_JOB_SETTINGS_DOC).setDoc(
+                Collections.singletonMap(ES_JOB_SETTINGS_FIELD, existingSettings)
+            ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
+                Collections.singletonMap(ES_JOB_SETTINGS_FIELD, existingSettings)
+            ).execute().get();
+        } catch (final InterruptedException | ExecutionException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     @Override
@@ -79,6 +111,11 @@ public final class EsClient implements ClusterConfigProvider {
     }
 
     @SuppressWarnings("unchecked")
+    private static Map<String, String> deserializeJobSettingsResponse(final GetResponse response) {
+        return (Map<String, String>) response.getSource().get(ES_JOB_SETTINGS_FIELD);
+    }
+
+    @SuppressWarnings("unchecked")
     private static Collection<Node> deserializeNodesResponse(final GetResponse response) {
         return ((Collection<String>) response.getSource().get(ES_NODES_FIELD))
             .stream().map(EsClient::deserializeNode)
@@ -92,6 +129,14 @@ public final class EsClient implements ClusterConfigProvider {
         } catch (final InterruptedException | ExecutionException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    private GetResponse getSettingsResponse() {
+        return client.prepareGet()
+            .setIndex(config.esIndex())
+            .setType(ES_TYPE)
+            .setId(ES_JOB_SETTINGS_DOC).setRealtime(true).setRefresh(true)
+            .execute().actionGet();
     }
 
     private GetResponse getNodesResponse() {
@@ -108,12 +153,12 @@ public final class EsClient implements ClusterConfigProvider {
             client.admin().indices().prepareCreate(index).execute().get();
         }
         publishBootstrapNodes(Collections.singleton(config.localNode()));
+        publishJobSettings(Collections.emptyMap());
     }
 
     private static String serializeNode(final Node node) {
         return String.format(
-            "%s|%s|%d", node.id(), node.endpoint().host().getHostAddress(),
-            node.endpoint().port()
+            "%s|%s|%d", node.id(), node.endpoint().host().getHostAddress(), node.endpoint().port()
         );
     }
 

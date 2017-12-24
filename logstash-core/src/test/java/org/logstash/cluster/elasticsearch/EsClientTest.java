@@ -80,4 +80,24 @@ public final class EsClientTest extends ESIntegTestCase {
             }
         }
     }
+
+    @Test
+    public void getAndUpdateSettings() throws Exception {
+        ensureGreen();
+        final Node local = new DefaultNode(
+            NodeId.from("someId"),
+            new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
+        );
+        try (ClusterConfigProvider client =
+                 ClusterConfigProvider.esConfigProvider(
+                     client(),
+                     new LogstashClusterConfig(
+                         local, Collections.emptyList(), temporaryFolder.newFolder(),
+                         "getandupdatesettings"
+                     )
+                 )
+        ) {
+            MatcherAssert.assertThat(client.currentJobSettings(), Matchers.is(Collections.emptyMap()));
+        }
+    }
 }
