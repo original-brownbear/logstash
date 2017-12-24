@@ -6,9 +6,12 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.ClusterInput;
@@ -19,7 +22,7 @@ import org.logstash.cluster.primitives.map.ConsistentTreeMap;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.ext.EventQueue;
 
-public final class LsS3ClusterInput implements Runnable {
+public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
     public static final String S3_KEY_INDEX = "s3key";
 
@@ -32,6 +35,10 @@ public final class LsS3ClusterInput implements Runnable {
     private static final Logger LOGGER = LogManager.getLogger(LsS3ClusterInput.class);
 
     private static final String FINISHED_OBJECTS_MAP = "s3finishedobjects";
+
+    private final CountDownLatch stopLatch = new CountDownLatch(1);
+
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     private final ClusterInput cluster;
 
@@ -59,11 +66,25 @@ public final class LsS3ClusterInput implements Runnable {
             try (final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue()) {
                 for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
                     tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
+                    if (stopped.get()) {
+                        break;
+                    }
                 }
             }
+            stopLatch.countDown();
         } catch (final Exception ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    @Override
+    public void awaitStop() {
+        Uninterruptibles.awaitUninterruptibly(stopLatch);
+    }
+
+    @Override
+    public void stop() {
+        stopped.set(true);
     }
 
     private static final class S3Config implements Serializable {

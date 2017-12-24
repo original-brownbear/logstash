@@ -1,10 +1,12 @@
 package org.logstash.cluster;
 
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
+import com.google.common.util.concurrent.Uninterruptibles;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
@@ -41,45 +43,79 @@ public final class ClusterInputTest extends ESIntegTestCase {
             new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
             Collections.emptyList(), temporaryFolder.newFolder(), index
         );
-        try (
-            ClusterConfigProvider configProvider =
-                ClusterConfigProvider.esConfigProvider(client(), config);
-            ClusterInput input = new ClusterInput(
-                event -> {
-                    try {
-                        queue.put(event);
-                    } catch (final InterruptedException ex) {
-                        throw new IllegalStateException(ex);
-                    }
-                }, configProvider
-            )
-        ) {
-            exec.execute(input);
-            final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
-                new LogstashClusterConfig(
-                    "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
-                    TestUtils.freePort()), configProvider.currentClusterConfig().getBootstrap(),
-                    temporaryFolder.newFolder(), index
+        try (ClusterConfigProvider configProvider =
+                 ClusterConfigProvider.esConfigProvider(client(), config)) {
+            configProvider.publishJobSettings(
+                Collections.singletonMap(
+                    ClusterInput.LOGSTASH_TASK_CLASS_SETTING,
+                    ClusterInputTest.SimpleTaskLeader.class.getName()
                 )
             );
-            MatcherAssert.assertThat(
-                cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME)
-            );
-            final WorkQueue<EnqueueEvent> tasks =
-                cluster.<EnqueueEvent>workQueueBuilder().withName(ClusterInput.P2P_QUEUE_NAME)
-                    .withSerializer(Serializer.JAVA).build();
-            tasks.addOne(
-                events -> events.push(
-                    new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
+            try (
+                ClusterInput input = new ClusterInput(
+                    event -> {
+                        try {
+                            queue.put(event);
+                        } catch (final InterruptedException ex) {
+                            throw new IllegalStateException(ex);
+                        }
+                    }, configProvider
                 )
-            );
-            MatcherAssert.assertThat(
-                queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
-            );
-            tasks.close();
-            cluster.close().join();
-        } finally {
-            exec.shutdownNow();
+            ) {
+                exec.execute(input);
+                final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
+                    new LogstashClusterConfig(
+                        "node2", new InetSocketAddress(InetAddress.getLoopbackAddress(),
+                        TestUtils.freePort()), configProvider.currentClusterConfig().getBootstrap(),
+                        temporaryFolder.newFolder(), index
+                    )
+                );
+                MatcherAssert.assertThat(
+                    cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME)
+                );
+                MatcherAssert.assertThat(
+                    queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
+                );
+                cluster.close().join();
+            } finally {
+                exec.shutdownNow();
+            }
+        }
+    }
+
+    public static final class SimpleTaskLeader implements ClusterInput.LeaderTask {
+
+        private final LogstashClusterServer cluster;
+
+        private final CountDownLatch stoppedLatch = new CountDownLatch(1);
+
+        public SimpleTaskLeader(final ClusterInput cluster) {
+            this.cluster = cluster.getCluster();
+        }
+
+        @Override
+        public void awaitStop() {
+            Uninterruptibles.awaitUninterruptibly(stoppedLatch);
+        }
+
+        @Override
+        public void stop() {
+        }
+
+        @Override
+        public void run() {
+            try (final WorkQueue<EnqueueEvent> tasks =
+                     cluster.<EnqueueEvent>workQueueBuilder().withName(ClusterInput.P2P_QUEUE_NAME)
+                         .withSerializer(Serializer.JAVA).build()) {
+                tasks.addOne(
+                    events -> events.push(
+                        new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
+                    )
+                );
+            } catch (final Exception ex) {
+                throw new IllegalStateException(ex);
+            }
+            stoppedLatch.countDown();
         }
     }
 }

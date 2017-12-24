@@ -19,6 +19,8 @@ import org.logstash.ext.JavaQueue;
 
 public final class ClusterInput implements Runnable, Closeable {
 
+    public static final String LOGSTASH_TASK_CLASS_SETTING = "lstaskclass";
+
     public static final String LEADERSHIP_IDENTIFIER = "lsclusterleader";
 
     public static final String P2P_QUEUE_NAME = "logstashWorkQueue";
@@ -39,6 +41,8 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final AsyncWorkQueue<EnqueueEvent> tasks;
 
+    private final LeaderTask leaderTask;
+
     public ClusterInput(final IRubyObject queue, final ClusterConfigProvider provider) {
         this(new JavaQueue(queue), provider);
     }
@@ -49,6 +53,7 @@ public final class ClusterInput implements Runnable, Closeable {
         cluster = LogstashClusterServer.fromConfig(provider.currentClusterConfig());
         tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
             .withSerializer(Serializer.JAVA).buildAsync();
+        leaderTask = setupLeaderTask();
     }
 
     public Map<String, String> getConfig() {
@@ -65,6 +70,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void run() {
+        executor.submit(leaderTask);
         try {
             final WorkQueue<EnqueueEvent> work = tasks.asWorkQueue();
             while (running.get()) {
@@ -83,6 +89,8 @@ public final class ClusterInput implements Runnable, Closeable {
     public void close() {
         LOGGER.info("Closing cluster input.");
         running.set(false);
+        leaderTask.stop();
+        leaderTask.awaitStop();
         tasks.close().join();
         try {
             done.await();
@@ -100,5 +108,23 @@ public final class ClusterInput implements Runnable, Closeable {
             cluster.close().join();
             LOGGER.info("Closed cluster input.");
         }
+    }
+
+    private ClusterInput.LeaderTask setupLeaderTask() {
+        try {
+            return Class.forName(getConfig().get(LOGSTASH_TASK_CLASS_SETTING))
+                .asSubclass(ClusterInput.LeaderTask.class).getConstructor(ClusterInput.class)
+                .newInstance(this);
+        } catch (final Exception ex) {
+            LOGGER.error("Failed to set up leader task because of: {}", ex);
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public interface LeaderTask extends Runnable {
+
+        void awaitStop();
+
+        void stop();
     }
 }
