@@ -21,6 +21,14 @@ import org.logstash.ext.EventQueue;
 
 public final class LsS3ClusterInput implements Runnable {
 
+    public static final String S3_KEY_INDEX = "s3key";
+
+    public static final String S3_BUCKET_INDEX = "s3bucket";
+
+    public static final String S3_SECRET_INDEX = "s3secret";
+
+    public static final String S3_REGION_INDEX = "s3region";
+
     private static final Logger LOGGER = LogManager.getLogger(LsS3ClusterInput.class);
 
     private static final String FINISHED_OBJECTS_MAP = "s3finishedobjects";
@@ -45,8 +53,8 @@ public final class LsS3ClusterInput implements Runnable {
             LOGGER.info("Indexing Bucket on Node {}", localId);
             final Map<String, String> config = cluster.getConfig();
             final LsS3ClusterInput.S3Config s3cfg = new LsS3ClusterInput.S3Config(
-                config.get("s3key"), config.get("s3secret"), config.get("s3region"),
-                config.get("s3bucket")
+                config.get(S3_KEY_INDEX), config.get(S3_SECRET_INDEX), config.get(S3_REGION_INDEX),
+                config.get(S3_BUCKET_INDEX)
             );
             try (final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue()) {
                 for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
