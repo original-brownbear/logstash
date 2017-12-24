@@ -35,7 +35,6 @@ public final class ClusterInputTest extends ESIntegTestCase {
     public void testSimpleTask() throws Exception {
         ensureGreen();
         System.setSecurityManager(null);
-        final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         final String index = "testsimpletask";
         final LogstashClusterConfig config = new LogstashClusterConfig(
@@ -51,6 +50,7 @@ public final class ClusterInputTest extends ESIntegTestCase {
                     ClusterInputTest.SimpleTaskLeader.class.getName()
                 )
             );
+            final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
             try (
                 ClusterInput input = new ClusterInput(
                     event -> {
