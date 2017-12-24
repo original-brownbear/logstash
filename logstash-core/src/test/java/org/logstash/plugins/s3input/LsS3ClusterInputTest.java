@@ -20,6 +20,7 @@ import org.logstash.TestUtils;
 import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -64,17 +65,7 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
             configProvider.publishJobSettings(jobSettings);
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
             final ExecutorService exec = Executors.newSingleThreadExecutor();
-            try (final ClusterInput input =
-                     new ClusterInput(
-                         event -> {
-                             try {
-                                 queue.put(event);
-                             } catch (final InterruptedException ex) {
-                                 throw new IllegalStateException(ex);
-                             }
-                         }, configProvider
-                     )
-            ) {
+            try (ClusterInput input = new ClusterInput(EventQueue.wrap(queue), configProvider)) {
                 exec.execute(input);
                 MatcherAssert.assertThat(
                     queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)

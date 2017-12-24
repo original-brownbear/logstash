@@ -80,7 +80,9 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
                     break;
                 }
             }
+            stopped.set(true);
             stopLatch.countDown();
+            LOGGER.info("Finished shutting down S3 Input Leader on {}", localId);
         } catch (final Exception ex) {
             LOGGER.error("Exception in S3 Input Main Loop: {}", ex);
             throw new IllegalStateException(ex);

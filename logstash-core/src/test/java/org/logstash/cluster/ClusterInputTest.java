@@ -18,6 +18,7 @@ import org.logstash.RubyUtil;
 import org.logstash.TestUtils;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.cluster.serializer.Serializer;
+import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 import static org.hamcrest.Matchers.contains;
@@ -51,17 +52,7 @@ public final class ClusterInputTest extends ESIntegTestCase {
                 )
             );
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
-            try (
-                ClusterInput input = new ClusterInput(
-                    event -> {
-                        try {
-                            queue.put(event);
-                        } catch (final InterruptedException ex) {
-                            throw new IllegalStateException(ex);
-                        }
-                    }, configProvider
-                )
-            ) {
+            try (ClusterInput input = new ClusterInput(EventQueue.wrap(queue), configProvider)) {
                 exec.execute(input);
                 final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
                     new LogstashClusterConfig(
