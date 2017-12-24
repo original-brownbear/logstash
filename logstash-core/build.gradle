@@ -125,6 +125,9 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
     compile 'org.codehaus.janino:janino:3.0.7'
+    compile('com.amazonaws:aws-java-sdk-s3:1.11.254') {
+        exclude group: 'joda-time', module: 'joda-time'
+    }
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jacksonVersion}"
     compile "org.jruby:jruby-complete:${jrubyVersion}"
     compile 'io.netty:netty-all:4.1.17.Final'
