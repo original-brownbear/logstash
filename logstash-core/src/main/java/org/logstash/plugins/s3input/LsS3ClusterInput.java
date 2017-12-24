@@ -5,8 +5,12 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.util.IOUtils;
 import com.google.common.util.concurrent.Uninterruptibles;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
@@ -14,6 +18,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.logstash.Event;
+import org.logstash.FieldReference;
+import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.EnqueueEvent;
 import org.logstash.cluster.LogstashClusterServer;
@@ -21,6 +28,7 @@ import org.logstash.cluster.primitives.leadership.LeaderElector;
 import org.logstash.cluster.primitives.map.ConsistentTreeMap;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.ext.EventQueue;
+import org.logstash.ext.JrubyEventExtLibrary;
 
 public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
@@ -63,12 +71,13 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
                 config.get(S3_KEY_INDEX), config.get(S3_SECRET_INDEX), config.get(S3_REGION_INDEX),
                 config.get(S3_BUCKET_INDEX)
             );
-            try (final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue()) {
-                for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
-                    tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
-                    if (stopped.get()) {
-                        break;
-                    }
+            final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue();
+            for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
+                LOGGER.info("Enqueuing task to process {}", object);
+                tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
+                if (stopped.get()) {
+                    LOGGER.info("S3 input has been stopped.");
+                    break;
                 }
             }
             stopLatch.countDown();
@@ -158,7 +167,21 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
         @Override
         public void enqueue(final EventQueue queue) {
-
+            final AmazonS3 s3Client = AmazonS3Client.builder().withRegion(config.region)
+                .withCredentials(
+                    new LsS3ClusterInput.SimpleCredentialProvider(config.key, config.secret)
+                ).build();
+            try (final S3Object obj = s3Client.getObject(config.bucket, object)) {
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                IOUtils.copy(obj.getObjectContent(), baos);
+                for (final String line : baos.toString("UTF-8").split("\n")) {
+                    final Event event = new Event();
+                    event.setField(FieldReference.from("message"), line);
+                    queue.push(JrubyEventExtLibrary.RubyEvent.newRubyEvent(RubyUtil.RUBY, event));
+                }
+            } catch (final IOException ex) {
+                throw new IllegalStateException(ex);
+            }
         }
     }
 }
