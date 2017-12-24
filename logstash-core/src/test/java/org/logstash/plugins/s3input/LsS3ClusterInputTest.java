@@ -1,8 +1,11 @@
 package org.logstash.plugins.s3input;
 
+import com.amazonaws.http.IdleConnectionReaper;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -50,11 +53,15 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
         );
         try (ClusterConfigProvider configProvider =
                  ClusterConfigProvider.esConfigProvider(client(), config)) {
-            configProvider.publishJobSettings(
-                Collections.singletonMap(
-                    ClusterInput.LOGSTASH_TASK_CLASS_SETTING, LsS3ClusterInput.class.getName()
-                )
+            final Map<String, String> jobSettings = new HashMap<>();
+            jobSettings.put(
+                ClusterInput.LOGSTASH_TASK_CLASS_SETTING, LsS3ClusterInput.class.getName()
             );
+            jobSettings.put(LsS3ClusterInput.S3_KEY_INDEX, TEST_KEY);
+            jobSettings.put(LsS3ClusterInput.S3_SECRET_INDEX, TEST_SECRET);
+            jobSettings.put(LsS3ClusterInput.S3_REGION_INDEX, TEST_REGION);
+            jobSettings.put(LsS3ClusterInput.S3_BUCKET_INDEX, TEST_BUCKET);
+            configProvider.publishJobSettings(jobSettings);
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
             final ExecutorService exec = Executors.newSingleThreadExecutor();
             try (final ClusterInput input =
@@ -72,7 +79,10 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
                 MatcherAssert.assertThat(
                     queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
                 );
+            } finally {
+                exec.shutdownNow();
             }
         }
+        IdleConnectionReaper.shutdown();
     }
 }
