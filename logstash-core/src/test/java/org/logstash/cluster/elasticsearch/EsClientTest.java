@@ -98,6 +98,10 @@ public final class EsClientTest extends ESIntegTestCase {
                  )
         ) {
             MatcherAssert.assertThat(client.currentJobSettings(), Matchers.is(Collections.emptyMap()));
+            final String key = "foo";
+            final String value = "bar";
+            client.publishJobSettings(Collections.singletonMap(key, value));
+            MatcherAssert.assertThat(client.currentJobSettings().get(key), Matchers.is(value));
         }
     }
 }
