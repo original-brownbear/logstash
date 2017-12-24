@@ -14,6 +14,8 @@ public interface ClusterConfigProvider extends Closeable {
 
     Map<String, String> currentJobSettings();
 
+    void publishJobSettings(Map<String, String> settings);
+
     void publishBootstrapNodes(Collection<Node> nodes);
 
     static ClusterConfigProvider esConfigProvider(final Client client,
