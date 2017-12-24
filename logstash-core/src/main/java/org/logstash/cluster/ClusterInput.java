@@ -47,7 +47,7 @@ public final class ClusterInput implements Runnable, Closeable {
         this(new JavaQueue(queue), provider);
     }
 
-    ClusterInput(final EventQueue queue, final ClusterConfigProvider provider) {
+    public ClusterInput(final EventQueue queue, final ClusterConfigProvider provider) {
         this.queue = queue;
         this.configProvider = provider;
         cluster = LogstashClusterServer.fromConfig(provider.currentClusterConfig());

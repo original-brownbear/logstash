@@ -73,6 +73,7 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
             }
             stopLatch.countDown();
         } catch (final Exception ex) {
+            LOGGER.error("Exception in S3 Input Main Loop: {}", ex);
             throw new IllegalStateException(ex);
         }
     }
