@@ -13,6 +13,8 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
 
     private static final String TEST_BUCKET = System.getProperty("org.logstash.s3it.bucket");
 
+    private static final String TEST_REGION = System.getProperty("org.logstash.s3it.region");
+
     private static final String TEST_KEY = System.getProperty("org.logstash.s3it.key");
 
     private static final String TEST_SECRET = System.getProperty("org.logstash.s3it.secret");
@@ -22,6 +24,6 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
 
     @Test
     public void readsOnMultipleNodes() {
-        Assume.assumeNotNull(TEST_BUCKET, TEST_KEY, TEST_SECRET);
+        Assume.assumeNotNull(TEST_BUCKET, TEST_REGION, TEST_KEY, TEST_SECRET);
     }
 }
