@@ -73,14 +73,6 @@ public class RaftStorage {
     }
 
     /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    public static Builder newBuilder() {
-        return builder();
-    }
-
-    /**
      * Returns a new storage builder.
      * @return A new storage builder.
      */

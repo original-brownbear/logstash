@@ -79,15 +79,6 @@ public interface RaftSession {
     ReadConsistency readConsistency();
 
     /**
-     * Returns the session timeout.
-     * @return The session timeout.
-     */
-    @Deprecated
-    default long timeout() {
-        return maxTimeout();
-    }
-
-    /**
      * Returns the maximum session timeout.
      * @return The maximum session timeout.
      */
