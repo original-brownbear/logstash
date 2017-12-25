@@ -15,7 +15,6 @@ import java.util.concurrent.Executor;
  * <p>
  * Components of the framework that provide custom threads should use {@link AtomixThreadFactory}
  * to allocate new threads and provide a custom {@link ThreadContext} implementation.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public interface ThreadContext extends AutoCloseable, Executor, Scheduler {
 
