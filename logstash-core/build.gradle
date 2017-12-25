@@ -109,7 +109,7 @@ idea {
 
 dependencies {
     compile 'io.netty:netty-all:4.1.13.Final'
-    compile('org.elasticsearch:elasticsearch:6.0.0') {
+    compile('org.elasticsearch.client:elasticsearch-rest-high-level-client:6.0.0') {
         exclude group: 'joda-time', module: 'joda-time'
     }
     compile 'com.esotericsoftware:kryo:4.0.1'
