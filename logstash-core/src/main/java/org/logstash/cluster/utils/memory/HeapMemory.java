@@ -4,7 +4,6 @@ import sun.misc.Unsafe;
 
 /**
  * Java heap memory.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class HeapMemory implements Memory {
     public static final int ARRAY_BASE_OFFSET = NativeMemory.UNSAFE.arrayBaseOffset(byte[].class);
