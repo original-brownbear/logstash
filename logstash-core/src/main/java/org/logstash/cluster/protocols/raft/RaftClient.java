@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft;
 
 import com.google.common.base.Preconditions;
@@ -31,14 +16,6 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
  * Provides an interface for submitting operations to the Raft cluster.
  */
 public interface RaftClient {
-
-    /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    static Builder newBuilder() {
-        return builder();
-    }
 
     /**
      * Returns a new Raft client builder.
@@ -67,14 +44,6 @@ public interface RaftClient {
     }
 
     /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    static Builder newBuilder(MemberId... cluster) {
-        return builder(cluster);
-    }
-
-    /**
      * Returns a new Raft client builder.
      * <p>
      * The provided set of members will be used to connect to the Raft cluster. The members list does not have to represent
@@ -85,14 +54,6 @@ public interface RaftClient {
      */
     static Builder builder(MemberId... cluster) {
         return builder(Arrays.asList(cluster));
-    }
-
-    /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    static Builder newBuilder(Collection<MemberId> cluster) {
-        return builder(cluster);
     }
 
     /**
@@ -219,27 +180,5 @@ public interface RaftClient {
             return this;
         }
 
-        /**
-         * Sets the client thread model.
-         * @param threadModel the client thread model
-         * @return the client builder
-         * @throws NullPointerException if the thread model is null
-         */
-        public Builder withThreadModel(ThreadModel threadModel) {
-            this.threadModel = Preconditions.checkNotNull(threadModel, "threadModel cannot be null");
-            return this;
-        }
-
-        /**
-         * Sets the client thread pool size.
-         * @param threadPoolSize The client thread pool size.
-         * @return The client builder.
-         * @throws IllegalArgumentException if the thread pool size is not positive
-         */
-        public Builder withThreadPoolSize(int threadPoolSize) {
-            Preconditions.checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
-            this.threadPoolSize = threadPoolSize;
-            return this;
-        }
     }
 }

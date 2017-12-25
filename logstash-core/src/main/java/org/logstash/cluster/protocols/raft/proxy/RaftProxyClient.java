@@ -159,17 +159,6 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
 
         /**
          * Sets the session timeout.
-         * @param timeoutMillis The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         */
-        @Deprecated
-        public Builder withTimeout(long timeoutMillis) {
-            return withMaxTimeout(Duration.ofMillis(timeoutMillis));
-        }
-
-        /**
-         * Sets the session timeout.
          * @param timeout The session timeout.
          * @return The session builder.
          * @throws IllegalArgumentException if the session timeout is not positive
@@ -179,18 +168,6 @@ public interface RaftProxyClient extends RaftProxyExecutor, Managed<RaftProxyCli
             Preconditions.checkArgument(!Preconditions.checkNotNull(timeout).isNegative(), "timeout must be positive");
             this.maxTimeout = timeout;
             return this;
-        }
-
-        /**
-         * Sets the session timeout.
-         * @param timeout The session timeout.
-         * @return The session builder.
-         * @throws IllegalArgumentException if the session timeout is not positive
-         * @throws NullPointerException if the timeout is null
-         */
-        @Deprecated
-        public Builder withTimeout(Duration timeout) {
-            return withMaxTimeout(timeout);
         }
 
         /**

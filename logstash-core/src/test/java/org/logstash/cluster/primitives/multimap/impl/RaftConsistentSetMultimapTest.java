@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import org.junit.Assert;
 import org.junit.Test;
 import org.logstash.cluster.primitives.impl.AbstractRaftPrimitiveTest;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
@@ -55,44 +56,44 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
     public void testSize() {
         RaftConsistentSetMultimap map = createResource("testOneMap");
         //Simplest operation case
-        map.isEmpty().thenAccept(result -> assertTrue(result));
+        map.isEmpty().thenAccept(Assert::assertTrue);
         map.put(keyOne, valueOne).
-            thenAccept(result -> assertTrue(result)).join();
-        map.isEmpty().thenAccept(result -> assertFalse(result));
+            thenAccept(Assert::assertTrue).join();
+        map.isEmpty().thenAccept(Assert::assertFalse);
         map.size().thenAccept(result -> assertEquals(1, (int) result))
             .join();
         //Make sure sizing is dependent on values not keys
         map.put(keyOne, valueTwo).
-            thenAccept(result -> assertTrue(result)).join();
+            thenAccept(Assert::assertTrue).join();
         map.size().thenAccept(result -> assertEquals(2, (int) result))
             .join();
         //Ensure that double adding has no effect
         map.put(keyOne, valueOne).
-            thenAccept(result -> assertFalse(result)).join();
+            thenAccept(Assert::assertFalse).join();
         map.size().thenAccept(result -> assertEquals(2, (int) result))
             .join();
         //Check handling for multiple keys
         map.put(keyTwo, valueOne)
-            .thenAccept(result -> assertTrue(result)).join();
+            .thenAccept(Assert::assertTrue).join();
         map.put(keyTwo, valueTwo)
-            .thenAccept(result -> assertTrue(result)).join();
+            .thenAccept(Assert::assertTrue).join();
         map.size().thenAccept(result -> assertEquals(4, (int) result))
             .join();
         //Check size with removal
         map.remove(keyOne, valueOne).
-            thenAccept(result -> assertTrue(result)).join();
+            thenAccept(Assert::assertTrue).join();
         map.size().thenAccept(result -> assertEquals(3, (int) result))
             .join();
         //Check behavior under remove of non-existant key
         map.remove(keyOne, valueOne).
-            thenAccept(result -> assertFalse(result)).join();
+            thenAccept(Assert::assertFalse).join();
         map.size().thenAccept(result -> assertEquals(3, (int) result))
             .join();
         //Check clearing the entirety of the map
         map.clear().join();
         map.size().thenAccept(result -> assertEquals(0, (int) result))
             .join();
-        map.isEmpty().thenAccept(result -> assertTrue(result));
+        map.isEmpty().thenAccept(Assert::assertTrue);
 
         map.destroy().join();
     }
@@ -114,54 +115,39 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         RaftConsistentSetMultimap map = createResource("testTwoMap");
 
         //Populate the maps
-        allKeys.forEach(key -> {
-            map.putAll(key, allValues)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allKeys.forEach(key -> map.putAll(key, allValues)
+            .thenAccept(Assert::assertTrue).join());
         map.size().thenAccept(result -> assertEquals(16, (int) result)).join();
 
         //Test key contains positive results
-        allKeys.forEach(key -> {
-            map.containsKey(key)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allKeys.forEach(key -> map.containsKey(key)
+            .thenAccept(Assert::assertTrue).join());
 
         //Test value contains positive results
-        allValues.forEach(value -> {
-            map.containsValue(value)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allValues.forEach(value -> map.containsValue(value).thenAccept(Assert::assertTrue).join());
 
         //Test contains entry for all possible entries
-        allKeys.forEach(key -> {
-            allValues.forEach(value -> {
-                map.containsEntry(key, value)
-                    .thenAccept(result -> assertTrue(result)).join();
-            });
-        });
+        allKeys.forEach(key -> allValues.forEach(value -> map.containsEntry(key, value)
+            .thenAccept(Assert::assertTrue).join()));
 
         final String[] removedKey = new String[1];
 
         //Test behavior after removals
-        allValues.forEach(value -> {
-            allKeys.forEach(key -> {
-                map.remove(key, value)
-                    .thenAccept(result -> assertTrue(result)).join();
-                map.containsEntry(key, value)
-                    .thenAccept(result -> assertFalse(result)).join();
-                removedKey[0] = key;
-            });
-        });
+        allValues.forEach(value -> allKeys.forEach(key -> {
+            map.remove(key, value)
+                .thenAccept(Assert::assertTrue).join();
+            map.containsEntry(key, value)
+                .thenAccept(Assert::assertFalse).join();
+            removedKey[0] = key;
+        }));
 
         //Check that contains key works properly for removed keys
         map.containsKey(removedKey[0])
-            .thenAccept(result -> assertFalse(result));
+            .thenAccept(Assert::assertFalse);
 
         //Check that contains value works correctly for removed values
-        allValues.forEach(value -> {
-            map.containsValue(value)
-                .thenAccept(result -> assertFalse(result)).join();
-        });
+        allValues.forEach(value -> map.containsValue(value)
+            .thenAccept(Assert::assertFalse).join());
 
         map.destroy().join();
     }
@@ -178,10 +164,10 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
             //Value should actually be added here
             allValues.forEach(value -> {
                 map.put(key, value)
-                    .thenAccept(result -> assertTrue(result)).join();
+                    .thenAccept(Assert::assertTrue).join();
                 //Duplicate values should be ignored here
                 map.put(key, value)
-                    .thenAccept(result -> assertFalse(result)).join();
+                    .thenAccept(Assert::assertFalse).join();
             });
         });
 
@@ -190,25 +176,25 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
             //Value should actually be added here
             allValues.forEach(value -> {
                 map.remove(key, value)
-                    .thenAccept(result -> assertTrue(result)).join();
+                    .thenAccept(Assert::assertTrue).join();
                 //Duplicate values should be ignored here
                 map.remove(key, value)
-                    .thenAccept(result -> assertFalse(result)).join();
+                    .thenAccept(Assert::assertFalse).join();
             });
         });
 
-        map.isEmpty().thenAccept(result -> assertTrue(result)).join();
+        map.isEmpty().thenAccept(Assert::assertTrue).join();
 
         //Test multi put
         allKeys.forEach(key -> {
             map.putAll(key, Lists.newArrayList(allValues.subList(0, 2)))
-                .thenAccept(result -> assertTrue(result)).join();
+                .thenAccept(Assert::assertTrue).join();
             map.putAll(key, Lists.newArrayList(allValues.subList(0, 2)))
-                .thenAccept(result -> assertFalse(result)).join();
+                .thenAccept(Assert::assertFalse).join();
             map.putAll(key, Lists.newArrayList(allValues.subList(2, 4)))
-                .thenAccept(result -> assertTrue(result)).join();
+                .thenAccept(Assert::assertTrue).join();
             map.putAll(key, Lists.newArrayList(allValues.subList(2, 4)))
-                .thenAccept(result -> assertFalse(result)).join();
+                .thenAccept(Assert::assertFalse).join();
 
         });
 
@@ -216,44 +202,36 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         allKeys.forEach(key -> {
             //Split the lists to test how multiRemove can work piecewise
             map.removeAll(key, Lists.newArrayList(allValues.subList(0, 2)))
-                .thenAccept(result -> assertTrue(result)).join();
+                .thenAccept(Assert::assertTrue).join();
             map.removeAll(key, Lists.newArrayList(allValues.subList(0, 2)))
-                .thenAccept(result -> assertFalse(result)).join();
+                .thenAccept(Assert::assertFalse).join();
             map.removeAll(key, Lists.newArrayList(allValues.subList(2, 4)))
-                .thenAccept(result -> assertTrue(result)).join();
+                .thenAccept(Assert::assertTrue).join();
             map.removeAll(key, Lists.newArrayList(allValues.subList(2, 4)))
-                .thenAccept(result -> assertFalse(result)).join();
+                .thenAccept(Assert::assertFalse).join();
         });
 
-        map.isEmpty().thenAccept(result -> assertTrue(result)).join();
+        map.isEmpty().thenAccept(Assert::assertTrue).join();
 
         //Repopulate for next test
-        allKeys.forEach(key -> {
-            map.putAll(key, allValues)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allKeys.forEach(key -> map.putAll(key, allValues)
+            .thenAccept(Assert::assertTrue).join());
 
         map.size().thenAccept(result -> assertEquals(16, (int) result)).join();
 
         //Test removeAll of entire entry
         allKeys.forEach(key -> {
-            map.removeAll(key).thenAccept(result -> {
-                assertTrue(
-                    byteArrayCollectionIsEqual(allValues, result.value()));
-            }).join();
-            map.removeAll(key).thenAccept(result -> {
-                assertFalse(
-                    byteArrayCollectionIsEqual(allValues, result.value()));
-            }).join();
+            map.removeAll(key).thenAccept(result -> assertTrue(
+                byteArrayCollectionIsEqual(allValues, result.value()))).join();
+            map.removeAll(key).thenAccept(result -> assertFalse(
+                byteArrayCollectionIsEqual(allValues, result.value()))).join();
         });
 
-        map.isEmpty().thenAccept(result -> assertTrue(result)).join();
+        map.isEmpty().thenAccept(Assert::assertTrue).join();
 
         //Repopulate for next test
-        allKeys.forEach(key -> {
-            map.putAll(key, allValues)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allKeys.forEach(key -> map.putAll(key, allValues)
+            .thenAccept(Assert::assertTrue).join());
 
         map.size().thenAccept(result -> assertEquals(16, (int) result)).join();
 
@@ -279,8 +257,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
 
         allKeys.forEach(key -> {
             map.remove(key, valueOne)
-                .thenAccept(result ->
-                    assertTrue(result)).join();
+                .thenAccept(Assert::assertTrue).join();
             map.replaceValues(key, Lists.newArrayList())
                 .thenAccept(result ->
                     assertTrue(byteArrayCollectionIsEqual(
@@ -333,19 +310,13 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         RaftConsistentSetMultimap map = createResource("testFourMap");
 
         //Populate for full map behavior tests
-        allKeys.forEach(key -> {
-            map.putAll(key, allValues)
-                .thenAccept(result -> assertTrue(result)).join();
-        });
+        allKeys.forEach(key -> map.putAll(key, allValues)
+            .thenAccept(Assert::assertTrue).join());
 
         map.size().thenAccept(result -> assertEquals(16, (int) result)).join();
 
-        allKeys.forEach(key -> {
-            map.get(key).thenAccept(result -> {
-                assertTrue(byteArrayCollectionIsEqual(allValues,
-                    result.value()));
-            }).join();
-        });
+        allKeys.forEach(key -> map.get(key).thenAccept(result -> assertTrue(byteArrayCollectionIsEqual(allValues,
+            result.value()))).join());
 
         //Test that the key set is correct
         map.keySet()
@@ -384,11 +355,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         map.entries().thenAccept(result -> {
             final Multiset<Map.Entry<String, byte[]>> set =
                 TreeMultiset.create(new EntryComparator());
-            allKeys.forEach(key -> {
-                allValues.forEach(value -> {
-                    set.add(Maps.immutableEntry(key, value));
-                });
-            });
+            allKeys.forEach(key -> allValues.forEach(value -> set.add(Maps.immutableEntry(key, value))));
             assertEquals(16, result.size());
             result.forEach(entry -> assertTrue(set.remove(entry)));
             assertTrue(set.isEmpty());
@@ -397,11 +364,7 @@ public class RaftConsistentSetMultimapTest extends AbstractRaftPrimitiveTest<Raf
         //Testing for empty map behavior
         map.clear().join();
 
-        allKeys.forEach(key -> {
-            map.get(key).thenAccept(result -> {
-                assertTrue(result.value().isEmpty());
-            }).join();
-        });
+        allKeys.forEach(key -> map.get(key).thenAccept(result -> assertTrue(result.value().isEmpty())).join());
 
         map.keySet().thenAccept(result -> assertTrue(result.isEmpty())).join();
         map.values().thenAccept(result -> assertTrue(result.isEmpty())).join();

@@ -125,11 +125,6 @@ import org.logstash.cluster.protocols.raft.storage.system.MetaStore;
  */
 public interface RaftServer {
 
-    @Deprecated
-    static Builder newBuilder() {
-        return builder();
-    }
-
     /**
      * Returns a new Raft server builder using the default host:port.
      * <p>
@@ -149,14 +144,6 @@ public interface RaftServer {
      */
     static Builder builder(MemberId localMemberId) {
         return new DefaultRaftServer.Builder(localMemberId);
-    }
-
-    /**
-     * @deprecated since 2.1
-     */
-    @Deprecated
-    static Builder newBuilder(MemberId localMemberId) {
-        return builder(localMemberId);
     }
 
     /**
@@ -547,32 +534,12 @@ public interface RaftServer {
         }
 
         /**
-         * Sets the initial server member type.
-         * @param type The initial server member type.
-         * @return The server builder.
-         */
-        @Deprecated
-        public Builder withType(RaftMember.Type type) {
-            return this;
-        }
-
-        /**
          * Sets the server protocol.
          * @param protocol The server protocol.
          * @return The server builder.
          */
         public Builder withProtocol(RaftServerProtocol protocol) {
             this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
-            return this;
-        }
-
-        /**
-         * Sets the server thread model.
-         * @param threadModel the server thread model
-         * @return the server builder
-         */
-        public Builder withThreadModel(ThreadModel threadModel) {
-            this.threadModel = Preconditions.checkNotNull(threadModel, "threadModel cannot be null");
             return this;
         }
 

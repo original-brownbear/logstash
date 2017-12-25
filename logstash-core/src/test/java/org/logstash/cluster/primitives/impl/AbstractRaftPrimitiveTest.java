@@ -168,7 +168,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      * @return The next server address.
      */
     private RaftMember nextMember(final RaftMember.Type type) {
-        return new TestMember(nextMemberId(), type);
+        return new AbstractRaftPrimitiveTest.TestMember(nextMemberId(), type);
     }
 
     /**
@@ -176,7 +176,6 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      */
     private RaftServer createServer(final RaftMember member) {
         final RaftServer.Builder builder = RaftServer.builder(member.memberId())
-            .withType(member.getType())
             .withProtocol(new TestRaftServerCommunicator(
                 "partition-1",
                 Serializer.using(RaftTestNamespaces.RAFT_PROTOCOL),
@@ -245,9 +244,9 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
      */
     public static class TestMember implements RaftMember {
         private final MemberId memberId;
-        private final Type type;
+        private final RaftMember.Type type;
 
-        TestMember(final MemberId memberId, final Type type) {
+        TestMember(final MemberId memberId, final RaftMember.Type type) {
             this.memberId = memberId;
             this.type = type;
         }
@@ -263,17 +262,17 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public Type getType() {
+        public RaftMember.Type getType() {
             return type;
         }
 
         @Override
-        public void addTypeChangeListener(final Consumer<Type> listener) {
+        public void addTypeChangeListener(final Consumer<RaftMember.Type> listener) {
 
         }
 
         @Override
-        public void removeTypeChangeListener(final Consumer<Type> listener) {
+        public void removeTypeChangeListener(final Consumer<RaftMember.Type> listener) {
 
         }
 
@@ -288,7 +287,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public CompletableFuture<Void> promote(final Type type) {
+        public CompletableFuture<Void> promote(final RaftMember.Type type) {
             return null;
         }
 
@@ -298,7 +297,7 @@ public abstract class AbstractRaftPrimitiveTest<T extends AbstractRaftPrimitive>
         }
 
         @Override
-        public CompletableFuture<Void> demote(final Type type) {
+        public CompletableFuture<Void> demote(final RaftMember.Type type) {
             return null;
         }
 

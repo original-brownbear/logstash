@@ -38,11 +38,6 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
         this.writer = new RaftLogWriter(journal.writer(), this);
     }
 
-    @Deprecated
-    public static Builder newBuilder() {
-        return builder();
-    }
-
     /**
      * Returns a new Raft log builder.
      * @return A new Raft log builder.
