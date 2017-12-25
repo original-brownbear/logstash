@@ -19,17 +19,26 @@ public final class LogstashClusterConfig {
 
     private final String esIndex;
 
+    public LogstashClusterConfig(final String esIndex) {
+        this(null, null, null, esIndex);
+    }
+
     public LogstashClusterConfig(final String nodeId, final InetSocketAddress bind,
         final Collection<Node> bootstrap, final File dataDir, final String esIndex) {
-        this(new DefaultNode(
-            NodeId.from(nodeId), new Endpoint(bind.getAddress(), bind.getPort())
-        ), bootstrap, dataDir, esIndex);
+        this(
+            bind == null ? null :
+                new DefaultNode(
+                    NodeId.from(nodeId), new Endpoint(bind.getAddress(), bind.getPort())
+                ),
+            bootstrap, dataDir, esIndex
+        );
     }
 
     public LogstashClusterConfig(final Node node, final Collection<Node> bootstrap,
         final File dataDir, final String esIndex) {
         this.node = node;
-        this.bootstrap = bootstrap.isEmpty() ? Collections.singleton(node) : bootstrap;
+        this.bootstrap = bootstrap == null || bootstrap.isEmpty() ?
+            Collections.singleton(node) : bootstrap;
         this.dataDir = dataDir;
         this.esIndex = esIndex;
     }

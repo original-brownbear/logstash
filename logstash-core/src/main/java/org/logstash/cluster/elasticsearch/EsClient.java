@@ -90,11 +90,10 @@ public final class EsClient implements ClusterConfigProvider {
         final Collection<Node> update = new HashSet<>();
         if (existing.isExists()) {
             update.addAll(deserializeNodesResponse(existing));
-            if (!update.addAll(nodes)) {
+            if (!(update.addAll(nodes) || update.add(config.localNode()))) {
                 return;
             }
         }
-        update.add(config.localNode());
         final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
             .collect(Collectors.toList());
         try {
@@ -155,7 +154,10 @@ public final class EsClient implements ClusterConfigProvider {
         if (!client.admin().indices().prepareExists(index).get().isExists()) {
             client.admin().indices().prepareCreate(index).execute().get();
         }
-        publishBootstrapNodes(Collections.singleton(config.localNode()));
+        final Node lnode = config.localNode();
+        if (lnode != null) {
+            publishBootstrapNodes(Collections.singleton(lnode));
+        }
         publishJobSettings(Collections.emptyMap());
     }
 
