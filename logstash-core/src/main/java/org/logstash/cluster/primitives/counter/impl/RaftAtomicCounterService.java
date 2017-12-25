@@ -1,10 +1,6 @@
 package org.logstash.cluster.primitives.counter.impl;
 
 import java.util.Objects;
-import org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.AddAndGet;
-import org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.CompareAndSet;
-import org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.GetAndAdd;
-import org.logstash.cluster.primitives.counter.impl.RaftAtomicCounterOperations.Set;
 import org.logstash.cluster.protocols.raft.service.AbstractRaftService;
 import org.logstash.cluster.protocols.raft.service.Commit;
 import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
@@ -26,7 +22,7 @@ public class RaftAtomicCounterService extends AbstractRaftService {
     private Long value = 0L;
 
     @Override
-    protected void configure(RaftServiceExecutor executor) {
+    protected void configure(final RaftServiceExecutor executor) {
         executor.register(RaftAtomicCounterOperations.SET, SERIALIZER::decode, this::set);
         executor.register(RaftAtomicCounterOperations.GET, this::get, SERIALIZER::encode);
         executor.register(RaftAtomicCounterOperations.COMPARE_AND_SET, SERIALIZER::decode, this::compareAndSet, SERIALIZER::encode);
@@ -37,12 +33,12 @@ public class RaftAtomicCounterService extends AbstractRaftService {
     }
 
     @Override
-    public void snapshot(SnapshotWriter writer) {
+    public void snapshot(final SnapshotWriter writer) {
         writer.writeLong(value);
     }
 
     @Override
-    public void install(SnapshotReader reader) {
+    public void install(final SnapshotReader reader) {
         value = reader.readLong();
     }
 
@@ -50,7 +46,7 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * Handles a set commit.
      * @param commit the commit to handle
      */
-    protected void set(Commit<Set> commit) {
+    protected void set(final Commit<RaftAtomicCounterOperations.Set> commit) {
         value = commit.value().value();
     }
 
@@ -59,7 +55,7 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected Long get(Commit<Void> commit) {
+    protected Long get(final Commit<Void> commit) {
         return value;
     }
 
@@ -68,7 +64,7 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected boolean compareAndSet(Commit<CompareAndSet> commit) {
+    protected boolean compareAndSet(final Commit<RaftAtomicCounterOperations.CompareAndSet> commit) {
         if (Objects.equals(value, commit.value().expect())) {
             value = commit.value().update();
             return true;
@@ -81,8 +77,8 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected long incrementAndGet(Commit<Void> commit) {
-        Long oldValue = value;
+    protected long incrementAndGet(final Commit<Void> commit) {
+        final Long oldValue = value;
         value = oldValue + 1;
         return value;
     }
@@ -92,8 +88,8 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected long getAndIncrement(Commit<Void> commit) {
-        Long oldValue = value;
+    protected long getAndIncrement(final Commit<Void> commit) {
+        final Long oldValue = value;
         value = oldValue + 1;
         return oldValue;
     }
@@ -103,8 +99,8 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected long addAndGet(Commit<AddAndGet> commit) {
-        Long oldValue = value;
+    protected long addAndGet(final Commit<RaftAtomicCounterOperations.AddAndGet> commit) {
+        final Long oldValue = value;
         value = oldValue + commit.value().delta();
         return value;
     }
@@ -114,8 +110,8 @@ public class RaftAtomicCounterService extends AbstractRaftService {
      * @param commit the commit to handle
      * @return counter value
      */
-    protected long getAndAdd(Commit<GetAndAdd> commit) {
-        Long oldValue = value;
+    protected long getAndAdd(final Commit<RaftAtomicCounterOperations.GetAndAdd> commit) {
+        final Long oldValue = value;
         value = oldValue + commit.value().delta();
         return oldValue;
     }
