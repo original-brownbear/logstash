@@ -53,8 +53,8 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
 
     private static final MessageSubject GOSSIP_MESSAGE_SUBJECT = new MessageSubject("ClusterEventService-update");
 
-    private static final long GOSSIP_INTERVAL_MILLIS = 1000;
-    private static final long TOMBSTONE_EXPIRATION_MILLIS = 1000 * 60;
+    private static final long GOSSIP_INTERVAL_MILLIS = 1000L;
+    private static final long TOMBSTONE_EXPIRATION_MILLIS = (long) (1000 * 60);
 
     private final ClusterService clusterService;
     private final ClusterCommunicationService clusterCommunicator;
@@ -62,27 +62,27 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
     private final AtomicLong logicalTime = new AtomicLong();
     private final Map<NodeId, Long> updateTimes = Maps.newConcurrentMap();
     private final Map<MessageSubject, Map<NodeId, Subscription>> subjectSubscriptions = Maps.newConcurrentMap();
-    private final Map<MessageSubject, SubscriberIterator> subjectIterators = Maps.newConcurrentMap();
+    private final Map<MessageSubject, DefaultClusterEventService.SubscriberIterator> subjectIterators = Maps.newConcurrentMap();
     private final AtomicBoolean open = new AtomicBoolean();
     private ScheduledExecutorService gossipExecutor;
 
-    public DefaultClusterEventService(ClusterService clusterService, ClusterCommunicationService clusterCommunicator) {
+    public DefaultClusterEventService(final ClusterService clusterService, final ClusterCommunicationService clusterCommunicator) {
         this.clusterService = clusterService;
         this.clusterCommunicator = clusterCommunicator;
         this.localNodeId = clusterService.getLocalNode().id();
     }
 
     @Override
-    public <M> void broadcast(MessageSubject subject, M message, Function<M, byte[]> encoder) {
-        Collection<? extends NodeId> subscribers = getSubscriberNodes(subject);
+    public <M> void broadcast(final MessageSubject subject, final M message, final Function<M, byte[]> encoder) {
+        final Collection<? extends NodeId> subscribers = getSubscriberNodes(subject);
         if (subscribers != null) {
             subscribers.forEach(nodeId -> clusterCommunicator.unicast(subject, message, encoder, nodeId));
         }
     }
 
     @Override
-    public <M> CompletableFuture<Void> unicast(MessageSubject subject, M message, Function<M, byte[]> encoder) {
-        NodeId nodeId = getNextNodeId(subject);
+    public <M> CompletableFuture<Void> unicast(final MessageSubject subject, final M message, final Function<M, byte[]> encoder) {
+        final NodeId nodeId = getNextNodeId(subject);
         if (nodeId != null) {
             return clusterCommunicator.unicast(subject, message, encoder, nodeId);
         }
@@ -90,8 +90,8 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
     }
 
     @Override
-    public <M, R> CompletableFuture<R> sendAndReceive(MessageSubject subject, M message, Function<M, byte[]> encoder, Function<byte[], R> decoder) {
-        NodeId nodeId = getNextNodeId(subject);
+    public <M, R> CompletableFuture<R> sendAndReceive(final MessageSubject subject, final M message, final Function<M, byte[]> encoder, final Function<byte[], R> decoder) {
+        final NodeId nodeId = getNextNodeId(subject);
         if (nodeId == null) {
             return Futures.exceptionalFuture(new MessagingException.NoRemoteHandler());
         }
@@ -99,7 +99,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
     }
 
     @Override
-    public <M, R> CompletableFuture<Void> addSubscriber(MessageSubject subject, Function<byte[], M> decoder, Function<M, R> handler, Function<R, byte[]> encoder, Executor executor) {
+    public <M, R> CompletableFuture<Void> addSubscriber(final MessageSubject subject, final Function<byte[], M> decoder, final Function<M, R> handler, final Function<R, byte[]> encoder, final Executor executor) {
         return clusterCommunicator.addSubscriber(subject, decoder, handler, encoder, executor)
             .thenCompose(v -> registerSubscriber(subject));
     }
@@ -108,10 +108,10 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Registers the node as a subscriber for the given subject.
      * @param subject the subject for which to register the node as a subscriber
      */
-    private synchronized CompletableFuture<Void> registerSubscriber(MessageSubject subject) {
-        Map<NodeId, Subscription> nodeSubscriptions =
+    private synchronized CompletableFuture<Void> registerSubscriber(final MessageSubject subject) {
+        final Map<NodeId, Subscription> nodeSubscriptions =
             subjectSubscriptions.computeIfAbsent(subject, s -> Maps.newConcurrentMap());
-        Subscription subscription = new Subscription(
+        final Subscription subscription = new Subscription(
             localNodeId,
             subject,
             new LogicalTimestamp(logicalTime.incrementAndGet()));
@@ -123,7 +123,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Updates all active peers with a given subscription.
      */
     private CompletableFuture<Void> updateNodes() {
-        List<CompletableFuture<Void>> futures = clusterService.getNodes()
+        final List<CompletableFuture<Void>> futures = clusterService.getNodes()
             .stream()
             .filter(node -> !localNodeId.equals(node.id()))
             .map(Node::id)
@@ -133,20 +133,20 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
     }
 
     @Override
-    public <M, R> CompletableFuture<Void> addSubscriber(MessageSubject subject, Function<byte[], M> decoder, Function<M, CompletableFuture<R>> handler, Function<R, byte[]> encoder) {
+    public <M, R> CompletableFuture<Void> addSubscriber(final MessageSubject subject, final Function<byte[], M> decoder, final Function<M, CompletableFuture<R>> handler, final Function<R, byte[]> encoder) {
         registerSubscriber(subject);
         return clusterCommunicator.addSubscriber(subject, decoder, handler, encoder)
             .thenCompose(v -> registerSubscriber(subject));
     }
 
     @Override
-    public <M> CompletableFuture<Void> addSubscriber(MessageSubject subject, Function<byte[], M> decoder, Consumer<M> handler, Executor executor) {
+    public <M> CompletableFuture<Void> addSubscriber(final MessageSubject subject, final Function<byte[], M> decoder, final Consumer<M> handler, final Executor executor) {
         return clusterCommunicator.addSubscriber(subject, decoder, handler, executor)
             .thenCompose(v -> registerSubscriber(subject));
     }
 
     @Override
-    public void removeSubscriber(MessageSubject subject) {
+    public void removeSubscriber(final MessageSubject subject) {
         unregisterSubscriber(subject);
         clusterCommunicator.removeSubscriber(subject);
     }
@@ -155,10 +155,10 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Unregisters the node as a subscriber for the given subject.
      * @param subject the subject for which to unregister the node as a subscriber
      */
-    private synchronized void unregisterSubscriber(MessageSubject subject) {
-        Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.get(subject);
+    private synchronized void unregisterSubscriber(final MessageSubject subject) {
+        final Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.get(subject);
         if (nodeSubscriptions != null) {
-            Subscription subscription = nodeSubscriptions.get(localNodeId);
+            final Subscription subscription = nodeSubscriptions.get(localNodeId);
             if (subscription != null) {
                 nodeSubscriptions.put(localNodeId, subscription.asTombstone());
                 updateNodes();
@@ -171,8 +171,8 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * @param subject the subject for which to return the next node ID
      * @return the next node ID for the given message subject
      */
-    private NodeId getNextNodeId(MessageSubject subject) {
-        SubscriberIterator iterator = subjectIterators.get(subject);
+    private NodeId getNextNodeId(final MessageSubject subject) {
+        final DefaultClusterEventService.SubscriberIterator iterator = subjectIterators.get(subject);
         return iterator != null && iterator.hasNext() ? iterator.next() : null;
     }
 
@@ -181,8 +181,8 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * @param subject the subject for which to return a set of nodes
      * @return a set of nodes with subscribers for the given subject
      */
-    private Collection<? extends NodeId> getSubscriberNodes(MessageSubject subject) {
-        Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.get(subject);
+    private Collection<? extends NodeId> getSubscriberNodes(final MessageSubject subject) {
+        final Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.get(subject);
         if (nodeSubscriptions == null) {
             return null;
         }
@@ -200,7 +200,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Sends a gossip message to an active peer.
      */
     private void gossip() {
-        List<NodeId> nodes = clusterService.getNodes()
+        final List<NodeId> nodes = clusterService.getNodes()
             .stream()
             .filter(node -> !localNodeId.equals(node.id()))
             .filter(node -> node.state() == Node.State.ACTIVE)
@@ -209,7 +209,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
 
         if (!nodes.isEmpty()) {
             Collections.shuffle(nodes);
-            NodeId node = nodes.get(0);
+            final NodeId node = nodes.get(0);
             updateNode(node);
         }
     }
@@ -218,17 +218,17 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Sends an update to the given node.
      * @param nodeId the node to which to send the update
      */
-    private CompletableFuture<Void> updateNode(NodeId nodeId) {
-        long updateTime = System.currentTimeMillis();
-        long lastUpdateTime = updateTimes.getOrDefault(nodeId.id(), 0L);
+    private CompletableFuture<Void> updateNode(final NodeId nodeId) {
+        final long updateTime = System.currentTimeMillis();
+        final long lastUpdateTime = updateTimes.getOrDefault(nodeId.id(), 0L);
 
-        Collection<Subscription> subscriptions = new ArrayList<>();
+        final Collection<Subscription> subscriptions = new ArrayList<>();
         subjectSubscriptions.values().forEach(ns -> ns.values()
             .stream()
             .filter(subscription -> subscription.timestamp().unixTimestamp() >= lastUpdateTime)
             .forEach(subscriptions::add));
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        final CompletableFuture<Void> future = new CompletableFuture<>();
         clusterCommunicator.sendAndReceive(GOSSIP_MESSAGE_SUBJECT, subscriptions, SERIALIZER::encode, SERIALIZER::decode, nodeId)
             .whenComplete((result, error) -> {
                 if (error == null) {
@@ -243,16 +243,16 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Purges tombstones from the subscription list.
      */
     private void purgeTombstones() {
-        long minTombstoneTime = clusterService.getNodes()
+        final long minTombstoneTime = clusterService.getNodes()
             .stream()
             .map(node -> updateTimes.getOrDefault(node.id(), 0L))
             .reduce(Math::min)
             .orElse(0L);
-        for (Map<NodeId, Subscription> nodeSubscriptions : subjectSubscriptions.values()) {
-            Iterator<Map.Entry<NodeId, Subscription>> nodeSubscriptionIterator =
+        for (final Map<NodeId, Subscription> nodeSubscriptions : subjectSubscriptions.values()) {
+            final Iterator<Map.Entry<NodeId, Subscription>> nodeSubscriptionIterator =
                 nodeSubscriptions.entrySet().iterator();
             while (nodeSubscriptionIterator.hasNext()) {
-                Subscription subscription = nodeSubscriptionIterator.next().getValue();
+                final Subscription subscription = nodeSubscriptionIterator.next().getValue();
                 if (subscription.isTombstone() && subscription.timestamp().unixTimestamp() < minTombstoneTime) {
                     nodeSubscriptionIterator.remove();
                 }
@@ -286,11 +286,11 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Handles a collection of subscription updates received via the gossip protocol.
      * @param subscriptions a collection of subscriptions provided by the sender
      */
-    private void update(Collection<Subscription> subscriptions) {
-        for (Subscription subscription : subscriptions) {
-            Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.computeIfAbsent(
+    private void update(final Collection<Subscription> subscriptions) {
+        for (final Subscription subscription : subscriptions) {
+            final Map<NodeId, Subscription> nodeSubscriptions = subjectSubscriptions.computeIfAbsent(
                 subscription.subject(), s -> Maps.newConcurrentMap());
-            Subscription existingSubscription = nodeSubscriptions.get(subscription.nodeId());
+            final Subscription existingSubscription = nodeSubscriptions.get(subscription.nodeId());
             if (existingSubscription == null
                 || existingSubscription.logicalTimestamp().isOlderThan(subscription.logicalTimestamp())) {
                 nodeSubscriptions.put(subscription.nodeId(), subscription);
@@ -303,10 +303,10 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
      * Resets the iterator for the given message subject.
      * @param subject the subject for which to reset the iterator
      */
-    private synchronized void setSubscriberIterator(MessageSubject subject) {
-        Collection<? extends NodeId> subscriberNodes = getSubscriberNodes(subject);
+    private synchronized void setSubscriberIterator(final MessageSubject subject) {
+        final Collection<? extends NodeId> subscriberNodes = getSubscriberNodes(subject);
         if (subscriberNodes != null && !subscriberNodes.isEmpty()) {
-            subjectIterators.put(subject, new SubscriberIterator(subscriberNodes));
+            subjectIterators.put(subject, new DefaultClusterEventService.SubscriberIterator(subscriberNodes));
         } else {
             subjectIterators.remove(subject);
         }
@@ -339,7 +339,7 @@ public class DefaultClusterEventService implements ManagedClusterEventService {
         private final NodeId[] subscribers;
         private final int length;
 
-        SubscriberIterator(Collection<? extends NodeId> subscribers) {
+        SubscriberIterator(final Collection<? extends NodeId> subscribers) {
             this.length = subscribers.size();
             this.subscribers = subscribers.toArray(new NodeId[length]);
         }
