@@ -1,22 +1,6 @@
-/*
- * Copyright 2017-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.logstash.cluster.cluster.impl;
 
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -38,15 +22,6 @@ import static org.junit.Assert.assertNull;
  * Default cluster service test.
  */
 public class DefaultClusterServiceTest {
-    private final InetAddress localhost;
-
-    public DefaultClusterServiceTest() {
-        try {
-            localhost = InetAddress.getByName("127.0.0.1");
-        } catch (final UnknownHostException e) {
-            throw new AssertionError();
-        }
-    }
 
     @Test
     public void testClusterService() throws Exception {
@@ -73,11 +48,11 @@ public class DefaultClusterServiceTest {
 
         CompletableFuture.allOf(futures).join();
 
-        Thread.sleep(1000);
+        Thread.sleep(1000L);
 
-        assertEquals(3, clusterService1.getNodes().size());
-        assertEquals(3, clusterService2.getNodes().size());
-        assertEquals(3, clusterService3.getNodes().size());
+        assertEquals(3L, (long) clusterService1.getNodes().size());
+        assertEquals(3L, (long) clusterService2.getNodes().size());
+        assertEquals(3L, (long) clusterService3.getNodes().size());
 
         assertEquals(Type.CORE, clusterService1.getLocalNode().type());
         assertEquals(Type.CORE, clusterService1.getNode(NodeId.from("1")).type());
@@ -103,12 +78,12 @@ public class DefaultClusterServiceTest {
 
         clientClusterService.open().join();
 
-        Thread.sleep(100);
+        Thread.sleep(100L);
 
-        assertEquals(4, clusterService1.getNodes().size());
-        assertEquals(4, clusterService2.getNodes().size());
-        assertEquals(4, clusterService3.getNodes().size());
-        assertEquals(4, clientClusterService.getNodes().size());
+        assertEquals(4L, (long) clusterService1.getNodes().size());
+        assertEquals(4L, (long) clusterService2.getNodes().size());
+        assertEquals(4L, (long) clusterService3.getNodes().size());
+        assertEquals(4L, (long) clientClusterService.getNodes().size());
 
         assertEquals(Type.CLIENT, clientClusterService.getLocalNode().type());
 
@@ -124,13 +99,13 @@ public class DefaultClusterServiceTest {
         assertEquals(State.ACTIVE, clientClusterService.getNode(NodeId.from("3")).state());
         assertEquals(State.ACTIVE, clientClusterService.getNode(NodeId.from("4")).state());
 
-        Thread.sleep(2500);
+        Thread.sleep(2500L);
 
         clusterService1.close().join();
 
-        Thread.sleep(2500);
+        Thread.sleep(2500L);
 
-        assertEquals(4, clusterService2.getNodes().size());
+        assertEquals(4L, (long) clusterService2.getNodes().size());
         assertEquals(Type.CORE, clusterService2.getNode(NodeId.from("1")).type());
 
         assertEquals(State.INACTIVE, clusterService2.getNode(NodeId.from("1")).state());
@@ -145,9 +120,9 @@ public class DefaultClusterServiceTest {
 
         clientClusterService.close().join();
 
-        Thread.sleep(2500);
+        Thread.sleep(2500L);
 
-        assertEquals(3, clusterService2.getNodes().size());
+        assertEquals(3L, (long) clusterService2.getNodes().size());
 
         assertEquals(State.INACTIVE, clusterService2.getNode(NodeId.from("1")).state());
         assertEquals(State.ACTIVE, clusterService2.getNode(NodeId.from("2")).state());
@@ -155,17 +130,18 @@ public class DefaultClusterServiceTest {
         assertNull(clusterService2.getNode(NodeId.from("4")));
     }
 
-    private ClusterMetadata buildClusterMetadata(final int nodeId, final int... bootstrapNodes) {
+    private static ClusterMetadata buildClusterMetadata(final int nodeId, final int... bootstrapNodes) {
+        final InetAddress loopback = InetAddress.getLoopbackAddress();
         final ClusterMetadata.Builder metadataBuilder = ClusterMetadata.builder()
             .withLocalNode(Node.builder()
                 .withId(NodeId.from(String.valueOf(nodeId)))
-                .withEndpoint(new Endpoint(localhost, nodeId))
+                .withEndpoint(new Endpoint(loopback, nodeId))
                 .build());
         final List<Node> bootstrap = new ArrayList<>();
         for (final int bootstrapNode : bootstrapNodes) {
             bootstrap.add(Node.builder()
                 .withId(NodeId.from(String.valueOf(bootstrapNode)))
-                .withEndpoint(new Endpoint(localhost, bootstrapNode))
+                .withEndpoint(new Endpoint(loopback, bootstrapNode))
                 .build());
         }
         return metadataBuilder.withBootstrapNodes(bootstrap).build();
