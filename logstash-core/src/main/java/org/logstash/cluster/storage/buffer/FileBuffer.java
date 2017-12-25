@@ -11,7 +11,6 @@ import org.logstash.cluster.utils.memory.Memory;
  * File buffers wrap a simple {@link java.io.RandomAccessFile} instance to provide random access to a file on local disk. All
  * operations are delegated directly to the {@link java.io.RandomAccessFile} interface, and limitations are dependent on the
  * semantics of the underlying file.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class FileBuffer extends AbstractBuffer {
 

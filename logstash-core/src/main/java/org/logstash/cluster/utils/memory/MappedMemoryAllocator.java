@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  * supports allocating memory in any {@link FileChannel.MapMode}. Once the file is mapped and the
  * memory has been allocated, the mapped allocator provides the memory address of the underlying
  * {@link java.nio.MappedByteBuffer} for access via {@link sun.misc.Unsafe}.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class MappedMemoryAllocator implements MemoryAllocator<MappedMemory> {
     public static final FileChannel.MapMode DEFAULT_MAP_MODE = FileChannel.MapMode.READ_WRITE;

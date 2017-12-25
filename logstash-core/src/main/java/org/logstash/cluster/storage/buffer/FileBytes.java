@@ -19,7 +19,6 @@ import org.logstash.cluster.utils.memory.Memory;
  * Bytes are always stored in the underlying randomAccessFile in {@link ByteOrder#BIG_ENDIAN} order.
  * To flip the byte order to read or write to/from a randomAccessFile in {@link ByteOrder#LITTLE_ENDIAN} order use
  * {@link Bytes#order(ByteOrder)}.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class FileBytes extends AbstractBytes {
     static final String DEFAULT_MODE = "rw";
