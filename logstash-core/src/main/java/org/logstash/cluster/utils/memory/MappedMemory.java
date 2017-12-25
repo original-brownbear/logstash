@@ -13,7 +13,6 @@ import sun.nio.ch.DirectBuffer;
  * mapped memory descriptor simply points to the memory address of the underlying byte buffer. When memory is reallocated,
  * the parent {@link MappedMemoryAllocator} is used to create a new {@link MappedByteBuffer}
  * and free the existing buffer.
- * @author <a href="http://github.com/kuujo">Jordan Halterman</a>
  */
 public class MappedMemory extends NativeMemory {
     public static final long MAX_SIZE = Integer.MAX_VALUE;
