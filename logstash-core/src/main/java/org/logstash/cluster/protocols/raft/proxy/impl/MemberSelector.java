@@ -1,18 +1,3 @@
-/*
- * Copyright 2015-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License
- */
 package org.logstash.cluster.protocols.raft.proxy.impl;
 
 import com.google.common.base.MoreObjects;
@@ -20,7 +5,6 @@ import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import org.logstash.cluster.protocols.raft.cluster.MemberId;
 import org.logstash.cluster.protocols.raft.proxy.CommunicationStrategy;
 
@@ -32,10 +16,11 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
     private final MemberSelectorManager selectors;
     private final CommunicationStrategy strategy;
     private MemberId leader;
-    private Collection<MemberId> members = new LinkedList<>();
+    private Collection<MemberId> members;
     private volatile MemberId selection;
-    private Collection<MemberId> selections = new LinkedList<>();
+    private Collection<MemberId> selections;
     private Iterator<MemberId> selectionsIterator;
+
     public MemberSelector(MemberId leader, Collection<MemberId> members, CommunicationStrategy strategy, MemberSelectorManager selectors) {
         this.leader = leader;
         this.members = Preconditions.checkNotNull(members, "servers cannot be null");
