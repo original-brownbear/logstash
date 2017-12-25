@@ -86,16 +86,19 @@ public final class EsClient implements ClusterConfigProvider {
 
     @Override
     public void publishBootstrapNodes(final Collection<Node> nodes) {
-        LOGGER.info("Saving updated bootstrap node list to Elasticsearch.");
         final GetResponse existing = getNodesResponse();
-        final Collection<Node> update = new HashSet<>(nodes);
+        final Collection<Node> update = new HashSet<>();
         if (existing.isExists()) {
             update.addAll(deserializeNodesResponse(existing));
+            if (!update.addAll(nodes)) {
+                return;
+            }
         }
         update.add(config.localNode());
         final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
             .collect(Collectors.toList());
         try {
+            LOGGER.info("Saving updated bootstrap node list to Elasticsearch.");
             client.prepareUpdate().setId(ES_BOOTSTRAP_DOC).setDoc(
                 Collections.singletonMap(ES_NODES_FIELD, serialized)
             ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
