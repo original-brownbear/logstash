@@ -35,7 +35,7 @@ public class RaftIdGenerator implements AsyncAtomicIdGenerator {
     @Override
     public synchronized CompletableFuture<Long> nextId() {
         long nextDelta = delta.incrementAndGet();
-        if ((base == 0 && reserveFuture == null) || nextDelta > batchSize) {
+        if (base == 0 && reserveFuture == null || nextDelta > batchSize) {
             delta.set(0);
             long delta = this.delta.incrementAndGet();
             return reserve().thenApply(base -> base + delta);
