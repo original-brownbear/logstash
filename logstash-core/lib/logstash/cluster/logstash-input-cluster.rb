@@ -27,9 +27,19 @@ class LogStash::Inputs::Cluster < LogStash::Inputs::Base
   def run(queue)
     # see todo section
     @wrapped_queue = org.logstash.cluster.ClusterInput.new(
-        queue, org.logstash.cluster.LogstashClusterConfig.new(
-        node_id, java.net.InetSocketAddress.new(bind_host, bind_port),
-        java.util.Collections.empty_list, java.io.File.new(data_path))
+        queue,
+        org.logstash.cluster.ClusterConfigProvider.esConfigProvider(
+            org.elasticsearch.transport.client.PreBuiltTransportClient.new
+                .add_transport_address(
+                    org.elasticsearch.common.transport.TransportAddress.new(
+                        java.net.InetAddress.localHost, 9200
+                    )
+                ),
+            org.logstash.cluster.LogstashClusterConfig.new(
+                node_id, java.net.InetSocketAddress.new(bind_host, bind_port),
+                java.util.Collections.empty_list, java.io.File.new(data_path)
+            )
+        )
     )
     @wrapped_queue.run
   end

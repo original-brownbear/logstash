@@ -109,8 +109,15 @@ idea {
 
 dependencies {
     compile 'io.netty:netty-all:4.1.13.Final'
-    compile('org.elasticsearch.client:elasticsearch-rest-high-level-client:6.0.0') {
+    compile('org.elasticsearch.client:transport:6.0.0') {
         exclude group: 'joda-time', module: 'joda-time'
+        exclude group: 'io.netty', module: 'netty-buffer'
+        exclude group: 'io.netty', module: 'netty-codec'
+        exclude group: 'io.netty', module: 'netty-codec-http'
+        exclude group: 'io.netty', module: 'netty-common'
+        exclude group: 'io.netty', module: 'netty-handler'
+        exclude group: 'io.netty', module: 'netty-resolver'
+        exclude group: 'io.netty', module: 'netty-transport'
     }
     compile 'com.esotericsoftware:kryo:4.0.1'
     compile 'com.google.guava:guava:22.0'
