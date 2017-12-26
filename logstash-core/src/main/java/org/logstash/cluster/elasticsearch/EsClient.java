@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
@@ -86,23 +87,27 @@ public final class EsClient implements ClusterConfigProvider {
 
     @Override
     public void publishBootstrapNodes(final Collection<Node> nodes) {
-        final GetResponse existing = getNodesResponse();
-        final Collection<Node> update = new HashSet<>();
-        if (existing.isExists()) {
-            update.addAll(deserializeNodesResponse(existing));
-            if (!(update.addAll(nodes) || update.add(config.localNode()))) {
-                return;
-            }
-        }
-        final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
-            .collect(Collectors.toList());
         try {
-            LOGGER.info("Saving updated bootstrap node list to Elasticsearch.");
-            client.prepareUpdate().setId(ES_BOOTSTRAP_DOC).setDoc(
-                Collections.singletonMap(ES_NODES_FIELD, serialized)
-            ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
-                Collections.singletonMap(ES_NODES_FIELD, serialized)
-            ).execute().get();
+            retryEsWrite(
+                () -> {
+                    final GetResponse existing = getNodesResponse();
+                    final Collection<Node> update = new HashSet<>();
+                    if (existing.isExists()) {
+                        update.addAll(deserializeNodesResponse(existing));
+                        if (!(update.addAll(nodes) || update.add(config.localNode()))) {
+                            return;
+                        }
+                    }
+                    final Collection<String> serialized = update.stream().map(EsClient::serializeNode)
+                        .collect(Collectors.toList());
+                    LOGGER.info("Saving updated bootstrap node list {} to Elasticsearch.", String.join(" ,", serialized));
+                    client.prepareUpdate().setId(ES_BOOTSTRAP_DOC).setDoc(
+                        Collections.singletonMap(ES_NODES_FIELD, serialized)
+                    ).setIndex(config.esIndex()).setType(ES_TYPE).setDocAsUpsert(true).setUpsert(
+                        Collections.singletonMap(ES_NODES_FIELD, serialized)
+                    ).execute().get();
+                }
+            );
         } catch (final InterruptedException | ExecutionException ex) {
             throw new IllegalStateException(ex);
         }
@@ -151,9 +156,11 @@ public final class EsClient implements ClusterConfigProvider {
 
     private void ensureIndex() throws ExecutionException, InterruptedException {
         final String index = config.esIndex();
-        if (!client.admin().indices().prepareExists(index).get().isExists()) {
-            client.admin().indices().prepareCreate(index).execute().get();
-        }
+        retryEsWrite(() -> {
+            if (!client.admin().indices().prepareExists(index).get().isExists()) {
+                client.admin().indices().prepareCreate(index).execute().get();
+            }
+        });
         final Node lnode = config.localNode();
         if (lnode != null) {
             publishBootstrapNodes(Collections.singleton(lnode));
@@ -177,5 +184,24 @@ public final class EsClient implements ClusterConfigProvider {
         } catch (final UnknownHostException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    private static void retryEsWrite(final EsClient.EsCall call)
+        throws ExecutionException, InterruptedException {
+        for (int i = 0; i < 5; ++i) {
+            try {
+                call.execute();
+                return;
+            } catch (final ExecutionException ignored) {
+                LOGGER.warn("Concurrent update to ES detected, retrying in 1s.");
+                TimeUnit.SECONDS.sleep(1L);
+            }
+        }
+        call.execute();
+    }
+
+    @FunctionalInterface
+    private interface EsCall {
+        void execute() throws ExecutionException, InterruptedException;
     }
 }

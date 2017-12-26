@@ -28,7 +28,7 @@ public class BlockingLeaderElector<T> extends Synchronous<AsyncLeaderElector<T>>
     }
 
     @Override
-    public Leadership run(T identifier) {
+    public Leadership<T> run(T identifier) {
         return complete(asyncElector.run(identifier));
     }
 

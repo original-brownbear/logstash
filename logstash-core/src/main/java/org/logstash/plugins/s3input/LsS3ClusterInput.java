@@ -15,6 +15,7 @@ import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,13 +25,17 @@ import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.EnqueueEvent;
 import org.logstash.cluster.LogstashClusterServer;
+import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.primitives.leadership.LeaderElector;
+import org.logstash.cluster.primitives.leadership.Leadership;
 import org.logstash.cluster.primitives.map.ConsistentTreeMap;
 import org.logstash.cluster.primitives.queue.WorkQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
+
+    public static final String PROCESSING_STATE = "PROCESSING";
 
     public static final String S3_KEY_INDEX = "s3key";
 
@@ -57,14 +62,25 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
     @Override
     public void run() {
         final LogstashClusterServer clusterServer = cluster.getCluster();
+        final String localId = clusterServer.getClusterService().getLocalNode().id().id();
         try (final LeaderElector<String> elector = clusterServer
             .<String>leaderElectorBuilder().withName(ClusterInput.LEADERSHIP_IDENTIFIER).build();
              final ConsistentTreeMap<String, String> finishedMap = clusterServer
                  .<String, String>consistentTreeMapBuilder()
                  .withName(FINISHED_OBJECTS_MAP).build()
         ) {
-            final String localId = clusterServer.getClusterService().getLocalNode().id().id();
-            elector.run(localId);
+            Leadership<String> leader;
+            while (!(leader = elector.run(localId)).leader().id().equals(localId)) {
+                final CountDownLatch latch = new CountDownLatch(1);
+                elector.addStatusChangeListener(status -> latch.countDown());
+                while (!Uninterruptibles.awaitUninterruptibly(latch, 1L, TimeUnit.SECONDS)) {
+                    if (stopped.get()) {
+                        LOGGER.info("S3 input has been stopped.");
+                        return;
+                    }
+                }
+            }
+            LOGGER.info("Elected {}", leader);
             LOGGER.info("Indexing Bucket on Node {}", localId);
             final Map<String, String> config = cluster.getConfig();
             final LsS3ClusterInput.S3Config s3cfg = new LsS3ClusterInput.S3Config(
@@ -72,20 +88,32 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
                 config.get(S3_BUCKET_INDEX)
             );
             final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue();
-            for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
-                LOGGER.info("Enqueuing task to process {}", object);
-                tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
-                if (stopped.get()) {
-                    LOGGER.info("S3 input has been stopped.");
-                    break;
+            while (!stopped.get()) {
+                int found = 0;
+                for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
+                    found++;
+                    LOGGER.info("Enqueuing task to process {}", object);
+                    tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
+                    finishedMap.put(object, PROCESSING_STATE);
+                    if (stopped.get()) {
+                        LOGGER.info("S3 input has been stopped.");
+                        break;
+                    }
+                }
+                if (found == 0) {
+                    TimeUnit.SECONDS.sleep(5L);
+                }
+                if (found > 0 && !stopped.get()) {
+                    LOGGER.info("Listening for new files in S3.");
                 }
             }
+        } catch (final Exception ex) {
+            LOGGER.error("Exception in S3 Input Main Loop:", ex);
+            throw new IllegalStateException(ex);
+        } finally {
             stopped.set(true);
             stopLatch.countDown();
             LOGGER.info("Finished shutting down S3 Input Leader on {}", localId);
-        } catch (final Exception ex) {
-            LOGGER.error("Exception in S3 Input Main Loop: {}", ex);
-            throw new IllegalStateException(ex);
         }
     }
 
@@ -158,6 +186,8 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
     private static final class S3Task implements EnqueueEvent {
 
+        private static final Logger LOGGER = LogManager.getLogger(LsS3ClusterInput.S3Task.class);
+
         private final S3Config config;
 
         private final String object;
@@ -168,7 +198,9 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
         }
 
         @Override
-        public void enqueue(final EventQueue queue) {
+        public void enqueue(final ClusterInput cluster, final EventQueue queue) {
+            final Node localNode = cluster.getCluster().getClusterService().getLocalNode();
+            LOGGER.info("Processing {} on {}", object, localNode);
             final AmazonS3 s3Client = AmazonS3Client.builder().withRegion(config.region)
                 .withCredentials(
                     new LsS3ClusterInput.SimpleCredentialProvider(config.key, config.secret)
@@ -184,6 +216,7 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
             } catch (final IOException ex) {
                 throw new IllegalStateException(ex);
             }
+            LOGGER.info("Successfully processed {} on {}", object, localNode);
         }
     }
 }

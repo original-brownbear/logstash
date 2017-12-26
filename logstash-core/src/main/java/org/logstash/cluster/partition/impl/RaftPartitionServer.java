@@ -45,7 +45,7 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
 
     @Override
     public CompletableFuture<RaftPartitionServer> open() {
-        LOGGER.info("Starting server for partition {}", partition.id());
+        LOGGER.info("Starting server for partition {} on {}", partition.id(), localMemberId.id());
         CompletableFuture<RaftServer> serverOpenFuture;
         if (partition.getMemberIds().contains(localMemberId)) {
             if (server != null && server.isRunning()) {
@@ -60,9 +60,9 @@ public class RaftPartitionServer implements Managed<RaftPartitionServer> {
         }
         return serverOpenFuture.whenComplete((r, e) -> {
             if (e == null) {
-                LOGGER.info("Successfully started server for partition {}", partition.id());
+                LOGGER.info("Successfully started server for partition {} on {}", partition.id(), localMemberId.id());
             } else {
-                LOGGER.info("Failed to start server for partition {}", partition.id(), e);
+                LOGGER.info("Failed to start server for partition {} on {}", partition.id(), localMemberId.id(), e);
             }
         }).thenApply(v -> this);
     }

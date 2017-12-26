@@ -5,7 +5,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -90,6 +89,7 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
         return LogstashClusterServer.builder().withLocalNode(config.localNode())
             .withBootstrapNodes(config.getBootstrap())
             .withDataDir(config.getDataDir())
+            .withNumPartitions(1)
             .build()
             .open().join();
     }
@@ -276,16 +276,6 @@ public final class LogstashClusterServer implements PrimitiveService, Managed<Lo
         public LogstashClusterServer.Builder withLocalNode(final Node localNode) {
             this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
-        }
-
-        /**
-         * Sets the bootstrap nodes.
-         * @param bootstrapNodes the nodes from which to bootstrap the cluster
-         * @return the cluster metadata builder
-         * @throws NullPointerException if the bootstrap nodes are {@code null}
-         */
-        public LogstashClusterServer.Builder withBootstrapNodes(final Node... bootstrapNodes) {
-            return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
         /**
