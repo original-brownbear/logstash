@@ -804,7 +804,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             if (handler != null) {
                 handler.accept(message, new NettyMessagingService.LocalServerConnection(future));
             } else {
-                LOGGER.debug("No handler for message type {} from {}", message.type(), message.sender());
+                LOGGER.warn("No handler for message type {} from {}", message.type(), message.sender());
                 new NettyMessagingService.LocalServerConnection(future)
                     .reply(message, InternalReply.Status.ERROR_NO_HANDLER, Optional.empty());
             }
@@ -892,7 +892,7 @@ public class NettyMessagingService implements ManagedMessagingService {
          */
         private void dispatch(final InternalReply message) {
             if (message.preamble() != preamble) {
-                LOGGER.debug("Received {} with invalid preamble", message.type());
+                LOGGER.warn("Received {} with invalid preamble", message.type());
                 return;
             }
 
@@ -915,7 +915,7 @@ public class NettyMessagingService implements ManagedMessagingService {
                     throw new AssertionError();
                 }
             } else {
-                LOGGER.debug("Received a reply for message id:[{}] "
+                LOGGER.warn("Received a reply for message id:[{}] "
                     + "but was unable to locate the"
                     + " request handle", message.id());
             }
@@ -925,10 +925,10 @@ public class NettyMessagingService implements ManagedMessagingService {
         public CompletableFuture<Void> sendAsync(final InternalRequest message) {
             final CompletableFuture<Void> future = new CompletableFuture<>();
             channel.writeAndFlush(message).addListener(channelFuture -> {
-                if (!channelFuture.isSuccess()) {
-                    future.completeExceptionally(channelFuture.cause());
-                } else {
+                if (channelFuture.isSuccess()) {
                     future.complete(null);
+                } else {
+                    future.completeExceptionally(channelFuture.cause());
                 }
             });
             return future;
@@ -975,7 +975,7 @@ public class NettyMessagingService implements ManagedMessagingService {
          */
         private void dispatch(final InternalRequest message) {
             if (message.preamble() != preamble) {
-                LOGGER.debug("Received {} with invalid preamble from {}", message.type(), message.sender());
+                LOGGER.warn("Received {} with invalid preamble from {}", message.type(), message.sender());
                 reply(message, InternalReply.Status.PROTOCOL_EXCEPTION, Optional.empty());
                 return;
             }
@@ -984,7 +984,7 @@ public class NettyMessagingService implements ManagedMessagingService {
             if (handler != null) {
                 handler.accept(message, this);
             } else {
-                LOGGER.debug("No handler for message type {} from {}", message.type(), message.sender());
+                LOGGER.warn("No handler for message type {} from {}", message.type(), message.sender());
                 reply(message, InternalReply.Status.ERROR_NO_HANDLER, Optional.empty());
             }
         }

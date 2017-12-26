@@ -99,7 +99,7 @@ public final class ClusterInputTest extends ESIntegTestCase {
                      cluster.<EnqueueEvent>workQueueBuilder().withName(ClusterInput.P2P_QUEUE_NAME)
                          .withSerializer(Serializer.JAVA).build()) {
                 tasks.addOne(
-                    events -> events.push(
+                    (server, events) -> events.push(
                         new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
                     )
                 );
