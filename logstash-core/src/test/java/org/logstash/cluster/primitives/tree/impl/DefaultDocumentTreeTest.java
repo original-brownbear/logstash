@@ -1,7 +1,6 @@
 package org.logstash.cluster.primitives.tree.impl;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.logstash.cluster.primitives.tree.DocumentPath;
 import org.logstash.cluster.primitives.tree.DocumentTree;
@@ -149,9 +148,8 @@ public class DefaultDocumentTreeTest {
     }
 
     @Test
-    @Ignore
     public void testReplaceWithValue() {
-        DocumentTree<String> tree = new DefaultDocumentTree<>();
+        final DocumentTree<String> tree = new DefaultDocumentTree<>();
         tree.create(path("root.a"), "bar");
         tree.create(path("root.a.b"), "alpha");
         Assert.assertTrue(tree.replace(path("root.a.b"), "beta", "alpha"));
