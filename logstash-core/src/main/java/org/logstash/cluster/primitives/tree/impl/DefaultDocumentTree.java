@@ -133,6 +133,10 @@ public class DefaultDocumentTree<V> implements DocumentTree<V> {
             set(path, newValue);
             return true;
         }
+        if (node == null && currentValue == null) {
+            create(path, newValue);
+            return true;
+        }
         return false;
     }
 
