@@ -35,11 +35,11 @@ import static org.junit.Assert.fail;
  */
 public final class NettyMessagingServiceTest {
 
-    ManagedMessagingService netty1;
-    ManagedMessagingService netty2;
-    Endpoint ep1;
-    Endpoint ep2;
-    Endpoint invalidEndPoint;
+    private ManagedMessagingService netty1;
+    private ManagedMessagingService netty2;
+    private Endpoint ep1;
+    private Endpoint ep2;
+    private Endpoint invalidEndPoint;
 
     @Before
     public void setUp() {

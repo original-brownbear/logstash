@@ -2,12 +2,12 @@ package org.logstash.cluster.elasticsearch;
 
 import java.net.InetAddress;
 import java.util.Collections;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.logstash.LsClusterIntegTestCase;
 import org.logstash.TestUtils;
 import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.LogstashClusterConfig;
@@ -19,14 +19,13 @@ import org.logstash.cluster.messaging.Endpoint;
 /**
  * Tests for {@link EsClient}.
  */
-public final class EsClientTest extends ESIntegTestCase {
+public final class EsClientTest extends LsClusterIntegTestCase {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Test
     public void clusterBootstrapTest() throws Exception {
-        ensureGreen();
         final Node local = new DefaultNode(
             NodeId.from("someId"),
             new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
@@ -46,7 +45,6 @@ public final class EsClientTest extends ESIntegTestCase {
 
     @Test
     public void multipleNodesTest() throws Exception {
-        ensureGreen();
         final Node nodeOne = new DefaultNode(
             NodeId.from("id-one"), new Endpoint(InetAddress.getLoopbackAddress(),
             TestUtils.freePort())
@@ -83,7 +81,6 @@ public final class EsClientTest extends ESIntegTestCase {
 
     @Test
     public void getAndUpdateSettings() throws Exception {
-        ensureGreen();
         final Node local = new DefaultNode(
             NodeId.from("someId"),
             new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())

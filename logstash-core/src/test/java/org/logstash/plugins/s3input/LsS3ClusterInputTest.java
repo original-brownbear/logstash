@@ -13,12 +13,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Assume;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.logstash.LsClusterIntegTestCase;
 import org.logstash.TestUtils;
 import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.ClusterInput;
@@ -31,7 +31,7 @@ import static org.hamcrest.Matchers.instanceOf;
 /**
  * Tests for {@link LsS3ClusterInput}.
  */
-public final class LsS3ClusterInputTest extends ESIntegTestCase {
+public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
 
     private static final String TEST_BUCKET = System.getProperty("org.logstash.s3it.bucket");
 
@@ -47,8 +47,6 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
     @Test
     public void readsOnMultipleNodes() throws Exception {
         Assume.assumeNotNull(TEST_BUCKET, TEST_REGION, TEST_KEY, TEST_SECRET);
-        ensureGreen();
-        System.setSecurityManager(null);
         final CountDownLatch startJob = new CountDownLatch(1);
         final ExecutorService exec = Executors.newFixedThreadPool(3);
         try {
@@ -113,8 +111,6 @@ public final class LsS3ClusterInputTest extends ESIntegTestCase {
     @Test
     public void readsOnOneNode() throws Exception {
         Assume.assumeNotNull(TEST_BUCKET, TEST_REGION, TEST_KEY, TEST_SECRET);
-        ensureGreen();
-        System.setSecurityManager(null);
         final String index = "readsononenode";
         final LogstashClusterConfig config = new LogstashClusterConfig(
             "node1",
