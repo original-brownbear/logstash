@@ -50,6 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -152,81 +153,6 @@ public class NettyMessagingService implements ManagedMessagingService {
         }).thenApply(v -> this);
     }
 
-    private void getTlsParameters() {
-        // default is TLS enabled unless key stores cannot be loaded
-        enableNettyTls = Boolean.parseBoolean(System.getProperty("enableNettyTLS", Boolean.toString(TLS_ENABLED)));
-
-        if (enableNettyTls) {
-            enableNettyTls = loadKeyStores();
-        }
-    }
-
-    private boolean loadKeyStores() {
-        // Maintain a local copy of the trust and key managers in case anything goes wrong
-        final TrustManagerFactory tmf;
-        final KeyManagerFactory kmf;
-        try {
-            final String ksLocation = System.getProperty("javax.net.ssl.keyStore", DEFAULT_KS_FILE.toString());
-            final String tsLocation = System.getProperty("javax.net.ssl.trustStore", DEFAULT_KS_FILE.toString());
-            final char[] ksPwd = System.getProperty("javax.net.ssl.keyStorePassword", DEFAULT_KS_PASSWORD).toCharArray();
-            final char[] tsPwd = System.getProperty("javax.net.ssl.trustStorePassword", DEFAULT_KS_PASSWORD).toCharArray();
-
-            tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            final KeyStore ts = KeyStore.getInstance("JKS");
-            ts.load(new FileInputStream(tsLocation), tsPwd);
-            tmf.init(ts);
-
-            kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final KeyStore ks = KeyStore.getInstance("JKS");
-            ks.load(new FileInputStream(ksLocation), ksPwd);
-            kmf.init(ks, ksPwd);
-            if (LOGGER.isInfoEnabled()) {
-                logKeyStore(ks, ksLocation, ksPwd);
-            }
-        } catch (final FileNotFoundException e) {
-            LOGGER.warn("Disabling TLS for intra-cluster messaging; Could not load cluster key store: {}", e.getMessage());
-            return TLS_DISABLED;
-        } catch (final Exception e) {
-            //TODO we might want to catch exceptions more specifically
-            LOGGER.error("Error loading key store; disabling TLS for intra-cluster messaging", e);
-            return TLS_DISABLED;
-        }
-        this.trustManager = tmf;
-        this.keyManager = kmf;
-        return TLS_ENABLED;
-    }
-
-    private void logKeyStore(final KeyStore ks, final String ksLocation, final char[] ksPwd) {
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Loaded cluster key store from: {}", ksLocation);
-            try {
-                for (final Enumeration<String> e = ks.aliases(); e.hasMoreElements(); ) {
-                    final String alias = e.nextElement();
-                    final Key key = ks.getKey(alias, ksPwd);
-                    final Certificate[] certs = ks.getCertificateChain(alias);
-                    LOGGER.debug("{} -> {}", alias, certs);
-                    final byte[] encodedKey;
-                    if (certs != null && certs.length > 0) {
-                        encodedKey = certs[0].getEncoded();
-                    } else {
-                        LOGGER.info("Could not find cert chain for {}, using fingerprint of key instead...", alias);
-                        encodedKey = key.getEncoded();
-                    }
-                    // Compute the certificate's fingerprint (use the key if certificate cannot be found)
-                    final MessageDigest digest = MessageDigest.getInstance("SHA1");
-                    digest.update(encodedKey);
-                    final StringJoiner fingerprint = new StringJoiner(":");
-                    for (final byte b : digest.digest()) {
-                        fingerprint.add(String.format("%02X", b));
-                    }
-                    LOGGER.info("{} -> {}", alias, fingerprint);
-                }
-            } catch (final Exception e) {
-                LOGGER.warn("Unable to print contents of key store: {}", ksLocation, e);
-            }
-        }
-    }
-
     @Override
     public boolean isOpen() {
         return started.get();
@@ -234,81 +160,35 @@ public class NettyMessagingService implements ManagedMessagingService {
 
     @Override
     public CompletableFuture<Void> close() {
-        if (started.get()) {
-            serverGroup.shutdownGracefully();
-            clientGroup.shutdownGracefully();
-            timeoutFuture.cancel(false);
-            timeoutExecutor.shutdown();
-            started.set(false);
-        }
-        LOGGER.info("Stopped");
-        return CompletableFuture.completedFuture(null);
+        final CompletableFuture<Void> result = new CompletableFuture<>();
+        ForkJoinPool.commonPool().submit(() -> {
+            if (started.get()) {
+                serverGroup.shutdownGracefully().syncUninterruptibly();
+                clientGroup.shutdownGracefully().syncUninterruptibly();
+                timeoutFuture.cancel(false);
+                timeoutExecutor.shutdown();
+                started.set(false);
+                try {
+                    if (!timeoutExecutor.awaitTermination(2L, TimeUnit.MINUTES)) {
+                        result.completeExceptionally(
+                            new IllegalStateException("Failed to join timeoutExecutor")
+                        );
+                        return;
+                    }
+                } catch (final InterruptedException ex) {
+                    result.completeExceptionally(ex);
+                    return;
+                }
+                LOGGER.info("Stopped Netty Messaging Service at {}", localEndpoint);
+            }
+            result.complete(null);
+        });
+        return result;
     }
 
     @Override
     public boolean isClosed() {
         return !isOpen();
-    }
-
-    private void initEventLoopGroup() {
-        // try Epoll first and if that does work, use nio.
-        try {
-            clientGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-client-%d", LOGGER));
-            serverGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-server-%d", LOGGER));
-            serverChannelClass = EpollServerSocketChannel.class;
-            clientChannelClass = EpollSocketChannel.class;
-            return;
-        } catch (final Throwable e) {
-            LOGGER.debug("Failed to initialize native (epoll) transport. "
-                + "Reason: {}. Proceeding with nio.", e.getMessage());
-        }
-        clientGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-client-%d", LOGGER));
-        serverGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-server-%d", LOGGER));
-        serverChannelClass = NioServerSocketChannel.class;
-        clientChannelClass = NioSocketChannel.class;
-    }
-
-    private CompletableFuture<Void> startAcceptingConnections() {
-        final CompletableFuture<Void> future = new CompletableFuture<>();
-        final ServerBootstrap b = new ServerBootstrap().childOption(
-            ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(8 * 1024, 32 * 1024)
-        )
-            .option(ChannelOption.SO_RCVBUF, 1048576)
-            .option(ChannelOption.TCP_NODELAY, true)
-            .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-            .group(serverGroup, clientGroup)
-            .channel(serverChannelClass);
-        if (enableNettyTls) {
-            b.childHandler(new SslServerCommunicationChannelInitializer());
-        } else {
-            b.childHandler(new BasicChannelInitializer());
-        }
-        b.option(ChannelOption.SO_BACKLOG, 128);
-        b.childOption(ChannelOption.SO_KEEPALIVE, true);
-
-        // Bind and start to accept incoming connections.
-        b.bind(localEndpoint.port()).addListener(f -> {
-            if (f.isSuccess()) {
-                LOGGER.info("{} accepting incoming connections on port {}",
-                    localEndpoint.host(), localEndpoint.port());
-                future.complete(null);
-            } else {
-                LOGGER.warn("{} failed to bind to port {} due to {}",
-                    localEndpoint.host(), localEndpoint.port(), f.cause());
-                future.completeExceptionally(f.cause());
-            }
-        });
-        return future;
-    }
-
-    /**
-     * Times out response callbacks.
-     */
-    private void timeoutAllCallbacks() {
-        // Iterate through all connections and time out callbacks.
-        for (final NettyMessagingService.RemoteClientConnection connection : clientConnections.values()) {
-            connection.timeoutCallbacks();
-        }
     }
 
     @Override
@@ -379,6 +259,113 @@ public class NettyMessagingService implements ManagedMessagingService {
         handlers.remove(type);
     }
 
+    private void getTlsParameters() {
+        // default is TLS enabled unless key stores cannot be loaded
+        enableNettyTls = Boolean.parseBoolean(System.getProperty("enableNettyTLS", Boolean.toString(TLS_ENABLED)));
+
+        if (enableNettyTls) {
+            enableNettyTls = loadKeyStores();
+        }
+    }
+
+    private boolean loadKeyStores() {
+        // Maintain a local copy of the trust and key managers in case anything goes wrong
+        final TrustManagerFactory tmf;
+        final KeyManagerFactory kmf;
+        try {
+            final String ksLocation = System.getProperty("javax.net.ssl.keyStore", DEFAULT_KS_FILE.toString());
+            final String tsLocation = System.getProperty("javax.net.ssl.trustStore", DEFAULT_KS_FILE.toString());
+            final char[] ksPwd = System.getProperty("javax.net.ssl.keyStorePassword", DEFAULT_KS_PASSWORD).toCharArray();
+            final char[] tsPwd = System.getProperty("javax.net.ssl.trustStorePassword", DEFAULT_KS_PASSWORD).toCharArray();
+
+            tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            final KeyStore ts = KeyStore.getInstance("JKS");
+            ts.load(new FileInputStream(tsLocation), tsPwd);
+            tmf.init(ts);
+
+            kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            final KeyStore ks = KeyStore.getInstance("JKS");
+            ks.load(new FileInputStream(ksLocation), ksPwd);
+            kmf.init(ks, ksPwd);
+            if (LOGGER.isInfoEnabled()) {
+                logKeyStore(ks, ksLocation, ksPwd);
+            }
+        } catch (final FileNotFoundException e) {
+            LOGGER.warn("Disabling TLS for intra-cluster messaging; Could not load cluster key store: {}", e.getMessage());
+            return TLS_DISABLED;
+        } catch (final Exception e) {
+            //TODO we might want to catch exceptions more specifically
+            LOGGER.error("Error loading key store; disabling TLS for intra-cluster messaging", e);
+            return TLS_DISABLED;
+        }
+        this.trustManager = tmf;
+        this.keyManager = kmf;
+        return TLS_ENABLED;
+    }
+
+    private void initEventLoopGroup() {
+        // try Epoll first and if that does work, use nio.
+        try {
+            clientGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-client-%d", LOGGER));
+            serverGroup = new EpollEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-epoll-server-%d", LOGGER));
+            serverChannelClass = EpollServerSocketChannel.class;
+            clientChannelClass = EpollSocketChannel.class;
+            return;
+        } catch (final Throwable e) {
+            LOGGER.debug("Failed to initialize native (epoll) transport. "
+                + "Reason: {}. Proceeding with nio.", e.getMessage());
+        }
+        clientGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-client-%d", LOGGER));
+        serverGroup = new NioEventLoopGroup(0, Threads.namedThreads("netty-messaging-event-nio-server-%d", LOGGER));
+        serverChannelClass = NioServerSocketChannel.class;
+        clientChannelClass = NioSocketChannel.class;
+    }
+
+    private CompletableFuture<Void> startAcceptingConnections() {
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        final ServerBootstrap b = new ServerBootstrap().childOption(
+            ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(8 * 1024, 32 * 1024)
+        )
+            .option(ChannelOption.SO_RCVBUF, 1048576)
+            .option(ChannelOption.TCP_NODELAY, true)
+            .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+            .group(serverGroup, clientGroup)
+            .channel(serverChannelClass);
+        if (enableNettyTls) {
+            b.childHandler(new SslServerCommunicationChannelInitializer());
+        } else {
+            b.childHandler(new BasicChannelInitializer());
+        }
+        b.option(ChannelOption.SO_BACKLOG, 128);
+        b.childOption(ChannelOption.SO_KEEPALIVE, true);
+
+        // Bind and start to accept incoming connections.
+        b.bind(localEndpoint.port()).addListener(f -> {
+            if (f.isSuccess()) {
+                LOGGER.info("{} accepting incoming connections on port {}",
+                    localEndpoint.host(), localEndpoint.port());
+                future.complete(null);
+            } else {
+                LOGGER.warn(
+                    "{} failed to bind to port {} due to {}",
+                    localEndpoint.host(), localEndpoint.port(), f.cause()
+                );
+                future.completeExceptionally(f.cause());
+            }
+        });
+        return future;
+    }
+
+    /**
+     * Times out response callbacks.
+     */
+    private void timeoutAllCallbacks() {
+        // Iterate through all connections and time out callbacks.
+        for (final NettyMessagingService.RemoteClientConnection connection : clientConnections.values()) {
+            connection.timeoutCallbacks();
+        }
+    }
+
     private List<CompletableFuture<Channel>> getChannelPool(final Endpoint endpoint) {
         return channels.computeIfAbsent(endpoint, e -> {
             final List<CompletableFuture<Channel>> defaultList = new ArrayList<>(CHANNEL_POOL_SIZE);
@@ -412,7 +399,9 @@ public class NettyMessagingService implements ManagedMessagingService {
         final CompletableFuture<Channel> finalFuture = channelFuture;
         finalFuture.whenComplete((channel, error) -> {
             if (error == null) {
-                if (!channel.isActive()) {
+                if (channel.isActive()) {
+                    future.complete(channel);
+                } else {
                     synchronized (channelPool) {
                         final CompletableFuture<Channel> currentFuture = channelPool.get(offset);
                         if (currentFuture == finalFuture) {
@@ -434,8 +423,6 @@ public class NettyMessagingService implements ManagedMessagingService {
                             });
                         }
                     }
-                } else {
-                    future.complete(channel);
                 }
             } else {
                 future.completeExceptionally(error);
@@ -521,6 +508,37 @@ public class NettyMessagingService implements ManagedMessagingService {
         });
         LOGGER.debug("Established a new connection to {}", ep);
         return retFuture;
+    }
+
+    private static void logKeyStore(final KeyStore ks, final String ksLocation, final char[] ksPwd) {
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Loaded cluster key store from: {}", ksLocation);
+            try {
+                for (final Enumeration<String> e = ks.aliases(); e.hasMoreElements(); ) {
+                    final String alias = e.nextElement();
+                    final Key key = ks.getKey(alias, ksPwd);
+                    final Certificate[] certs = ks.getCertificateChain(alias);
+                    LOGGER.debug("{} -> {}", alias, certs);
+                    final byte[] encodedKey;
+                    if (certs != null && certs.length > 0) {
+                        encodedKey = certs[0].getEncoded();
+                    } else {
+                        LOGGER.info("Could not find cert chain for {}, using fingerprint of key instead...", alias);
+                        encodedKey = key.getEncoded();
+                    }
+                    // Compute the certificate's fingerprint (use the key if certificate cannot be found)
+                    final MessageDigest digest = MessageDigest.getInstance("SHA1");
+                    digest.update(encodedKey);
+                    final StringJoiner fingerprint = new StringJoiner(":");
+                    for (final byte b : digest.digest()) {
+                        fingerprint.add(String.format("%02X", b));
+                    }
+                    LOGGER.info("{} -> {}", alias, fingerprint);
+                }
+            } catch (final Exception e) {
+                LOGGER.warn("Unable to print contents of key store: {}", ksLocation, e);
+            }
+        }
     }
 
     /**
@@ -734,7 +752,6 @@ public class NettyMessagingService implements ManagedMessagingService {
          * Returns true if the given message should be handled.
          * @param msg inbound message
          * @return true if {@code msg} is {@link InternalMessage} instance.
-         * @see SimpleChannelInboundHandler#acceptInboundMessage(Object)
          */
         @Override
         public final boolean acceptInboundMessage(final Object msg) {
