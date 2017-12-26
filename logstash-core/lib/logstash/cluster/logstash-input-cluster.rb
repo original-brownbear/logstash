@@ -18,7 +18,7 @@ class LogStash::Inputs::Cluster < LogStash::Inputs::Base
 
   config :es_index, :validate => :string, :default => "lscluster"
 
-  config :data_path, :validate => :string, :default => "/tmp/lsqueue-data"
+  config :data_path, :validate => :string, :default => ::File.join(LogStash::Environment::LOGSTASH_HOME, "data", "cluster-state")
 
   def register
     # start es bootstrapping loop here
