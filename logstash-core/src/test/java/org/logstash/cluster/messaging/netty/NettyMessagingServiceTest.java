@@ -5,7 +5,9 @@ import com.google.common.util.concurrent.Uninterruptibles;
 import java.net.ConnectException;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -18,7 +20,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.logstash.TestUtils;
 import org.logstash.cluster.messaging.Endpoint;
@@ -60,13 +61,14 @@ public final class NettyMessagingServiceTest {
 
     @After
     public void tearDown() {
+        final Collection<CompletableFuture<Void>> futures = new ArrayList<>();
         if (netty1 != null) {
-            netty1.close();
+            futures.add(netty1.close());
         }
-
         if (netty2 != null) {
-            netty2.close();
+            futures.add(netty2.close());
         }
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     @Test
@@ -90,16 +92,7 @@ public final class NettyMessagingServiceTest {
         Uninterruptibles.awaitUninterruptibly(latch2);
     }
 
-    /**
-     * Returns a random String to be used as a test subject.
-     * @return string
-     */
-    private String nextSubject() {
-        return UUID.randomUUID().toString();
-    }
-
     @Test
-    @Ignore // FIXME disabled on 9/29/16 due to random failures
     public void testSendAndReceive() {
         final String subject = nextSubject();
         final AtomicBoolean handlerInvoked = new AtomicBoolean(false);
@@ -141,7 +134,6 @@ public final class NettyMessagingServiceTest {
      * and response completion occurs on the expected thread.
      */
     @Test
-    @Ignore
     public void testSendAndReceiveWithExecutor() {
         final String subject = nextSubject();
         final ExecutorService completionExecutor = Executors.newSingleThreadExecutor(r -> new Thread(r, "completion-thread"));
@@ -175,5 +167,13 @@ public final class NettyMessagingServiceTest {
         assertTrue(Arrays.equals("hello there".getBytes(), response.join()));
         assertEquals("completion-thread", completionThreadName.get());
         assertEquals("handler-thread", handlerThreadName.get());
+    }
+
+    /**
+     * Returns a random String to be used as a test subject.
+     * @return string
+     */
+    private static String nextSubject() {
+        return UUID.randomUUID().toString();
     }
 }
