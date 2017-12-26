@@ -11,7 +11,7 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class InstallResponse extends AbstractRaftResponse {
 
-    public InstallResponse(Status status, RaftError error) {
+    public InstallResponse(RaftResponse.Status status, RaftError error) {
         super(status, error);
     }
 
@@ -19,14 +19,14 @@ public class InstallResponse extends AbstractRaftResponse {
      * Returns a new install response builder.
      * @return A new install response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static InstallResponse.Builder builder() {
+        return new InstallResponse.Builder();
     }
 
     /**
      * Install response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, InstallResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<InstallResponse.Builder, InstallResponse> {
         @Override
         public InstallResponse build() {
             validate();

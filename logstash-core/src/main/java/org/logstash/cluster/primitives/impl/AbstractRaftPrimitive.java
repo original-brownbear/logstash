@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import org.logstash.cluster.primitives.AsyncPrimitive;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
 
 /**
@@ -17,19 +18,19 @@ import org.logstash.cluster.protocols.raft.proxy.RaftProxy;
  */
 public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
     protected final RaftProxy proxy;
-    private final Function<RaftProxy.State, Status> mapper = state -> {
+    private final Function<RaftProxy.State, DistributedPrimitive.Status> mapper = state -> {
         switch (state) {
             case CONNECTED:
-                return Status.ACTIVE;
+                return DistributedPrimitive.Status.ACTIVE;
             case SUSPENDED:
-                return Status.SUSPENDED;
+                return DistributedPrimitive.Status.SUSPENDED;
             case CLOSED:
-                return Status.INACTIVE;
+                return DistributedPrimitive.Status.INACTIVE;
             default:
                 throw new IllegalStateException("Unknown state " + state);
         }
     };
-    private final Set<Consumer<Status>> statusChangeListeners = Sets.newCopyOnWriteArraySet();
+    private final Set<Consumer<DistributedPrimitive.Status>> statusChangeListeners = Sets.newCopyOnWriteArraySet();
 
     public AbstractRaftPrimitive(RaftProxy proxy) {
         this.proxy = Preconditions.checkNotNull(proxy, "proxy cannot be null");
@@ -42,17 +43,17 @@ public abstract class AbstractRaftPrimitive implements AsyncPrimitive {
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         statusChangeListeners.add(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         statusChangeListeners.remove(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return ImmutableSet.copyOf(statusChangeListeners);
     }
 

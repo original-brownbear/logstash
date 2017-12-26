@@ -26,7 +26,7 @@ public interface RaftClient {
      * @return The client builder.
      */
     @SuppressWarnings("unchecked")
-    static Builder builder() {
+    static RaftClient.Builder builder() {
         return builder(Collections.emptyList());
     }
 
@@ -39,7 +39,7 @@ public interface RaftClient {
      * @param cluster The cluster to which to connect.
      * @return The client builder.
      */
-    static Builder builder(Collection<MemberId> cluster) {
+    static RaftClient.Builder builder(Collection<MemberId> cluster) {
         return new DefaultRaftClient.Builder(cluster);
     }
 
@@ -52,7 +52,7 @@ public interface RaftClient {
      * @param cluster The cluster to which to connect.
      * @return The client builder.
      */
-    static Builder builder(MemberId... cluster) {
+    static RaftClient.Builder builder(MemberId... cluster) {
         return builder(Arrays.asList(cluster));
     }
 
@@ -153,7 +153,7 @@ public interface RaftClient {
          * @return The client builder.
          * @throws NullPointerException if {@code clientId} is null
          */
-        public Builder withClientId(String clientId) {
+        public RaftClient.Builder withClientId(String clientId) {
             this.clientId = Preconditions.checkNotNull(clientId, "clientId cannot be null");
             return this;
         }
@@ -164,7 +164,7 @@ public interface RaftClient {
          * @return The client builder.
          * @throws NullPointerException if {@code nodeId} is null
          */
-        public Builder withMemberId(MemberId nodeId) {
+        public RaftClient.Builder withMemberId(MemberId nodeId) {
             this.nodeId = Preconditions.checkNotNull(nodeId, "nodeId cannot be null");
             return this;
         }
@@ -175,7 +175,7 @@ public interface RaftClient {
          * @return the client builder
          * @throws NullPointerException if the protocol is null
          */
-        public Builder withProtocol(RaftClientProtocol protocol) {
+        public RaftClient.Builder withProtocol(RaftClientProtocol protocol) {
             this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
             return this;
         }

@@ -16,7 +16,7 @@ public class MetadataResponse extends AbstractRaftResponse {
 
     private final Set<RaftSessionMetadata> sessions;
 
-    public MetadataResponse(Status status, RaftError error, Set<RaftSessionMetadata> sessions) {
+    public MetadataResponse(RaftResponse.Status status, RaftError error, Set<RaftSessionMetadata> sessions) {
         super(status, error);
         this.sessions = sessions;
     }
@@ -25,8 +25,8 @@ public class MetadataResponse extends AbstractRaftResponse {
      * Returns a new metadata response builder.
      * @return A new metadata response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static MetadataResponse.Builder builder() {
+        return new MetadataResponse.Builder();
     }
 
     /**
@@ -39,7 +39,7 @@ public class MetadataResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("sessions", sessions)
@@ -55,7 +55,7 @@ public class MetadataResponse extends AbstractRaftResponse {
     /**
      * Metadata response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, MetadataResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<MetadataResponse.Builder, MetadataResponse> {
         private Set<RaftSessionMetadata> sessions;
 
         /**
@@ -63,7 +63,7 @@ public class MetadataResponse extends AbstractRaftResponse {
          * @param sessions The client metadata.
          * @return The metadata response builder.
          */
-        public Builder withSessions(RaftSessionMetadata... sessions) {
+        public MetadataResponse.Builder withSessions(RaftSessionMetadata... sessions) {
             return withSessions(Arrays.asList(Preconditions.checkNotNull(sessions, "sessions cannot be null")));
         }
 
@@ -72,7 +72,7 @@ public class MetadataResponse extends AbstractRaftResponse {
          * @param sessions The client metadata.
          * @return The metadata response builder.
          */
-        public Builder withSessions(Collection<RaftSessionMetadata> sessions) {
+        public MetadataResponse.Builder withSessions(Collection<RaftSessionMetadata> sessions) {
             this.sessions = new HashSet<>(Preconditions.checkNotNull(sessions, "sessions cannot be null"));
             return this;
         }
@@ -86,7 +86,7 @@ public class MetadataResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkNotNull(sessions, "sessions cannot be null");
             }
         }

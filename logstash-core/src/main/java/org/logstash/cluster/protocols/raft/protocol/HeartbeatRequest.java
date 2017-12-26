@@ -23,8 +23,8 @@ public class HeartbeatRequest extends AbstractRaftRequest {
      * Returns a new heartbeat request builder.
      * @return A new heartbeat request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static HeartbeatRequest.Builder builder() {
+        return new HeartbeatRequest.Builder();
     }
 
     /**
@@ -68,7 +68,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
     /**
      * Heartbeat request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, HeartbeatRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<HeartbeatRequest.Builder, HeartbeatRequest> {
         private MemberId leader;
         private Collection<MemberId> members;
 
@@ -77,7 +77,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
          * @param leader The request leader.
          * @return The request builder.
          */
-        public Builder withLeader(MemberId leader) {
+        public HeartbeatRequest.Builder withLeader(MemberId leader) {
             this.leader = leader;
             return this;
         }
@@ -88,7 +88,7 @@ public class HeartbeatRequest extends AbstractRaftRequest {
          * @return The request builder.
          * @throws NullPointerException if {@code members} is null
          */
-        public Builder withMembers(Collection<MemberId> members) {
+        public HeartbeatRequest.Builder withMembers(Collection<MemberId> members) {
             this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }

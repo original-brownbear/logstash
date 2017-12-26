@@ -14,6 +14,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.Synchronous;
 import org.logstash.cluster.primitives.map.AsyncConsistentMap;
 import org.logstash.cluster.primitives.map.ConsistentMap;
@@ -199,17 +200,17 @@ public class BlockingConsistentMap<K, V> extends Synchronous<AsyncConsistentMap<
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         asyncMap.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         asyncMap.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return asyncMap.statusChangeListeners();
     }
 

@@ -42,8 +42,8 @@ final class RaftProxySequencer {
     private static final Logger LOGGER = LogManager.getLogger(RaftProxySequencer.class);
 
     private final RaftProxyState state;
-    private final Queue<EventCallback> eventCallbacks = new ArrayDeque<>();
-    private final Map<Long, ResponseCallback> responseCallbacks = new HashMap<>();
+    private final Queue<RaftProxySequencer.EventCallback> eventCallbacks = new ArrayDeque<>();
+    private final Map<Long, RaftProxySequencer.ResponseCallback> responseCallbacks = new HashMap<>();
     @VisibleForTesting
     long requestSequence;
     @VisibleForTesting
@@ -80,7 +80,7 @@ final class RaftProxySequencer {
             callback.run();
             eventIndex = request.eventIndex();
         } else {
-            eventCallbacks.add(new EventCallback(request, callback));
+            eventCallbacks.add(new RaftProxySequencer.EventCallback(request, callback));
             completeResponses();
         }
     }
@@ -90,7 +90,7 @@ final class RaftProxySequencer {
      */
     private void completeResponses() {
         // Iterate through queued responses and complete as many as possible.
-        ResponseCallback response = responseCallbacks.get(responseSequence + 1);
+        RaftProxySequencer.ResponseCallback response = responseCallbacks.get(responseSequence + 1);
         while (response != null) {
             // If the response was completed, remove the response callback from the response queue,
             // increment the response sequence number, and check the next response.
@@ -105,7 +105,7 @@ final class RaftProxySequencer {
         // Once we've completed as many responses as possible, if no more operations are outstanding
         // and events remain in the event queue, complete the events.
         if (requestSequence == responseSequence) {
-            EventCallback eventCallback = eventCallbacks.poll();
+            RaftProxySequencer.EventCallback eventCallback = eventCallbacks.poll();
             while (eventCallback != null) {
                 LOGGER.trace("Completing {}", eventCallback.request);
                 eventCallback.run();
@@ -133,7 +133,7 @@ final class RaftProxySequencer {
         if (responseEventIndex > eventIndex) {
             // For each pending event with an eventIndex less than or equal to the response eventIndex, complete the event.
             // This is safe since we know that sequenced responses should see sequential order of events.
-            EventCallback eventCallback = eventCallbacks.peek();
+            RaftProxySequencer.EventCallback eventCallback = eventCallbacks.peek();
             while (eventCallback != null && eventCallback.request.eventIndex() <= responseEventIndex) {
                 eventCallbacks.remove();
                 LOGGER.trace("Completing {}", eventCallback.request);
@@ -146,7 +146,7 @@ final class RaftProxySequencer {
             // enqueued events to determine whether any events can be skipped. This is necessary to
             // ensure that a response with a missing event can still trigger prior events.
             if (responseEventIndex > eventIndex) {
-                for (EventCallback event : eventCallbacks) {
+                for (RaftProxySequencer.EventCallback event : eventCallbacks) {
                     // If the event's previous index is consistent with the current event index and the event
                     // index is greater than the response event index, set the response event index to the
                     // event's previous index.
@@ -189,13 +189,13 @@ final class RaftProxySequencer {
                 ++responseSequence;
                 completeResponses();
             } else {
-                responseCallbacks.put(sequence, new ResponseCallback(response, callback));
+                responseCallbacks.put(sequence, new RaftProxySequencer.ResponseCallback(response, callback));
             }
         }
         // If the response has not yet been sequenced, store it in the response callbacks map.
         // Otherwise, the response for the operation with this sequence number has already been handled.
         else if (sequence > responseSequence) {
-            responseCallbacks.put(sequence, new ResponseCallback(response, callback));
+            responseCallbacks.put(sequence, new RaftProxySequencer.ResponseCallback(response, callback));
         }
     }
 

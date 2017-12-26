@@ -27,23 +27,23 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
         .register(RaftConsistentTreeMapOperations.NAMESPACE)
         .register(RaftConsistentMapEvents.NAMESPACE)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 150)
-        .register(TransactionScope.class)
+        .register(RaftConsistentMapService.TransactionScope.class)
         .register(TransactionLog.class)
         .register(TransactionId.class)
-        .register(MapEntryValue.class)
-        .register(MapEntryValue.Type.class)
+        .register(RaftConsistentMapService.MapEntryValue.class)
+        .register(RaftConsistentMapService.MapEntryValue.Type.class)
         .register(new HashMap().keySet().getClass())
         .register(TreeMap.class)
         .build());
 
     @Override
-    protected TreeMap<String, MapEntryValue> createMap() {
+    protected TreeMap<String, RaftConsistentMapService.MapEntryValue> createMap() {
         return Maps.newTreeMap();
     }
 
     @Override
-    protected TreeMap<String, MapEntryValue> entries() {
-        return (TreeMap<String, MapEntryValue>) super.entries();
+    protected TreeMap<String, RaftConsistentMapService.MapEntryValue> entries() {
+        return (TreeMap<String, RaftConsistentMapService.MapEntryValue>) super.entries();
     }
 
     @Override
@@ -84,7 +84,7 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
     }
 
     private static Map.Entry<String, Versioned<byte[]>> toVersionedEntry(
-        Map.Entry<String, MapEntryValue> entry) {
+        Map.Entry<String, RaftConsistentMapService.MapEntryValue> entry) {
         return entry == null || valueIsNull(entry.getValue())
             ? null : Maps.immutableEntry(entry.getKey(), toVersioned(entry.getValue()));
     }
@@ -115,11 +115,11 @@ public class RaftConsistentTreeMapService extends RaftConsistentMapService {
         listeners.remove(sessionId);
     }
 
-    protected NavigableMap<String, MapEntryValue> subMap(
+    protected NavigableMap<String, RaftConsistentMapService.MapEntryValue> subMap(
         Commit<? extends RaftConsistentTreeMapOperations.SubMap> commit) {
         // Do not support this until lazy communication is possible.  At present
         // it transmits up to the entire map.
-        RaftConsistentTreeMapOperations.SubMap<String, MapEntryValue> subMap = commit.value();
+        RaftConsistentTreeMapOperations.SubMap<String, RaftConsistentMapService.MapEntryValue> subMap = commit.value();
         return entries().subMap(subMap.fromKey(), subMap.isInclusiveFrom(),
             subMap.toKey(), subMap.isInclusiveTo());
     }

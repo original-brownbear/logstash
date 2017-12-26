@@ -15,7 +15,7 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class CommandResponse extends OperationResponse {
 
-    public CommandResponse(Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
+    public CommandResponse(RaftResponse.Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
         super(status, error, index, eventIndex, result, lastSequence);
     }
 
@@ -23,14 +23,14 @@ public class CommandResponse extends OperationResponse {
      * Returns a new submit response builder.
      * @return A new submit response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static CommandResponse.Builder builder() {
+        return new CommandResponse.Builder();
     }
 
     /**
      * Command response builder.
      */
-    public static class Builder extends OperationResponse.Builder<Builder, CommandResponse> {
+    public static class Builder extends OperationResponse.Builder<CommandResponse.Builder, CommandResponse> {
         @Override
         public CommandResponse build() {
             validate();

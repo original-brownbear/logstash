@@ -9,7 +9,7 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class ReconfigureResponse extends ConfigurationResponse {
 
-    public ReconfigureResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+    public ReconfigureResponse(RaftResponse.Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
         super(status, error, index, term, timestamp, members);
     }
 
@@ -17,14 +17,14 @@ public class ReconfigureResponse extends ConfigurationResponse {
      * Returns a new reconfigure response builder.
      * @return A new reconfigure response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ReconfigureResponse.Builder builder() {
+        return new ReconfigureResponse.Builder();
     }
 
     /**
      * Reconfigure response builder.
      */
-    public static class Builder extends ConfigurationResponse.Builder<Builder, ReconfigureResponse> {
+    public static class Builder extends ConfigurationResponse.Builder<ReconfigureResponse.Builder, ReconfigureResponse> {
         @Override
         public ReconfigureResponse build() {
             validate();

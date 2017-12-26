@@ -7,11 +7,11 @@ import org.logstash.cluster.event.AbstractEvent;
  */
 public class RaftClusterEvent extends AbstractEvent<RaftClusterEvent.Type, RaftMember> {
 
-    public RaftClusterEvent(Type type, RaftMember subject) {
+    public RaftClusterEvent(RaftClusterEvent.Type type, RaftMember subject) {
         super(type, subject);
     }
 
-    public RaftClusterEvent(Type type, RaftMember subject, long time) {
+    public RaftClusterEvent(RaftClusterEvent.Type type, RaftMember subject, long time) {
         super(type, subject, time);
     }
 

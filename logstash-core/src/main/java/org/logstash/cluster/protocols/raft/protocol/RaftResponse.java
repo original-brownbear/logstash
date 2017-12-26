@@ -15,7 +15,7 @@ public interface RaftResponse extends RaftMessage {
      * Returns the response status.
      * @return The response status.
      */
-    Status status();
+    RaftResponse.Status status();
 
     /**
      * Returns the response error if the response status is {@code Status.ERROR}
@@ -50,7 +50,7 @@ public interface RaftResponse extends RaftMessage {
          * @return The status for the given identifier.
          * @throws IllegalArgumentException if {@code id} is not 0 or 1
          */
-        public static Status forId(int id) {
+        public static RaftResponse.Status forId(int id) {
             switch (id) {
                 case 1:
                     return OK;
@@ -76,7 +76,7 @@ public interface RaftResponse extends RaftMessage {
      * @param <T> The builder type.
      * @param <U> The response type.
      */
-    interface Builder<T extends Builder<T, U>, U extends RaftResponse> extends org.logstash.cluster.utils.Builder<U> {
+    interface Builder<T extends RaftResponse.Builder<T, U>, U extends RaftResponse> extends org.logstash.cluster.utils.Builder<U> {
 
         /**
          * Sets the response status.
@@ -84,7 +84,7 @@ public interface RaftResponse extends RaftMessage {
          * @return The response builder.
          * @throws NullPointerException if {@code status} is null
          */
-        T withStatus(Status status);
+        T withStatus(RaftResponse.Status status);
 
         /**
          * Sets the response error.

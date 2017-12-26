@@ -33,7 +33,7 @@ import org.logstash.cluster.storage.statistics.StorageStatistics;
  * </pre>
  * @see RaftLog
  */
-public class RaftStorage {
+public final class RaftStorage {
 
     private final String prefix;
     private final StorageLevel storageLevel;
@@ -48,16 +48,16 @@ public class RaftStorage {
     private final StorageStatistics statistics;
 
     private RaftStorage(
-        String prefix,
-        StorageLevel storageLevel,
-        File directory,
-        Serializer serializer,
-        int maxSegmentSize,
-        int maxEntriesPerSegment,
-        boolean dynamicCompaction,
-        double freeDiskBuffer,
-        boolean flushOnCommit,
-        boolean retainStaleSnapshots) {
+        final String prefix,
+        final StorageLevel storageLevel,
+        final File directory,
+        final Serializer serializer,
+        final int maxSegmentSize,
+        final int maxEntriesPerSegment,
+        final boolean dynamicCompaction,
+        final double freeDiskBuffer,
+        final boolean flushOnCommit,
+        final boolean retainStaleSnapshots) {
         this.prefix = prefix;
         this.storageLevel = storageLevel;
         this.directory = directory;
@@ -76,8 +76,8 @@ public class RaftStorage {
      * Returns a new storage builder.
      * @return A new storage builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static RaftStorage.Builder builder() {
+        return new RaftStorage.Builder();
     }
 
     /**
@@ -197,14 +197,14 @@ public class RaftStorage {
     /**
      * Deletes file in the storage directory that match the given predicate.
      */
-    private void deleteFiles(Predicate<File> predicate) {
+    private void deleteFiles(final Predicate<File> predicate) {
         directory.mkdirs();
 
         // Iterate through all files in the storage directory.
-        for (File file : directory.listFiles(f -> f.isFile() && predicate.test(f))) {
+        for (final File file : directory.listFiles(f -> f.isFile() && predicate.test(f))) {
             try {
                 Files.delete(file.toPath());
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 // Ignore the exception.
             }
         }
@@ -327,7 +327,7 @@ public class RaftStorage {
          * @param prefix The storage prefix.
          * @return The storage builder.
          */
-        public Builder withPrefix(String prefix) {
+        public RaftStorage.Builder withPrefix(final String prefix) {
             this.prefix = Preconditions.checkNotNull(prefix, "prefix cannot be null");
             return this;
         }
@@ -340,7 +340,7 @@ public class RaftStorage {
          * @param storageLevel The log storage level.
          * @return The storage builder.
          */
-        public Builder withStorageLevel(StorageLevel storageLevel) {
+        public RaftStorage.Builder withStorageLevel(final StorageLevel storageLevel) {
             this.storageLevel = Preconditions.checkNotNull(storageLevel, "storageLevel");
             return this;
         }
@@ -354,7 +354,7 @@ public class RaftStorage {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder withDirectory(String directory) {
+        public RaftStorage.Builder withDirectory(final String directory) {
             return withDirectory(new File(Preconditions.checkNotNull(directory, "directory")));
         }
 
@@ -367,7 +367,7 @@ public class RaftStorage {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder withDirectory(File directory) {
+        public RaftStorage.Builder withDirectory(final File directory) {
             this.directory = Preconditions.checkNotNull(directory, "directory");
             return this;
         }
@@ -378,7 +378,7 @@ public class RaftStorage {
          * @return The storage builder.
          * @throws NullPointerException If the {@code serializer} is {@code null}
          */
-        public Builder withSerializer(Serializer serializer) {
+        public RaftStorage.Builder withSerializer(final Serializer serializer) {
             this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
             return this;
         }
@@ -395,7 +395,7 @@ public class RaftStorage {
          * @return The storage builder.
          * @throws IllegalArgumentException If the {@code maxSegmentSize} is not positive
          */
-        public Builder withMaxSegmentSize(int maxSegmentSize) {
+        public RaftStorage.Builder withMaxSegmentSize(final int maxSegmentSize) {
             Preconditions.checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
             this.maxSegmentSize = maxSegmentSize;
             return this;
@@ -414,7 +414,7 @@ public class RaftStorage {
          * @throws IllegalArgumentException If the {@code maxEntriesPerSegment} not greater than the default max entries per
          * segment
          */
-        public Builder withMaxEntriesPerSegment(int maxEntriesPerSegment) {
+        public RaftStorage.Builder withMaxEntriesPerSegment(final int maxEntriesPerSegment) {
             Preconditions.checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
             Preconditions.checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
                 "max entries per segment cannot be greater than " + DEFAULT_MAX_ENTRIES_PER_SEGMENT);
@@ -429,7 +429,7 @@ public class RaftStorage {
          * or when the cluster is running out of disk space.
          * @return the Raft storage builder
          */
-        public Builder withDynamicCompaction() {
+        public RaftStorage.Builder withDynamicCompaction() {
             return withDynamicCompaction(true);
         }
 
@@ -441,7 +441,7 @@ public class RaftStorage {
          * @param dynamicCompaction whether to enable dynamic compaction
          * @return the Raft storage builder
          */
-        public Builder withDynamicCompaction(boolean dynamicCompaction) {
+        public RaftStorage.Builder withDynamicCompaction(final boolean dynamicCompaction) {
             this.dynamicCompaction = dynamicCompaction;
             return this;
         }
@@ -451,7 +451,7 @@ public class RaftStorage {
          * @param freeDiskBuffer the free disk percentage
          * @return the Raft log builder
          */
-        public Builder withFreeDiskBuffer(double freeDiskBuffer) {
+        public RaftStorage.Builder withFreeDiskBuffer(final double freeDiskBuffer) {
             Preconditions.checkArgument(freeDiskBuffer > 0, "freeDiskBuffer must be positive");
             Preconditions.checkArgument(freeDiskBuffer < 1, "freeDiskBuffer must be less than 1");
             this.freeDiskBuffer = freeDiskBuffer;
@@ -466,7 +466,7 @@ public class RaftStorage {
          * an entry is committed in a given segment.
          * @return The storage builder.
          */
-        public Builder withFlushOnCommit() {
+        public RaftStorage.Builder withFlushOnCommit() {
             return withFlushOnCommit(true);
         }
 
@@ -479,7 +479,7 @@ public class RaftStorage {
          * @param flushOnCommit Whether to flush buffers to disk when entries are committed to a segment.
          * @return The storage builder.
          */
-        public Builder withFlushOnCommit(boolean flushOnCommit) {
+        public RaftStorage.Builder withFlushOnCommit(final boolean flushOnCommit) {
             this.flushOnCommit = flushOnCommit;
             return this;
         }
@@ -494,7 +494,7 @@ public class RaftStorage {
          * all snapshots will be saved, e.g. for backup purposes.
          * @return The storage builder.
          */
-        public Builder withRetainStaleSnapshots() {
+        public RaftStorage.Builder withRetainStaleSnapshots() {
             return withRetainStaleSnapshots(true);
         }
 
@@ -509,7 +509,7 @@ public class RaftStorage {
          * @param retainStaleSnapshots Whether to retain stale snapshots on disk.
          * @return The storage builder.
          */
-        public Builder withRetainStaleSnapshots(boolean retainStaleSnapshots) {
+        public RaftStorage.Builder withRetainStaleSnapshots(final boolean retainStaleSnapshots) {
             this.retainStaleSnapshots = retainStaleSnapshots;
             return this;
         }

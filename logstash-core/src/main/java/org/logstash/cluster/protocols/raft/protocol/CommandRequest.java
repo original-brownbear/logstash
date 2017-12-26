@@ -28,8 +28,8 @@ public class CommandRequest extends OperationRequest {
      * Returns a new submit request builder.
      * @return A new submit request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static CommandRequest.Builder builder() {
+        return new CommandRequest.Builder();
     }
 
     @Override
@@ -60,7 +60,7 @@ public class CommandRequest extends OperationRequest {
     /**
      * Command request builder.
      */
-    public static class Builder extends OperationRequest.Builder<Builder, CommandRequest> {
+    public static class Builder extends OperationRequest.Builder<CommandRequest.Builder, CommandRequest> {
         @Override
         public CommandRequest build() {
             validate();

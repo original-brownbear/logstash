@@ -40,7 +40,7 @@ public class TranscodingAsyncConsistentTreeMap<K1, V1, K2, V2> implements AsyncC
     private final Function<Versioned<V2>, Versioned<V1>>
         versionedValueTransform;
     private final Map<MapEventListener<K1, V1>,
-        InternalBackingMapEventListener>
+        TranscodingAsyncConsistentTreeMap.InternalBackingMapEventListener>
         listeners = Maps.newIdentityHashMap();
 
     public TranscodingAsyncConsistentTreeMap(
@@ -312,15 +312,15 @@ public class TranscodingAsyncConsistentTreeMap<K1, V1, K2, V2> implements AsyncC
     public CompletableFuture<Void> addListener(
         MapEventListener<K1, V1> listener,
         Executor executor) {
-        InternalBackingMapEventListener backingMapEventListener =
-            listeners.computeIfAbsent(listener, k -> new InternalBackingMapEventListener(listener));
+        TranscodingAsyncConsistentTreeMap.InternalBackingMapEventListener backingMapEventListener =
+            listeners.computeIfAbsent(listener, k -> new TranscodingAsyncConsistentTreeMap.InternalBackingMapEventListener(listener));
         return backingMap.addListener(backingMapEventListener, executor);
     }
 
     @Override
     public CompletableFuture<Void> removeListener(
         MapEventListener<K1, V1> listener) {
-        InternalBackingMapEventListener backingMapEventListener = listeners.remove(listener);
+        TranscodingAsyncConsistentTreeMap.InternalBackingMapEventListener backingMapEventListener = listeners.remove(listener);
         if (backingMapEventListener == null) {
             return CompletableFuture.completedFuture(null);
         } else {

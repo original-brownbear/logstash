@@ -20,7 +20,7 @@ public abstract class OperationResponse extends SessionResponse {
     protected final byte[] result;
     protected final long lastSequence;
 
-    public OperationResponse(Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
+    public OperationResponse(RaftResponse.Status status, RaftError error, long index, long eventIndex, byte[] result, long lastSequence) {
         super(status, error);
         this.index = index;
         this.eventIndex = eventIndex;
@@ -83,7 +83,7 @@ public abstract class OperationResponse extends SessionResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("index", index)
@@ -102,7 +102,7 @@ public abstract class OperationResponse extends SessionResponse {
     /**
      * Operation response builder.
      */
-    public static abstract class Builder<T extends Builder<T, U>, U extends OperationResponse> extends SessionResponse.Builder<T, U> {
+    public abstract static class Builder<T extends OperationResponse.Builder<T, U>, U extends OperationResponse> extends SessionResponse.Builder<T, U> {
         protected long index;
         protected long eventIndex;
         protected byte[] result;
@@ -161,7 +161,7 @@ public abstract class OperationResponse extends SessionResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(index >= 0, "index must be positive");
                 Preconditions.checkArgument(eventIndex >= 0, "eventIndex must be positive");
                 Preconditions.checkArgument(lastSequence >= 0, "lastSequence must be positive");

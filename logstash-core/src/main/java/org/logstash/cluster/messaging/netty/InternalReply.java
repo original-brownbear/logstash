@@ -8,25 +8,25 @@ import org.logstash.cluster.utils.ArraySizeHashPrinter;
  */
 public final class InternalReply extends InternalMessage {
 
-    private final Status status;
+    private final InternalReply.Status status;
 
     public InternalReply(int preamble,
         long id,
-        Status status) {
+        InternalReply.Status status) {
         this(preamble, id, new byte[0], status);
     }
 
     public InternalReply(int preamble,
         long id,
         byte[] payload,
-        Status status) {
+        InternalReply.Status status) {
         super(preamble, id, payload);
         this.status = status;
     }
 
     @Override
-    public Type type() {
-        return Type.REPLY;
+    public InternalMessage.Type type() {
+        return InternalMessage.Type.REPLY;
     }
 
     @Override
@@ -38,7 +38,7 @@ public final class InternalReply extends InternalMessage {
             .toString();
     }
 
-    public Status status() {
+    public InternalReply.Status status() {
         return status;
     }
 
@@ -80,7 +80,7 @@ public final class InternalReply extends InternalMessage {
          * @param id the status ID.
          * @return the status enum for the given ID.
          */
-        public static Status forId(int id) {
+        public static InternalReply.Status forId(int id) {
             switch (id) {
                 case 0:
                     return OK;

@@ -17,7 +17,7 @@ public class VoteResponse extends AbstractRaftResponse {
     private final long term;
     private final boolean voted;
 
-    public VoteResponse(Status status, RaftError error, long term, boolean voted) {
+    public VoteResponse(RaftResponse.Status status, RaftError error, long term, boolean voted) {
         super(status, error);
         this.term = term;
         this.voted = voted;
@@ -27,8 +27,8 @@ public class VoteResponse extends AbstractRaftResponse {
      * Returns a new vote response builder.
      * @return A new vote response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static VoteResponse.Builder builder() {
+        return new VoteResponse.Builder();
     }
 
     /**
@@ -65,7 +65,7 @@ public class VoteResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("term", term)
@@ -82,7 +82,7 @@ public class VoteResponse extends AbstractRaftResponse {
     /**
      * Poll response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, VoteResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<VoteResponse.Builder, VoteResponse> {
         private long term = -1;
         private boolean voted;
 
@@ -92,7 +92,7 @@ public class VoteResponse extends AbstractRaftResponse {
          * @return The vote response builder.
          * @throws IllegalArgumentException if {@code term} is negative
          */
-        public Builder withTerm(long term) {
+        public VoteResponse.Builder withTerm(long term) {
             Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;
@@ -103,7 +103,7 @@ public class VoteResponse extends AbstractRaftResponse {
          * @param voted Whether the vote was granted.
          * @return The vote response builder.
          */
-        public Builder withVoted(boolean voted) {
+        public VoteResponse.Builder withVoted(boolean voted) {
             this.voted = voted;
             return this;
         }
@@ -117,7 +117,7 @@ public class VoteResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(term >= 0, "term must be positive");
             }
         }

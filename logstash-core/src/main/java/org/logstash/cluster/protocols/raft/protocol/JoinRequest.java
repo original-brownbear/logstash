@@ -19,14 +19,14 @@ public class JoinRequest extends ConfigurationRequest {
      * Returns a new join request builder.
      * @return A new join request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static JoinRequest.Builder builder() {
+        return new JoinRequest.Builder();
     }
 
     /**
      * Join request builder.
      */
-    public static class Builder extends ConfigurationRequest.Builder<Builder, JoinRequest> {
+    public static class Builder extends ConfigurationRequest.Builder<JoinRequest.Builder, JoinRequest> {
         @Override
         public JoinRequest build() {
             validate();

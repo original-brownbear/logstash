@@ -56,7 +56,7 @@ public class DefaultServiceContext implements ServiceContext {
     private final ThreadContext snapshotExecutor;
     private final ThreadContextFactory threadContextFactory;
     private final LoadMonitor loadMonitor;
-    private final Map<Long, PendingSnapshot> pendingSnapshots = new ConcurrentSkipListMap<>();
+    private final Map<Long, DefaultServiceContext.PendingSnapshot> pendingSnapshots = new ConcurrentSkipListMap<>();
     private long snapshotIndex;
     private long currentIndex;
     private final LogicalClock logicalClock = new LogicalClock() {
@@ -187,7 +187,7 @@ public class DefaultServiceContext implements ServiceContext {
                 .newTemporarySnapshot(serviceId, serviceName, snapshotIndex, WallClockTimestamp.from(currentTimestamp));
 
             // Add the snapshot to the pending snapshots registry.
-            final PendingSnapshot pendingSnapshot = new PendingSnapshot(snapshot);
+            final DefaultServiceContext.PendingSnapshot pendingSnapshot = new DefaultServiceContext.PendingSnapshot(snapshot);
             pendingSnapshots.put(snapshotIndex, pendingSnapshot);
             pendingSnapshot.future.whenComplete((r, e) -> pendingSnapshots.remove(snapshotIndex));
 
@@ -229,7 +229,7 @@ public class DefaultServiceContext implements ServiceContext {
      * @return a future to be completed once the snapshot has been completed
      */
     public CompletableFuture<Void> completeSnapshot(final long index) {
-        final PendingSnapshot pendingSnapshot = pendingSnapshots.get(index);
+        final DefaultServiceContext.PendingSnapshot pendingSnapshot = pendingSnapshots.get(index);
         if (pendingSnapshot == null) {
             return CompletableFuture.completedFuture(null);
         }
@@ -248,7 +248,7 @@ public class DefaultServiceContext implements ServiceContext {
                 lastCompleted = Math.min(lastCompleted, session.getLastCompleted());
             }
 
-            for (final PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
+            for (final DefaultServiceContext.PendingSnapshot pendingSnapshot : pendingSnapshots.values()) {
                 final Snapshot snapshot = pendingSnapshot.snapshot;
                 if (snapshot.isPersisted()) {
 

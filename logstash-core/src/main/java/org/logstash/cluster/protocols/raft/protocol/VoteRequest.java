@@ -30,8 +30,8 @@ public class VoteRequest extends AbstractRaftRequest {
      * Returns a new vote request builder.
      * @return A new vote request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static VoteRequest.Builder builder() {
+        return new VoteRequest.Builder();
     }
 
     /**
@@ -96,7 +96,7 @@ public class VoteRequest extends AbstractRaftRequest {
     /**
      * Vote request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, VoteRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<VoteRequest.Builder, VoteRequest> {
         private long term = -1;
         private String candidate;
         private long lastLogIndex = -1;
@@ -108,7 +108,7 @@ public class VoteRequest extends AbstractRaftRequest {
          * @return The poll request builder.
          * @throws IllegalArgumentException if {@code term} is negative
          */
-        public Builder withTerm(long term) {
+        public VoteRequest.Builder withTerm(long term) {
             Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;
@@ -120,7 +120,7 @@ public class VoteRequest extends AbstractRaftRequest {
          * @return The poll request builder.
          * @throws IllegalArgumentException if {@code candidate} is not positive
          */
-        public Builder withCandidate(MemberId candidate) {
+        public VoteRequest.Builder withCandidate(MemberId candidate) {
             this.candidate = Preconditions.checkNotNull(candidate, "candidate cannot be null").id();
             return this;
         }
@@ -131,7 +131,7 @@ public class VoteRequest extends AbstractRaftRequest {
          * @return The poll request builder.
          * @throws IllegalArgumentException if {@code index} is negative
          */
-        public Builder withLastLogIndex(long logIndex) {
+        public VoteRequest.Builder withLastLogIndex(long logIndex) {
             Preconditions.checkArgument(logIndex >= 0, "lastLogIndex must be positive");
             this.lastLogIndex = logIndex;
             return this;
@@ -143,7 +143,7 @@ public class VoteRequest extends AbstractRaftRequest {
          * @return The poll request builder.
          * @throws IllegalArgumentException if {@code term} is negative
          */
-        public Builder withLastLogTerm(long logTerm) {
+        public VoteRequest.Builder withLastLogTerm(long logTerm) {
             Preconditions.checkArgument(logTerm >= 0, "lastLogTerm must be positive");
             this.lastLogTerm = logTerm;
             return this;

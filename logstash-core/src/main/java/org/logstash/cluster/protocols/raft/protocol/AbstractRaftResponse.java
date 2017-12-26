@@ -9,16 +9,16 @@ import org.logstash.cluster.protocols.raft.RaftError;
  * Base response for all client responses.
  */
 public abstract class AbstractRaftResponse implements RaftResponse {
-    protected final Status status;
+    protected final RaftResponse.Status status;
     protected final RaftError error;
 
-    protected AbstractRaftResponse(Status status, RaftError error) {
+    protected AbstractRaftResponse(RaftResponse.Status status, RaftError error) {
         this.status = status;
         this.error = error;
     }
 
     @Override
-    public Status status() {
+    public RaftResponse.Status status() {
         return status;
     }
 
@@ -43,7 +43,7 @@ public abstract class AbstractRaftResponse implements RaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .toString();
@@ -60,13 +60,13 @@ public abstract class AbstractRaftResponse implements RaftResponse {
      * @param <T> The builder type.
      * @param <U> The response type.
      */
-    protected static abstract class Builder<T extends Builder<T, U>, U extends AbstractRaftResponse> implements RaftResponse.Builder<T, U> {
-        protected Status status;
+    protected abstract static class Builder<T extends AbstractRaftResponse.Builder<T, U>, U extends AbstractRaftResponse> implements RaftResponse.Builder<T, U> {
+        protected RaftResponse.Status status;
         protected RaftError error;
 
         @Override
         @SuppressWarnings("unchecked")
-        public T withStatus(Status status) {
+        public T withStatus(RaftResponse.Status status) {
             this.status = Preconditions.checkNotNull(status, "status cannot be null");
             return (T) this;
         }

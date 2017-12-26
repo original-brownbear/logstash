@@ -17,12 +17,6 @@ import java.util.stream.Collectors;
 import org.logstash.cluster.primitives.leadership.Leader;
 import org.logstash.cluster.primitives.leadership.Leadership;
 import org.logstash.cluster.primitives.leadership.LeadershipEvent;
-import org.logstash.cluster.primitives.leadership.LeadershipEvent.Type;
-import org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.Anoint;
-import org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.Evict;
-import org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.Promote;
-import org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.Run;
-import org.logstash.cluster.primitives.leadership.impl.RaftLeaderElectorOperations.Withdraw;
 import org.logstash.cluster.protocols.raft.service.AbstractRaftService;
 import org.logstash.cluster.protocols.raft.service.Commit;
 import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
@@ -41,14 +35,14 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     private static final Serializer SERIALIZER = Serializer.using(KryoNamespace.builder()
         .register(RaftLeaderElectorOperations.NAMESPACE)
         .register(RaftLeaderElectorEvents.NAMESPACE)
-        .register(Registration.class)
+        .register(RaftLeaderElectorService.Registration.class)
         .register(new LinkedHashMap<>().keySet().getClass())
         .build());
 
-    private Registration leader;
+    private RaftLeaderElectorService.Registration leader;
     private long term;
     private long termStartTime;
-    private List<Registration> registrations = new LinkedList<>();
+    private List<RaftLeaderElectorService.Registration> registrations = new LinkedList<>();
     private final AtomicLong termCounter = new AtomicLong();
     private Map<Long, RaftSession> listeners = new LinkedHashMap<>();
 
@@ -108,10 +102,10 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     protected void cleanup(RaftSession session) {
-        Optional<Registration> registration =
+        Optional<RaftLeaderElectorService.Registration> registration =
             registrations.stream().filter(r -> r.sessionId() == session.sessionId().id()).findFirst();
         if (registration.isPresent()) {
-            List<Registration> updatedRegistrations =
+            List<RaftLeaderElectorService.Registration> updatedRegistrations =
                 registrations.stream()
                     .filter(r -> r.sessionId() != session.sessionId().id())
                     .collect(Collectors.toList());
@@ -153,14 +147,14 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link Run} commit.
+     * Applies an {@link RaftLeaderElectorOperations.Run} commit.
      * @param commit commit entry
      * @return topic leader. If no previous leader existed this is the node that just entered the race.
      */
-    protected Leadership<byte[]> run(Commit<? extends Run> commit) {
+    protected Leadership<byte[]> run(Commit<? extends RaftLeaderElectorOperations.Run> commit) {
         try {
             Leadership<byte[]> oldLeadership = leadership();
-            Registration registration = new Registration(commit.value().id(), commit.session().sessionId().id());
+            RaftLeaderElectorService.Registration registration = new RaftLeaderElectorService.Registration(commit.value().id(), commit.session().sessionId().id());
             addRegistration(registration);
             Leadership<byte[]> newLeadership = leadership();
 
@@ -175,7 +169,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     private void notifyLeadershipChange(Leadership<byte[]> previousLeadership, Leadership<byte[]> newLeadership) {
-        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<>(Type.CHANGE, previousLeadership, newLeadership)));
+        notifyLeadershipChanges(Lists.newArrayList(new LeadershipEvent<>(LeadershipEvent.Type.CHANGE, previousLeadership, newLeadership)));
     }
 
     private void notifyLeadershipChanges(List<LeadershipEvent> changes) {
@@ -202,9 +196,9 @@ public class RaftLeaderElectorService extends AbstractRaftService {
         return registrations.stream().map(registration -> registration.id()).collect(Collectors.toList());
     }
 
-    protected void addRegistration(Registration registration) {
+    protected void addRegistration(RaftLeaderElectorService.Registration registration) {
         if (registrations.stream().noneMatch(r -> Arrays.equals(registration.id(), r.id()))) {
-            List<Registration> updatedRegistrations = new LinkedList<>(registrations);
+            List<RaftLeaderElectorService.Registration> updatedRegistrations = new LinkedList<>(registrations);
             updatedRegistrations.add(registration);
             boolean newLeader = leader == null;
             this.registrations = updatedRegistrations;
@@ -219,7 +213,7 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     /**
      * Applies a withdraw commit.
      */
-    protected void withdraw(Commit<? extends Withdraw> commit) {
+    protected void withdraw(Commit<? extends RaftLeaderElectorOperations.Withdraw> commit) {
         try {
             Leadership<byte[]> oldLeadership = leadership();
             cleanup(commit.value().id());
@@ -234,10 +228,10 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     protected void cleanup(byte[] id) {
-        Optional<Registration> registration =
+        Optional<RaftLeaderElectorService.Registration> registration =
             registrations.stream().filter(r -> Arrays.equals(r.id(), id)).findFirst();
         if (registration.isPresent()) {
-            List<Registration> updatedRegistrations =
+            List<RaftLeaderElectorService.Registration> updatedRegistrations =
                 registrations.stream()
                     .filter(r -> !Arrays.equals(r.id(), id))
                     .collect(Collectors.toList());
@@ -258,15 +252,15 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link Anoint} commit.
+     * Applies an {@link RaftLeaderElectorOperations.Anoint} commit.
      * @param commit anoint commit
      * @return {@code true} if changes were made and the transfer occurred; {@code false} if it did not.
      */
-    protected boolean anoint(Commit<? extends Anoint> commit) {
+    protected boolean anoint(Commit<? extends RaftLeaderElectorOperations.Anoint> commit) {
         try {
             byte[] id = commit.value().id();
             Leadership<byte[]> oldLeadership = leadership();
-            Registration newLeader = registrations.stream()
+            RaftLeaderElectorService.Registration newLeader = registrations.stream()
                 .filter(r -> Arrays.equals(r.id(), id))
                 .findFirst()
                 .orElse(null);
@@ -287,11 +281,11 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link Promote} commit.
+     * Applies an {@link RaftLeaderElectorOperations.Promote} commit.
      * @param commit promote commit
      * @return {@code true} if changes desired end state is achieved.
      */
-    protected boolean promote(Commit<? extends Promote> commit) {
+    protected boolean promote(Commit<? extends RaftLeaderElectorOperations.Promote> commit) {
         try {
             byte[] id = commit.value().id();
             Leadership<byte[]> oldLeadership = leadership();
@@ -304,11 +298,11 @@ public class RaftLeaderElectorService extends AbstractRaftService {
                     return false;
                 }
             }
-            Registration registration = registrations.stream()
+            RaftLeaderElectorService.Registration registration = registrations.stream()
                 .filter(r -> Arrays.equals(r.id(), id))
                 .findFirst()
                 .orElse(null);
-            List<Registration> updatedRegistrations = Lists.newArrayList();
+            List<RaftLeaderElectorService.Registration> updatedRegistrations = Lists.newArrayList();
             updatedRegistrations.add(registration);
             registrations.stream()
                 .filter(r -> !Arrays.equals(r.id(), id))
@@ -326,17 +320,17 @@ public class RaftLeaderElectorService extends AbstractRaftService {
     }
 
     /**
-     * Applies an {@link Evict} commit.
+     * Applies an {@link RaftLeaderElectorOperations.Evict} commit.
      * @param commit evict commit
      */
-    protected void evict(Commit<? extends Evict> commit) {
+    protected void evict(Commit<? extends RaftLeaderElectorOperations.Evict> commit) {
         try {
             byte[] id = commit.value().id();
             Leadership<byte[]> oldLeadership = leadership();
-            Optional<Registration> registration =
+            Optional<RaftLeaderElectorService.Registration> registration =
                 registrations.stream().filter(r -> Arrays.equals(r.id, id)).findFirst();
             if (registration.isPresent()) {
-                List<Registration> updatedRegistrations =
+                List<RaftLeaderElectorService.Registration> updatedRegistrations =
                     registrations.stream()
                         .filter(r -> !Arrays.equals(r.id(), id))
                         .collect(Collectors.toList());

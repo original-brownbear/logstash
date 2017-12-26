@@ -41,17 +41,17 @@ public class DelegatingRaftProxy implements RaftProxy {
     }
 
     @Override
-    public State getState() {
+    public RaftProxy.State getState() {
         return client.getState();
     }
 
     @Override
-    public void addStateChangeListener(Consumer<State> listener) {
+    public void addStateChangeListener(Consumer<RaftProxy.State> listener) {
         client.addStateChangeListener(listener);
     }
 
     @Override
-    public void removeStateChangeListener(Consumer<State> listener) {
+    public void removeStateChangeListener(Consumer<RaftProxy.State> listener) {
         client.removeStateChangeListener(listener);
     }
 

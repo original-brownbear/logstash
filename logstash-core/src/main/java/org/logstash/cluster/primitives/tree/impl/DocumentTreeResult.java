@@ -26,17 +26,17 @@ public class DocumentTreeResult<V> {
 
     @SuppressWarnings("unchecked")
     public static final DocumentTreeResult WRITE_LOCK =
-        new DocumentTreeResult(Status.WRITE_LOCK, null);
+        new DocumentTreeResult(DocumentTreeResult.Status.WRITE_LOCK, null);
     @SuppressWarnings("unchecked")
     public static final DocumentTreeResult INVALID_PATH =
-        new DocumentTreeResult(Status.INVALID_PATH, null);
+        new DocumentTreeResult(DocumentTreeResult.Status.INVALID_PATH, null);
     @SuppressWarnings("unchecked")
     public static final DocumentTreeResult ILLEGAL_MODIFICATION =
-        new DocumentTreeResult(Status.ILLEGAL_MODIFICATION, null);
-    private final Status status;
+        new DocumentTreeResult(DocumentTreeResult.Status.ILLEGAL_MODIFICATION, null);
+    private final DocumentTreeResult.Status status;
     private final V result;
 
-    public DocumentTreeResult(Status status, V result) {
+    public DocumentTreeResult(DocumentTreeResult.Status status, V result) {
         this.status = status;
         this.result = result;
     }
@@ -48,7 +48,7 @@ public class DocumentTreeResult<V> {
      * @return successful result
      */
     public static <V> DocumentTreeResult<V> ok(V result) {
-        return new DocumentTreeResult<>(Status.OK, result);
+        return new DocumentTreeResult<>(DocumentTreeResult.Status.OK, result);
     }
 
     /**
@@ -81,7 +81,7 @@ public class DocumentTreeResult<V> {
         return ILLEGAL_MODIFICATION;
     }
 
-    public Status status() {
+    public DocumentTreeResult.Status status() {
         return status;
     }
 
@@ -94,7 +94,7 @@ public class DocumentTreeResult<V> {
     }
 
     public boolean updated() {
-        return status == Status.OK;
+        return status == DocumentTreeResult.Status.OK;
     }
 
     @Override

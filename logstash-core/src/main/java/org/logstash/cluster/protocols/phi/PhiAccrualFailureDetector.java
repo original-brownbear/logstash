@@ -16,7 +16,7 @@ public class PhiAccrualFailureDetector {
     private static final double DEFAULT_PHI_FACTOR = 1.0 / Math.log(10.0);
     private final int minSamples;
     private final double phiFactor;
-    private final History history;
+    private final PhiAccrualFailureDetector.History history;
 
     /**
      * Creates a new failure detector with the default configuration.
@@ -34,7 +34,7 @@ public class PhiAccrualFailureDetector {
     public PhiAccrualFailureDetector(int minSamples, double phiFactor, int windowSize) {
         this.minSamples = minSamples;
         this.phiFactor = phiFactor;
-        this.history = new History(windowSize);
+        this.history = new PhiAccrualFailureDetector.History(windowSize);
     }
 
     /**

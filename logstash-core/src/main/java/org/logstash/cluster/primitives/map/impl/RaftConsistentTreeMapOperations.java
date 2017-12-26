@@ -35,14 +35,14 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID + 100)
-        .register(LowerKey.class)
-        .register(LowerEntry.class)
-        .register(HigherKey.class)
-        .register(HigherEntry.class)
-        .register(FloorKey.class)
-        .register(FloorEntry.class)
-        .register(CeilingKey.class)
-        .register(CeilingEntry.class)
+        .register(RaftConsistentTreeMapOperations.LowerKey.class)
+        .register(RaftConsistentTreeMapOperations.LowerEntry.class)
+        .register(RaftConsistentTreeMapOperations.HigherKey.class)
+        .register(RaftConsistentTreeMapOperations.HigherEntry.class)
+        .register(RaftConsistentTreeMapOperations.FloorKey.class)
+        .register(RaftConsistentTreeMapOperations.FloorEntry.class)
+        .register(RaftConsistentTreeMapOperations.CeilingKey.class)
+        .register(RaftConsistentTreeMapOperations.CeilingEntry.class)
         .register(Versioned.class)
         .register(AbstractMap.SimpleImmutableEntry.class)
         .register(Maps.immutableEntry("", "").getClass())
@@ -81,7 +81,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Abstract key-based query.
      */
     @SuppressWarnings("serial")
-    public abstract static class KeyOperation extends TreeOperation {
+    public abstract static class KeyOperation extends RaftConsistentTreeMapOperations.TreeOperation {
         protected String key;
 
         public KeyOperation(String key) {
@@ -107,7 +107,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Abstract value-based query.
      */
     @SuppressWarnings("serial")
-    public abstract static class ValueOperation extends TreeOperation {
+    public abstract static class ValueOperation extends RaftConsistentTreeMapOperations.TreeOperation {
         protected byte[] value;
 
         public ValueOperation() {
@@ -133,7 +133,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Contains key command.
      */
     @SuppressWarnings("serial")
-    public static class ContainsKey extends KeyOperation {
+    public static class ContainsKey extends RaftConsistentTreeMapOperations.KeyOperation {
 
         public ContainsKey(String key) {
             super(key);
@@ -147,7 +147,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Contains value command.
      */
     @SuppressWarnings("serial")
-    public static class ContainsValue extends ValueOperation {
+    public static class ContainsValue extends RaftConsistentTreeMapOperations.ValueOperation {
         public ContainsValue() {
         }
 
@@ -161,7 +161,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * AsyncConsistentTreeMap update command.
      */
     @SuppressWarnings("serial")
-    public static class UpdateAndGet extends TreeOperation {
+    public static class UpdateAndGet extends RaftConsistentTreeMapOperations.TreeOperation {
         private String key;
         private byte[] value;
         private Match<byte[]> valueMatch;
@@ -211,7 +211,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Get query.
      */
     @SuppressWarnings("serial")
-    public static class Get extends KeyOperation {
+    public static class Get extends RaftConsistentTreeMapOperations.KeyOperation {
         public Get() {
         }
 
@@ -224,7 +224,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Get or default query.
      */
     @SuppressWarnings("serial")
-    public static class GetOrDefault extends KeyOperation {
+    public static class GetOrDefault extends RaftConsistentTreeMapOperations.KeyOperation {
         private byte[] defaultValue;
 
         public GetOrDefault() {
@@ -249,7 +249,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * passed in key.
      */
     @SuppressWarnings("serial")
-    public static class LowerEntry extends KeyOperation {
+    public static class LowerEntry extends RaftConsistentTreeMapOperations.KeyOperation {
         public LowerEntry() {
         }
 
@@ -262,7 +262,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Query returns the largest key less than the specified key.
      */
     @SuppressWarnings("serial")
-    public static class LowerKey extends KeyOperation {
+    public static class LowerKey extends RaftConsistentTreeMapOperations.KeyOperation {
         public LowerKey() {
         }
 
@@ -276,7 +276,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * equal to the specified key.
      */
     @SuppressWarnings("serial")
-    public static class FloorEntry extends KeyOperation {
+    public static class FloorEntry extends RaftConsistentTreeMapOperations.KeyOperation {
         public FloorEntry() {
         }
 
@@ -290,7 +290,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * key.
      */
     @SuppressWarnings("serial")
-    public static class FloorKey extends KeyOperation {
+    public static class FloorKey extends RaftConsistentTreeMapOperations.KeyOperation {
         public FloorKey() {
         }
 
@@ -304,7 +304,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * to the specified key.
      */
     @SuppressWarnings("serial")
-    public static class CeilingEntry extends KeyOperation {
+    public static class CeilingEntry extends RaftConsistentTreeMapOperations.KeyOperation {
         public CeilingEntry() {
         }
 
@@ -317,7 +317,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Returns the smallest key larger than or equal to the specified key.
      */
     @SuppressWarnings("serial")
-    public static class CeilingKey extends KeyOperation {
+    public static class CeilingKey extends RaftConsistentTreeMapOperations.KeyOperation {
         public CeilingKey() {
         }
 
@@ -331,7 +331,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * specified key.
      */
     @SuppressWarnings("serial")
-    public static class HigherEntry extends KeyOperation {
+    public static class HigherEntry extends RaftConsistentTreeMapOperations.KeyOperation {
         public HigherEntry() {
         }
 
@@ -344,7 +344,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
      * Returns the smallest key larger than the specified key.
      */
     @SuppressWarnings("serial")
-    public static class HigherKey extends KeyOperation {
+    public static class HigherKey extends RaftConsistentTreeMapOperations.KeyOperation {
         public HigherKey() {
         }
 
@@ -354,7 +354,7 @@ public enum RaftConsistentTreeMapOperations implements OperationId {
     }
 
     @SuppressWarnings("serial")
-    public static class SubMap<K, V> extends TreeOperation {
+    public static class SubMap<K, V> extends RaftConsistentTreeMapOperations.TreeOperation {
         private K fromKey;
         private K toKey;
         private boolean inclusiveFrom;

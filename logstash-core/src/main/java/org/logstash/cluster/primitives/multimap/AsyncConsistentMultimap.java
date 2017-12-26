@@ -24,7 +24,7 @@ public interface AsyncConsistentMultimap<K, V> extends AsyncPrimitive {
 
     @Override
     default DistributedPrimitive.Type primitiveType() {
-        return Type.CONSISTENT_MULTIMAP;
+        return DistributedPrimitive.Type.CONSISTENT_MULTIMAP;
     }
 
     @Override

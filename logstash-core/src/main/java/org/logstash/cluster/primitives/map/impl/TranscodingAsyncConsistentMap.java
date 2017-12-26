@@ -5,7 +5,6 @@ import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -14,6 +13,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.TransactionId;
 import org.logstash.cluster.primitives.TransactionLog;
 import org.logstash.cluster.primitives.map.AsyncConsistentMap;
@@ -39,7 +39,7 @@ public class TranscodingAsyncConsistentMap<K1, V1, K2, V2> implements AsyncConsi
     private final Function<V2, V1> valueDecoder;
     private final Function<V1, V2> valueEncoder;
     private final Function<Versioned<V2>, Versioned<V1>> versionedValueTransform;
-    private final Map<MapEventListener<K1, V1>, InternalBackingMapEventListener> listeners =
+    private final Map<MapEventListener<K1, V1>, TranscodingAsyncConsistentMap.InternalBackingMapEventListener> listeners =
         Maps.newIdentityHashMap();
 
     public TranscodingAsyncConsistentMap(AsyncConsistentMap<K2, V2> backingMap,
@@ -61,17 +61,17 @@ public class TranscodingAsyncConsistentMap<K1, V1, K2, V2> implements AsyncConsi
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         backingMap.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         backingMap.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return backingMap.statusChangeListeners();
     }
 
@@ -195,7 +195,7 @@ public class TranscodingAsyncConsistentMap<K1, V1, K2, V2> implements AsyncConsi
     }
 
     @Override
-    public CompletableFuture<Set<Entry<K1, Versioned<V1>>>> entrySet() {
+    public CompletableFuture<Set<Map.Entry<K1, Versioned<V1>>>> entrySet() {
         return backingMap.entrySet()
             .thenApply(s -> s.stream()
                 .map(e -> Maps.immutableEntry(keyDecoder.apply(e.getKey()),
@@ -264,8 +264,8 @@ public class TranscodingAsyncConsistentMap<K1, V1, K2, V2> implements AsyncConsi
     @Override
     public CompletableFuture<Void> addListener(MapEventListener<K1, V1> listener, Executor executor) {
         synchronized (listeners) {
-            InternalBackingMapEventListener backingMapListener =
-                listeners.computeIfAbsent(listener, k -> new InternalBackingMapEventListener(listener));
+            TranscodingAsyncConsistentMap.InternalBackingMapEventListener backingMapListener =
+                listeners.computeIfAbsent(listener, k -> new TranscodingAsyncConsistentMap.InternalBackingMapEventListener(listener));
             return backingMap.addListener(backingMapListener, executor);
         }
     }
@@ -273,7 +273,7 @@ public class TranscodingAsyncConsistentMap<K1, V1, K2, V2> implements AsyncConsi
     @Override
     public CompletableFuture<Void> removeListener(MapEventListener<K1, V1> listener) {
         synchronized (listeners) {
-            InternalBackingMapEventListener backingMapListener = listeners.remove(listener);
+            TranscodingAsyncConsistentMap.InternalBackingMapEventListener backingMapListener = listeners.remove(listener);
             if (backingMapListener != null) {
                 return backingMap.removeListener(backingMapListener);
             } else {

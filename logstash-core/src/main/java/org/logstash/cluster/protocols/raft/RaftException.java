@@ -66,13 +66,13 @@ public abstract class RaftException extends RuntimeException {
         }
     }
 
-    public static class CommandFailure extends OperationFailure {
+    public static class CommandFailure extends RaftException.OperationFailure {
         public CommandFailure(String message, Object... args) {
             super(RaftError.Type.COMMAND_FAILURE, message, args);
         }
     }
 
-    public static class QueryFailure extends OperationFailure {
+    public static class QueryFailure extends RaftException.OperationFailure {
         public QueryFailure(String message, Object... args) {
             super(RaftError.Type.QUERY_FAILURE, message, args);
         }

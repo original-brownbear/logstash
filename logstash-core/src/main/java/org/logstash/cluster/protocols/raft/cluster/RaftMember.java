@@ -30,12 +30,12 @@ public interface RaftMember {
      * <p>
      * The member type is indicative of the member's level of participation in the Raft consensus algorithm and
      * asynchronous replication within the cluster. Member types may change throughout the lifetime of the cluster.
-     * Types can be changed by {@link #promote(Type) promoting} or {@link #demote(Type) demoting} the member. Member
+     * Types can be changed by {@link #promote(RaftMember.Type) promoting} or {@link #demote(RaftMember.Type) demoting} the member. Member
      * types for a given member are guaranteed to change in the same order on all nodes, but the type of a member
      * may be different from the perspective of different nodes at any given time.
      * @return The member type.
      */
-    Type getType();
+    RaftMember.Type getType();
 
     /**
      * Adds a listener to be called when the member's type changes.
@@ -45,13 +45,13 @@ public interface RaftMember {
      * guaranteed to occur in the same order on all servers.
      * @param listener The listener to be called when the member's type changes.
      */
-    void addTypeChangeListener(Consumer<Type> listener);
+    void addTypeChangeListener(Consumer<RaftMember.Type> listener);
 
     /**
      * Removes a type change listener from the member.
      * @param listener The listener to remove from the member.
      */
-    void removeTypeChangeListener(Consumer<Type> listener);
+    void removeTypeChangeListener(Consumer<RaftMember.Type> listener);
 
     /**
      * Returns the time at which the member was updated.
@@ -65,7 +65,7 @@ public interface RaftMember {
     /**
      * Promotes the member to the next highest type.
      * <p>
-     * If the member is promoted to {@link Type#ACTIVE} the Raft quorum size will increase.
+     * If the member is promoted to {@link RaftMember.Type#ACTIVE} the Raft quorum size will increase.
      * @return A completable future to be completed once the member has been promoted.
      */
     CompletableFuture<Void> promote();
@@ -73,7 +73,7 @@ public interface RaftMember {
     /**
      * Promotes the member to the given type.
      * <p>
-     * If the member is promoted to {@link Type#ACTIVE} the Raft quorum size will increase.
+     * If the member is promoted to {@link RaftMember.Type#ACTIVE} the Raft quorum size will increase.
      * @param type The type to which to promote the member.
      * @return A completable future to be completed once the member has been promoted.
      */
@@ -82,7 +82,7 @@ public interface RaftMember {
     /**
      * Demotes the member to the next lowest type.
      * <p>
-     * If the member is an {@link Type#ACTIVE} member then demoting it will impact the Raft quorum size.
+     * If the member is an {@link RaftMember.Type#ACTIVE} member then demoting it will impact the Raft quorum size.
      * @return A completable future to be completed once the member has been demoted.
      */
     CompletableFuture<Void> demote();
@@ -90,7 +90,7 @@ public interface RaftMember {
     /**
      * Demotes the member to the given type.
      * <p>
-     * If the member is an {@link Type#ACTIVE} member then demoting it will impact the Raft quorum size.
+     * If the member is an {@link RaftMember.Type#ACTIVE} member then demoting it will impact the Raft quorum size.
      * @param type The type to which to demote the member.
      * @return A completable future to be completed once the member has been demoted.
      */
@@ -99,7 +99,7 @@ public interface RaftMember {
     /**
      * Removes the member from the configuration.
      * <p>
-     * If the member is a part of the current Raft quorum (is an {@link Type#ACTIVE} member) then the
+     * If the member is a part of the current Raft quorum (is an {@link RaftMember.Type#ACTIVE} member) then the
      * quorum will be impacted by removing the member.
      * @return A completable future to be completed once the member has been removed from the configuration.
      */

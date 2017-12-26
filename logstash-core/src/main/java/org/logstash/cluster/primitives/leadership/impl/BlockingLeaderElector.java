@@ -6,6 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.PrimitiveException;
 import org.logstash.cluster.primitives.Synchronous;
 import org.logstash.cluster.primitives.leadership.AsyncLeaderElector;
@@ -81,17 +82,17 @@ public class BlockingLeaderElector<T> extends Synchronous<AsyncLeaderElector<T>>
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         asyncElector.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         asyncElector.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return asyncElector.statusChangeListeners();
     }
 }

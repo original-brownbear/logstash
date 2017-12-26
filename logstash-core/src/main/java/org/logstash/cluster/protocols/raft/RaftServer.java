@@ -131,7 +131,7 @@ public interface RaftServer {
      * The server will be constructed at 0.0.0.0:8700.
      * @return The server builder.
      */
-    static Builder builder() {
+    static RaftServer.Builder builder() {
         return builder(null);
     }
 
@@ -142,14 +142,14 @@ public interface RaftServer {
      * @param localMemberId The local node identifier.
      * @return The server builder.
      */
-    static Builder builder(MemberId localMemberId) {
+    static RaftServer.Builder builder(MemberId localMemberId) {
         return new DefaultRaftServer.Builder(localMemberId);
     }
 
     /**
      * Returns the server name.
      * <p>
-     * The server name is provided to the server via the {@link Builder#withName(String) builder configuration}.
+     * The server name is provided to the server via the {@link RaftServer.Builder#withName(String) builder configuration}.
      * The name is used internally to manage the server's on-disk state. {@link RaftLog Log},
      * {@link SnapshotStore snapshot},
      * and {@link MetaStore configuration} files stored on disk use
@@ -178,38 +178,38 @@ public interface RaftServer {
      * @return whether the server is the leader
      */
     default boolean isLeader() {
-        return getRole() == Role.LEADER;
+        return getRole() == RaftServer.Role.LEADER;
     }
 
     /**
      * Returns the server role.
      * <p>
-     * The initial state of a Raft server is {@link Role#INACTIVE}. Once the server is {@link #bootstrap() started} and
-     * until it is explicitly shutdown, the server will be in one of the active states - {@link Role#PASSIVE},
-     * {@link Role#FOLLOWER}, {@link Role#CANDIDATE}, or {@link Role#LEADER}.
+     * The initial state of a Raft server is {@link RaftServer.Role#INACTIVE}. Once the server is {@link #bootstrap() started} and
+     * until it is explicitly shutdown, the server will be in one of the active states - {@link RaftServer.Role#PASSIVE},
+     * {@link RaftServer.Role#FOLLOWER}, {@link RaftServer.Role#CANDIDATE}, or {@link RaftServer.Role#LEADER}.
      * @return The server role.
      */
-    Role getRole();
+    RaftServer.Role getRole();
 
     /**
      * Returns whether the server is a follower.
      * @return whether the server is a follower
      */
     default boolean isFollower() {
-        return getRole() == Role.FOLLOWER;
+        return getRole() == RaftServer.Role.FOLLOWER;
     }
 
     /**
      * Adds a role change listener.
      * @param listener The role change listener to add.
      */
-    void addRoleChangeListener(Consumer<Role> listener);
+    void addRoleChangeListener(Consumer<RaftServer.Role> listener);
 
     /**
      * Removes a role change listener.
      * @param listener The role change listener to remove.
      */
-    void removeRoleChangeListener(Consumer<Role> listener);
+    void removeRoleChangeListener(Consumer<RaftServer.Role> listener);
 
     /**
      * Bootstraps a single-node cluster.
@@ -528,7 +528,7 @@ public interface RaftServer {
          * @param name The server name.
          * @return The server builder.
          */
-        public Builder withName(String name) {
+        public RaftServer.Builder withName(String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -538,7 +538,7 @@ public interface RaftServer {
          * @param protocol The server protocol.
          * @return The server builder.
          */
-        public Builder withProtocol(RaftServerProtocol protocol) {
+        public RaftServer.Builder withProtocol(RaftServerProtocol protocol) {
             this.protocol = Preconditions.checkNotNull(protocol, "protocol cannot be null");
             return this;
         }
@@ -549,7 +549,7 @@ public interface RaftServer {
          * @return The Raft server builder.
          * @throws NullPointerException if {@code storage} is null
          */
-        public Builder withStorage(RaftStorage storage) {
+        public RaftServer.Builder withStorage(RaftStorage storage) {
             this.storage = Preconditions.checkNotNull(storage, "storage cannot be null");
             return this;
         }
@@ -561,7 +561,7 @@ public interface RaftServer {
          * @return The server builder.
          * @throws NullPointerException if the {@code factory} is {@code null}
          */
-        public Builder addService(String type, Supplier<RaftService> factory) {
+        public RaftServer.Builder addService(String type, Supplier<RaftService> factory) {
             serviceRegistry.register(type, factory);
             return this;
         }
@@ -573,7 +573,7 @@ public interface RaftServer {
          * @throws IllegalArgumentException If the election timeout is not positive
          * @throws NullPointerException if {@code electionTimeout} is null
          */
-        public Builder withElectionTimeout(Duration electionTimeout) {
+        public RaftServer.Builder withElectionTimeout(Duration electionTimeout) {
             Preconditions.checkNotNull(electionTimeout, "electionTimeout cannot be null");
             Preconditions.checkArgument(!electionTimeout.isNegative() && !electionTimeout.isZero(), "electionTimeout must be positive");
             Preconditions.checkArgument(electionTimeout.toMillis() > heartbeatInterval.toMillis(), "electionTimeout must be greater than heartbeatInterval");
@@ -588,7 +588,7 @@ public interface RaftServer {
          * @throws IllegalArgumentException If the heartbeat interval is not positive
          * @throws NullPointerException if {@code heartbeatInterval} is null
          */
-        public Builder withHeartbeatInterval(Duration heartbeatInterval) {
+        public RaftServer.Builder withHeartbeatInterval(Duration heartbeatInterval) {
             Preconditions.checkNotNull(heartbeatInterval, "heartbeatInterval cannot be null");
             Preconditions.checkArgument(!heartbeatInterval.isNegative() && !heartbeatInterval.isZero(), "sessionTimeout must be positive");
             Preconditions.checkArgument(heartbeatInterval.toMillis() < electionTimeout.toMillis(), "heartbeatInterval must be less than electionTimeout");
@@ -605,7 +605,7 @@ public interface RaftServer {
          * @return The Raft server builder
          * @throws IllegalArgumentException if the threshold is not positive
          */
-        public Builder withElectionThreshold(int electionThreshold) {
+        public RaftServer.Builder withElectionThreshold(int electionThreshold) {
             Preconditions.checkArgument(electionThreshold > 0, "electionThreshold must be positive");
             this.electionThreshold = electionThreshold;
             return this;
@@ -618,7 +618,7 @@ public interface RaftServer {
          * @throws IllegalArgumentException If the session timeout is not positive
          * @throws NullPointerException if {@code sessionTimeout} is null
          */
-        public Builder withSessionTimeout(Duration sessionTimeout) {
+        public RaftServer.Builder withSessionTimeout(Duration sessionTimeout) {
             Preconditions.checkNotNull(sessionTimeout, "sessionTimeout cannot be null");
             Preconditions.checkArgument(!sessionTimeout.isNegative() && !sessionTimeout.isZero(), "sessionTimeout must be positive");
             Preconditions.checkArgument(sessionTimeout.toMillis() > electionTimeout.toMillis(), "sessionTimeout must be greater than electionTimeout");
@@ -634,7 +634,7 @@ public interface RaftServer {
          * @return The Raft server builder.
          * @throws IllegalArgumentException if the threshold is not positive
          */
-        public Builder withSessionFailureThreshold(int sessionFailureThreshold) {
+        public RaftServer.Builder withSessionFailureThreshold(int sessionFailureThreshold) {
             Preconditions.checkArgument(sessionFailureThreshold > 0, "sessionFailureThreshold must be positive");
             this.sessionFailureThreshold = sessionFailureThreshold;
             return this;
@@ -645,7 +645,7 @@ public interface RaftServer {
          * @param threadPoolSize The server thread pool size.
          * @return The server builder.
          */
-        public Builder withThreadPoolSize(int threadPoolSize) {
+        public RaftServer.Builder withThreadPoolSize(int threadPoolSize) {
             Preconditions.checkArgument(threadPoolSize > 0, "threadPoolSize must be positive");
             this.threadPoolSize = threadPoolSize;
             return this;

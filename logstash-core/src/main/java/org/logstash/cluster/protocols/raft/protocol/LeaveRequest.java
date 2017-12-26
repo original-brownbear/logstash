@@ -19,14 +19,14 @@ public class LeaveRequest extends ConfigurationRequest {
      * Returns a new leave request builder.
      * @return A new leave request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static LeaveRequest.Builder builder() {
+        return new LeaveRequest.Builder();
     }
 
     /**
      * Leave request builder.
      */
-    public static class Builder extends ConfigurationRequest.Builder<Builder, LeaveRequest> {
+    public static class Builder extends ConfigurationRequest.Builder<LeaveRequest.Builder, LeaveRequest> {
         @Override
         public LeaveRequest build() {
             validate();

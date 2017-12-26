@@ -45,8 +45,8 @@ public class InstallRequest extends AbstractRaftRequest {
      * Returns a new install request builder.
      * @return A new install request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static InstallRequest.Builder builder() {
+        return new InstallRequest.Builder();
     }
 
     /**
@@ -159,7 +159,7 @@ public class InstallRequest extends AbstractRaftRequest {
     /**
      * Snapshot request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, InstallRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<InstallRequest.Builder, InstallRequest> {
         private long term;
         private MemberId leader;
         private long serviceId;
@@ -176,7 +176,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @return The append request builder.
          * @throws IllegalArgumentException if the {@code term} is not positive
          */
-        public Builder withTerm(long term) {
+        public InstallRequest.Builder withTerm(long term) {
             Preconditions.checkArgument(term > 0, "term must be positive");
             this.term = term;
             return this;
@@ -188,7 +188,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @return The append request builder.
          * @throws IllegalArgumentException if the {@code leader} is not positive
          */
-        public Builder withLeader(MemberId leader) {
+        public InstallRequest.Builder withLeader(MemberId leader) {
             this.leader = Preconditions.checkNotNull(leader, "leader cannot be null");
             return this;
         }
@@ -198,7 +198,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param serviceId The request snapshot identifier.
          * @return The request builder.
          */
-        public Builder withServiceId(long serviceId) {
+        public InstallRequest.Builder withServiceId(long serviceId) {
             Preconditions.checkArgument(serviceId > 0, "serviceId must be positive");
             this.serviceId = serviceId;
             return this;
@@ -209,7 +209,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param serviceName The snapshot's service name.
          * @return The request builder.
          */
-        public Builder withServiceName(String serviceName) {
+        public InstallRequest.Builder withServiceName(String serviceName) {
             this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName cannot be null");
             return this;
         }
@@ -219,7 +219,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param index The request index.
          * @return The request builder.
          */
-        public Builder withIndex(long index) {
+        public InstallRequest.Builder withIndex(long index) {
             Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
@@ -230,7 +230,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param timestamp The request timestamp.
          * @return The request builder.
          */
-        public Builder withTimestamp(long timestamp) {
+        public InstallRequest.Builder withTimestamp(long timestamp) {
             Preconditions.checkArgument(timestamp >= 0, "timestamp must be positive");
             this.timestamp = timestamp;
             return this;
@@ -241,7 +241,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param offset The request offset.
          * @return The request builder.
          */
-        public Builder withOffset(int offset) {
+        public InstallRequest.Builder withOffset(int offset) {
             Preconditions.checkArgument(offset >= 0, "offset must be positive");
             this.offset = offset;
             return this;
@@ -252,7 +252,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @param data The snapshot bytes.
          * @return The request builder.
          */
-        public Builder withData(byte[] data) {
+        public InstallRequest.Builder withData(byte[] data) {
             this.data = Preconditions.checkNotNull(data, "data cannot be null");
             return this;
         }
@@ -263,7 +263,7 @@ public class InstallRequest extends AbstractRaftRequest {
          * @return The request builder.
          * @throws NullPointerException if {@code member} is null
          */
-        public Builder withComplete(boolean complete) {
+        public InstallRequest.Builder withComplete(boolean complete) {
             this.complete = complete;
             return this;
         }

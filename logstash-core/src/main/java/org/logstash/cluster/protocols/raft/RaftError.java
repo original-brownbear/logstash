@@ -10,10 +10,10 @@ import com.google.common.base.Preconditions;
  * Each error is identifiable by an error ID which is used to serialize and deserialize errors.
  */
 public class RaftError {
-    private final Type type;
+    private final RaftError.Type type;
     private final String message;
 
-    public RaftError(Type type, String message) {
+    public RaftError(RaftError.Type type, String message) {
         this.type = Preconditions.checkNotNull(type, "type cannot be null");
         this.message = message;
     }
@@ -22,7 +22,7 @@ public class RaftError {
      * Returns the error type.
      * @return The error type.
      */
-    public Type type() {
+    public RaftError.Type type() {
         return type;
     }
 

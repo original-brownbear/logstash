@@ -32,8 +32,8 @@ public class OpenSessionRequest extends AbstractRaftRequest {
      * Returns a new open session request builder.
      * @return A new open session request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static OpenSessionRequest.Builder builder() {
+        return new OpenSessionRequest.Builder();
     }
 
     /**
@@ -118,7 +118,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
     /**
      * Open session request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, OpenSessionRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<OpenSessionRequest.Builder, OpenSessionRequest> {
         private String memberId;
         private String serviceName;
         private String serviceType;
@@ -132,7 +132,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return The open session request builder.
          * @throws NullPointerException if {@code node} is {@code null}
          */
-        public Builder withMemberId(MemberId member) {
+        public OpenSessionRequest.Builder withMemberId(MemberId member) {
             this.memberId = Preconditions.checkNotNull(member, "node cannot be null").id();
             return this;
         }
@@ -143,7 +143,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return The open session request builder.
          * @throws NullPointerException if {@code serviceName} is {@code null}
          */
-        public Builder withServiceName(String serviceName) {
+        public OpenSessionRequest.Builder withServiceName(String serviceName) {
             this.serviceName = Preconditions.checkNotNull(serviceName, "serviceName cannot be null");
             return this;
         }
@@ -154,7 +154,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return The open session request builder.
          * @throws NullPointerException if {@code serviceType} is {@code null}
          */
-        public Builder withServiceType(ServiceType serviceType) {
+        public OpenSessionRequest.Builder withServiceType(ServiceType serviceType) {
             this.serviceType = Preconditions.checkNotNull(serviceType, "serviceType cannot be null").id();
             return this;
         }
@@ -165,7 +165,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return the session request builder
          * @throws NullPointerException if the {@code readConsistency} is null
          */
-        public Builder withReadConsistency(ReadConsistency readConsistency) {
+        public OpenSessionRequest.Builder withReadConsistency(ReadConsistency readConsistency) {
             this.readConsistency = Preconditions.checkNotNull(readConsistency, "readConsistency cannot be null");
             return this;
         }
@@ -176,7 +176,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return The open session request builder.
          * @throws IllegalArgumentException if {@code timeout} is not positive
          */
-        public Builder withMinTimeout(long timeout) {
+        public OpenSessionRequest.Builder withMinTimeout(long timeout) {
             Preconditions.checkArgument(timeout >= 0, "timeout must be positive");
             this.minTimeout = timeout;
             return this;
@@ -188,7 +188,7 @@ public class OpenSessionRequest extends AbstractRaftRequest {
          * @return The open session request builder.
          * @throws IllegalArgumentException if {@code timeout} is not positive
          */
-        public Builder withMaxTimeout(long timeout) {
+        public OpenSessionRequest.Builder withMaxTimeout(long timeout) {
             Preconditions.checkArgument(timeout >= 0, "timeout must be positive");
             this.maxTimeout = timeout;
             return this;

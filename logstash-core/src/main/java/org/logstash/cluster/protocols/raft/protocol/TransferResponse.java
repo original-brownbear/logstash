@@ -7,7 +7,7 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class TransferResponse extends AbstractRaftResponse {
 
-    public TransferResponse(Status status, RaftError error) {
+    public TransferResponse(RaftResponse.Status status, RaftError error) {
         super(status, error);
     }
 
@@ -15,14 +15,14 @@ public class TransferResponse extends AbstractRaftResponse {
      * Returns a new transfer response builder.
      * @return A new transfer response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static TransferResponse.Builder builder() {
+        return new TransferResponse.Builder();
     }
 
     /**
      * Join response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, TransferResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<TransferResponse.Builder, TransferResponse> {
         @Override
         public TransferResponse build() {
             validate();

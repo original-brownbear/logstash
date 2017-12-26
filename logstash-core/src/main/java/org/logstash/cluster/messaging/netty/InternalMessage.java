@@ -17,13 +17,13 @@ public abstract class InternalMessage {
     }
 
     public boolean isRequest() {
-        return type() == Type.REQUEST;
+        return type() == InternalMessage.Type.REQUEST;
     }
 
-    public abstract Type type();
+    public abstract InternalMessage.Type type();
 
     public boolean isReply() {
-        return type() == Type.REPLY;
+        return type() == InternalMessage.Type.REPLY;
     }
 
     public int preamble() {
@@ -56,7 +56,7 @@ public abstract class InternalMessage {
          * @param id the type ID.
          * @return the type enum for the given ID.
          */
-        public static Type forId(int id) {
+        public static InternalMessage.Type forId(int id) {
             switch (id) {
                 case 1:
                     return REQUEST;

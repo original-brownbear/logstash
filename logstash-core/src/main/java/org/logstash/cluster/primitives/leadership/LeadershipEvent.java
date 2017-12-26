@@ -19,7 +19,7 @@ public class LeadershipEvent<T> extends AbstractEvent<LeadershipEvent.Type, Lead
      * @param oldLeadership previous leadership
      * @param newLeadership new leadership
      */
-    public LeadershipEvent(Type type, Leadership<T> oldLeadership, Leadership<T> newLeadership) {
+    public LeadershipEvent(LeadershipEvent.Type type, Leadership<T> oldLeadership, Leadership<T> newLeadership) {
         this(type, oldLeadership, newLeadership, System.currentTimeMillis());
     }
 
@@ -30,7 +30,7 @@ public class LeadershipEvent<T> extends AbstractEvent<LeadershipEvent.Type, Lead
      * @param newLeadership new leadership
      * @param time occurrence time
      */
-    public LeadershipEvent(Type type, Leadership<T> oldLeadership, Leadership<T> newLeadership, long time) {
+    public LeadershipEvent(LeadershipEvent.Type type, Leadership<T> oldLeadership, Leadership<T> newLeadership, long time) {
         super(type, newLeadership, time);
         this.oldLeadership = oldLeadership;
         this.newLeadership = newLeadership;

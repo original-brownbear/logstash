@@ -3,13 +3,13 @@ package org.logstash.cluster.primitives.map.impl;
 import com.google.common.base.MoreObjects;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.TransactionId;
 import org.logstash.cluster.primitives.TransactionLog;
 import org.logstash.cluster.primitives.impl.DelegatingDistributedPrimitive;
@@ -102,7 +102,7 @@ public class DelegatingAsyncConsistentMap<K, V>
     }
 
     @Override
-    public CompletableFuture<Set<Entry<K, Versioned<V>>>> entrySet() {
+    public CompletableFuture<Set<Map.Entry<K, Versioned<V>>>> entrySet() {
         return delegateMap.entrySet();
     }
 
@@ -172,17 +172,17 @@ public class DelegatingAsyncConsistentMap<K, V>
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         delegateMap.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         delegateMap.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return delegateMap.statusChangeListeners();
     }
 

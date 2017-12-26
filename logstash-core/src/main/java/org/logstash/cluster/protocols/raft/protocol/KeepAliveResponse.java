@@ -21,7 +21,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
     private final MemberId leader;
     private final Collection<MemberId> members;
     private final long[] sessionIds;
-    public KeepAliveResponse(Status status, RaftError error, MemberId leader, Collection<MemberId> members, long[] sessionIds) {
+    public KeepAliveResponse(RaftResponse.Status status, RaftError error, MemberId leader, Collection<MemberId> members, long[] sessionIds) {
         super(status, error);
         this.leader = leader;
         this.members = members;
@@ -32,8 +32,8 @@ public class KeepAliveResponse extends AbstractRaftResponse {
      * Returns a new keep alive response builder.
      * @return A new keep alive response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static KeepAliveResponse.Builder builder() {
+        return new KeepAliveResponse.Builder();
     }
 
     /**
@@ -80,7 +80,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("leader", leader)
@@ -98,7 +98,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
     /**
      * Status response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, KeepAliveResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<KeepAliveResponse.Builder, KeepAliveResponse> {
         private MemberId leader;
         private Collection<MemberId> members;
         private long[] sessionIds;
@@ -108,7 +108,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
          * @param leader The response leader.
          * @return The response builder.
          */
-        public Builder withLeader(MemberId leader) {
+        public KeepAliveResponse.Builder withLeader(MemberId leader) {
             this.leader = leader;
             return this;
         }
@@ -119,7 +119,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
          * @return The response builder.
          * @throws NullPointerException if {@code members} is null
          */
-        public Builder withMembers(Collection<MemberId> members) {
+        public KeepAliveResponse.Builder withMembers(Collection<MemberId> members) {
             this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }
@@ -129,7 +129,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
          * @param sessionIds the response sessions
          * @return the response builder
          */
-        public Builder withSessionIds(long[] sessionIds) {
+        public KeepAliveResponse.Builder withSessionIds(long[] sessionIds) {
             this.sessionIds = Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             return this;
         }
@@ -146,7 +146,7 @@ public class KeepAliveResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkNotNull(members, "members cannot be null");
                 Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             }

@@ -13,7 +13,7 @@ import org.logstash.cluster.utils.ArraySizeHashPrinter;
  */
 public final class MapUpdate<K, V> {
 
-    private Type type;
+    private MapUpdate.Type type;
     private K key;
     private V value;
     private long version = -1;
@@ -22,7 +22,7 @@ public final class MapUpdate<K, V> {
      * Returns the type of update operation.
      * @return type of update.
      */
-    public Type type() {
+    public MapUpdate.Type type() {
         return type;
     }
 
@@ -73,8 +73,8 @@ public final class MapUpdate<K, V> {
      * @param <V> value type
      * @return builder.
      */
-    public static <K, V> Builder<K, V> builder() {
-        return new Builder<>();
+    public static <K, V> MapUpdate.Builder<K, V> builder() {
+        return new MapUpdate.Builder<>();
     }
 
     @Override
@@ -174,22 +174,22 @@ public final class MapUpdate<K, V> {
 
         }
 
-        public Builder<K, V> withType(Type type) {
+        public MapUpdate.Builder<K, V> withType(MapUpdate.Type type) {
             update.type = Preconditions.checkNotNull(type, "type cannot be null");
             return this;
         }
 
-        public Builder<K, V> withKey(K key) {
+        public MapUpdate.Builder<K, V> withKey(K key) {
             update.key = Preconditions.checkNotNull(key, "key cannot be null");
             return this;
         }
 
-        public Builder<K, V> withValue(V value) {
+        public MapUpdate.Builder<K, V> withValue(V value) {
             update.value = value;
             return this;
         }
 
-        public Builder<K, V> withVersion(long version) {
+        public MapUpdate.Builder<K, V> withVersion(long version) {
             update.version = version;
             return this;
         }

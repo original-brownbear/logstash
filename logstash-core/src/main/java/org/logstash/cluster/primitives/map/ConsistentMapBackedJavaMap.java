@@ -83,7 +83,7 @@ public final class ConsistentMapBackedJavaMap<K, V> implements Map<K, V> {
     }
 
     @Override
-    public Set<Entry<K, V>> entrySet() {
+    public Set<Map.Entry<K, V>> entrySet() {
         return backingMap.entrySet()
             .stream()
             .map(entry -> Maps.immutableEntry(entry.getKey(), entry.getValue().value()))
@@ -145,9 +145,9 @@ public final class ConsistentMapBackedJavaMap<K, V> implements Map<K, V> {
         // Map like output
         StringBuilder sb = new StringBuilder();
         sb.append('{');
-        Iterator<Entry<K, Versioned<V>>> it = backingMap.entrySet().iterator();
+        Iterator<Map.Entry<K, Versioned<V>>> it = backingMap.entrySet().iterator();
         while (it.hasNext()) {
-            Entry<K, Versioned<V>> entry = it.next();
+            Map.Entry<K, Versioned<V>> entry = it.next();
             sb.append(entry.getKey()).append('=').append(entry.getValue().value());
             if (it.hasNext()) {
                 sb.append(',').append(' ');

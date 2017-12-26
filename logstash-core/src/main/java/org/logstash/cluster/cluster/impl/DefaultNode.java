@@ -10,8 +10,8 @@ import org.logstash.cluster.messaging.Endpoint;
  * Default cluster node.
  */
 public class DefaultNode extends Node {
-    private Type type = Type.CLIENT;
-    private State state = State.INACTIVE;
+    private Node.Type type = Node.Type.CLIENT;
+    private Node.State state = Node.State.INACTIVE;
 
     public DefaultNode(NodeId id, Endpoint endpoint) {
         super(id, endpoint);
@@ -20,18 +20,18 @@ public class DefaultNode extends Node {
     /**
      * Updates the node type.
      */
-    public DefaultNode setType(Type type) {
+    public DefaultNode setType(Node.Type type) {
         this.type = type;
         return this;
     }
 
     @Override
-    public Type type() {
+    public Node.Type type() {
         return type;
     }
 
     @Override
-    public State state() {
+    public Node.State state() {
         return state;
     }
 
@@ -39,7 +39,7 @@ public class DefaultNode extends Node {
      * Updates the node state.
      * @param state the node state
      */
-    void setState(State state) {
+    void setState(Node.State state) {
         this.state = state;
     }
 

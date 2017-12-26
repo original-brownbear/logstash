@@ -25,11 +25,11 @@ public class RaftDistributedLockService extends AbstractRaftService {
         .register(KryoNamespaces.BASIC)
         .register(RaftDistributedLockOperations.NAMESPACE)
         .register(RaftDistributedLockEvents.NAMESPACE)
-        .register(LockHolder.class)
+        .register(RaftDistributedLockService.LockHolder.class)
         .build());
     private final Map<Long, Scheduled> timers = new HashMap<>();
-    private LockHolder lock;
-    private Queue<LockHolder> queue = new ArrayDeque<>();
+    private RaftDistributedLockService.LockHolder lock;
+    private Queue<RaftDistributedLockService.LockHolder> queue = new ArrayDeque<>();
 
     @Override
     protected void configure(RaftServiceExecutor executor) {
@@ -83,7 +83,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
         queue = reader.readObject(SERIALIZER::decode);
         timers.values().forEach(Scheduled::cancel);
         timers.clear();
-        for (LockHolder holder : queue) {
+        for (RaftDistributedLockService.LockHolder holder : queue) {
             if (holder.expire > 0) {
                 timers.put(holder.index, scheduler().schedule(Duration.ofMillis(holder.expire - context().wallClock().getTime().unixTimestamp()), () -> {
                     timers.remove(holder.index);
@@ -102,7 +102,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
      */
     protected void lock(Commit<RaftDistributedLockOperations.Lock> commit) {
         if (lock == null) {
-            lock = new LockHolder(
+            lock = new RaftDistributedLockService.LockHolder(
                 commit.value().id(),
                 commit.index(),
                 commit.session().sessionId().id(),
@@ -111,7 +111,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
         } else if (commit.value().timeout() == 0) {
             commit.session().publish(RaftDistributedLockEvents.FAIL, SERIALIZER::encode, new LockEvent(commit.value().id(), commit.index()));
         } else if (commit.value().timeout() > 0) {
-            LockHolder holder = lock = new LockHolder(
+            RaftDistributedLockService.LockHolder holder = lock = new RaftDistributedLockService.LockHolder(
                 commit.value().id(),
                 commit.index(),
                 commit.session().sessionId().id(),
@@ -125,7 +125,7 @@ public class RaftDistributedLockService extends AbstractRaftService {
                 }
             }));
         } else {
-            LockHolder holder = new LockHolder(
+            RaftDistributedLockService.LockHolder holder = new RaftDistributedLockService.LockHolder(
                 commit.value().id(),
                 commit.index(),
                 commit.session().sessionId().id(),

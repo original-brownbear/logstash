@@ -20,8 +20,8 @@ public class TransferRequest extends AbstractRaftRequest {
      * Returns a new transfer request builder.
      * @return A new transfer request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static TransferRequest.Builder builder() {
+        return new TransferRequest.Builder();
     }
 
     /**
@@ -55,7 +55,7 @@ public class TransferRequest extends AbstractRaftRequest {
     /**
      * Transfer request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, TransferRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<TransferRequest.Builder, TransferRequest> {
         protected MemberId member;
 
         /**
@@ -65,7 +65,7 @@ public class TransferRequest extends AbstractRaftRequest {
          * @throws NullPointerException if {@code member} is null
          */
         @SuppressWarnings("unchecked")
-        public Builder withMember(MemberId member) {
+        public TransferRequest.Builder withMember(MemberId member) {
             this.member = Preconditions.checkNotNull(member, "member cannot be null");
             return this;
         }
