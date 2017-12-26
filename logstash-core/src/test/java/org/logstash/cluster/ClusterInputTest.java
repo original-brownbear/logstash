@@ -1,6 +1,5 @@
 package org.logstash.cluster;
 
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.google.common.util.concurrent.Uninterruptibles;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -10,10 +9,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
-import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.MatcherAssert;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
+import org.logstash.LsClusterIntegTestCase;
 import org.logstash.RubyUtil;
 import org.logstash.TestUtils;
 import org.logstash.cluster.primitives.queue.WorkQueue;
@@ -27,15 +26,12 @@ import static org.hamcrest.Matchers.instanceOf;
 /**
  * Tests for {@link ClusterInput}.
  */
-@ThreadLeakLingering(linger = 25000)
-public final class ClusterInputTest extends ESIntegTestCase {
+public final class ClusterInputTest extends LsClusterIntegTestCase {
 
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     public void testSimpleTask() throws Exception {
-        ensureGreen();
-        System.setSecurityManager(null);
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         final String index = "testsimpletask";
         final LogstashClusterConfig config = new LogstashClusterConfig(
