@@ -14,7 +14,7 @@ public class AppendResponse extends AbstractRaftResponse {
     private final boolean succeeded;
     private final long lastLogIndex;
 
-    public AppendResponse(Status status, RaftError error, long term, boolean succeeded, long lastLogIndex) {
+    public AppendResponse(RaftResponse.Status status, RaftError error, long term, boolean succeeded, long lastLogIndex) {
         super(status, error);
         this.term = term;
         this.succeeded = succeeded;
@@ -25,8 +25,8 @@ public class AppendResponse extends AbstractRaftResponse {
      * Returns a new append response builder.
      * @return A new append response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static AppendResponse.Builder builder() {
+        return new AppendResponse.Builder();
     }
 
     /**
@@ -72,7 +72,7 @@ public class AppendResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("term", term)
@@ -90,7 +90,7 @@ public class AppendResponse extends AbstractRaftResponse {
     /**
      * Append response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, AppendResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<AppendResponse.Builder, AppendResponse> {
         private long term;
         private boolean succeeded;
         private long lastLogIndex;
@@ -101,7 +101,7 @@ public class AppendResponse extends AbstractRaftResponse {
          * @return The append response builder
          * @throws IllegalArgumentException if {@code term} is not positive
          */
-        public Builder withTerm(long term) {
+        public AppendResponse.Builder withTerm(long term) {
             Preconditions.checkArgument(term > 0, "term must be positive");
             this.term = term;
             return this;
@@ -112,7 +112,7 @@ public class AppendResponse extends AbstractRaftResponse {
          * @param succeeded Whether the append request succeeded.
          * @return The append response builder.
          */
-        public Builder withSucceeded(boolean succeeded) {
+        public AppendResponse.Builder withSucceeded(boolean succeeded) {
             this.succeeded = succeeded;
             return this;
         }
@@ -123,7 +123,7 @@ public class AppendResponse extends AbstractRaftResponse {
          * @return The append response builder.
          * @throws IllegalArgumentException if {@code index} is negative
          */
-        public Builder withLastLogIndex(long lastLogIndex) {
+        public AppendResponse.Builder withLastLogIndex(long lastLogIndex) {
             Preconditions.checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
             this.lastLogIndex = lastLogIndex;
             return this;
@@ -141,7 +141,7 @@ public class AppendResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(term > 0, "term must be positive");
                 Preconditions.checkArgument(lastLogIndex >= 0, "lastLogIndex must be positive");
             }

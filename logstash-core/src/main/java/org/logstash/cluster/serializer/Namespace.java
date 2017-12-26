@@ -29,14 +29,14 @@ public interface Namespace {
      * @param bufferSize maximum size of serialized bytes
      * @return serialized bytes
      */
-    byte[] serialize(final Object obj, final int bufferSize);
+    byte[] serialize(Object obj, int bufferSize);
 
     /**
      * Serializes given object to byte buffer using Kryo instance in pool.
      * @param obj Object to serialize
      * @param buffer to write to
      */
-    void serialize(final Object obj, final ByteBuffer buffer);
+    void serialize(Object obj, ByteBuffer buffer);
 
     /**
      * Serializes given object to OutputStream using Kryo instance in pool.
@@ -53,7 +53,7 @@ public interface Namespace {
      * @param stream to write to
      * @param bufferSize size of the buffer in front of the stream
      */
-    void serialize(final Object obj, final OutputStream stream, final int bufferSize);
+    void serialize(Object obj, OutputStream stream, int bufferSize);
 
     /**
      * Deserializes given byte array to Object using Kryo instance in pool.
@@ -61,7 +61,7 @@ public interface Namespace {
      * @param <T> deserialized Object type
      * @return deserialized Object
      */
-    <T> T deserialize(final byte[] bytes);
+    <T> T deserialize(byte[] bytes);
 
     /**
      * Deserializes given byte buffer to Object using Kryo instance in pool.
@@ -69,7 +69,7 @@ public interface Namespace {
      * @param <T> deserialized Object type
      * @return deserialized Object
      */
-    <T> T deserialize(final ByteBuffer buffer);
+    <T> T deserialize(ByteBuffer buffer);
 
     /**
      * Deserializes given InputStream to an Object using Kryo instance in pool.
@@ -88,6 +88,6 @@ public interface Namespace {
      * @param bufferSize size of the buffer in front of the stream
      * @return deserialized Object
      */
-    <T> T deserialize(final InputStream stream, final int bufferSize);
+    <T> T deserialize(InputStream stream, int bufferSize);
 
 }

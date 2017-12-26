@@ -5,7 +5,6 @@ import java.util.ConcurrentModificationException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -219,7 +218,7 @@ public class RaftConsistentMap extends AbstractRaftPrimitive implements AsyncCon
     }
 
     @Override
-    public CompletableFuture<Set<Entry<String, Versioned<byte[]>>>> entrySet() {
+    public CompletableFuture<Set<Map.Entry<String, Versioned<byte[]>>>> entrySet() {
         return proxy.invoke(RaftConsistentMapOperations.ENTRY_SET, serializer()::decode);
     }
 

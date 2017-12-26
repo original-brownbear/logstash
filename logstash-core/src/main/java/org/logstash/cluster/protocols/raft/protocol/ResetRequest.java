@@ -23,8 +23,8 @@ public class ResetRequest extends SessionRequest {
      * Returns a new publish response builder.
      * @return A new publish response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ResetRequest.Builder builder() {
+        return new ResetRequest.Builder();
     }
 
     /**
@@ -61,7 +61,7 @@ public class ResetRequest extends SessionRequest {
     /**
      * Reset request builder.
      */
-    public static class Builder extends SessionRequest.Builder<Builder, ResetRequest> {
+    public static class Builder extends SessionRequest.Builder<ResetRequest.Builder, ResetRequest> {
         private long index;
 
         /**
@@ -70,7 +70,7 @@ public class ResetRequest extends SessionRequest {
          * @return The response builder.
          * @throws IllegalArgumentException if {@code index} is less than {@code 1}
          */
-        public Builder withIndex(long index) {
+        public ResetRequest.Builder withIndex(long index) {
             Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;

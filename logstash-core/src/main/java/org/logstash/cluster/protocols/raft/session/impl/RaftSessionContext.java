@@ -52,9 +52,9 @@ public class RaftSessionContext implements RaftSession {
     private final Map<Long, List<Runnable>> sequenceQueries = new HashMap<>();
     private final Map<Long, List<Runnable>> indexQueries = new HashMap<>();
     private final Map<Long, OperationResult> results = new HashMap<>();
-    private final Queue<EventHolder> events = new LinkedList<>();
+    private final Queue<RaftSessionContext.EventHolder> events = new LinkedList<>();
     private final Set<RaftSessionEventListener> eventListeners = new CopyOnWriteArraySet<>();
-    private volatile State state = State.OPEN;
+    private volatile RaftSession.State state = RaftSession.State.OPEN;
     private volatile long lastUpdated;
     private long lastHeartbeat;
     private PhiAccrualFailureDetector failureDetector = new PhiAccrualFailureDetector();
@@ -64,7 +64,7 @@ public class RaftSessionContext implements RaftSession {
     private volatile long commandLowWaterMark;
     private volatile long eventIndex;
     private volatile long completeIndex;
-    private volatile EventHolder currentEventList;
+    private volatile RaftSessionContext.EventHolder currentEventList;
 
     public RaftSessionContext(
         SessionId sessionId,
@@ -100,7 +100,7 @@ public class RaftSessionContext implements RaftSession {
      */
     public void resendEvents(long index) {
         clearEvents(index);
-        for (EventHolder event : events) {
+        for (RaftSessionContext.EventHolder event : events) {
             sendEvents(event);
         }
     }
@@ -111,7 +111,7 @@ public class RaftSessionContext implements RaftSession {
      */
     private void clearEvents(long index) {
         if (index > completeIndex) {
-            EventHolder event = events.peek();
+            RaftSessionContext.EventHolder event = events.peek();
             while (event != null && event.eventIndex <= index) {
                 events.remove();
                 completeIndex = event.eventIndex;
@@ -124,7 +124,7 @@ public class RaftSessionContext implements RaftSession {
     /**
      * Sends an event to the session.
      */
-    private void sendEvents(EventHolder event) {
+    private void sendEvents(RaftSessionContext.EventHolder event) {
         // Only send events to the client if this server is the leader.
         if (server.isLeader()) {
             eventExecutor.execute(() -> {
@@ -177,7 +177,7 @@ public class RaftSessionContext implements RaftSession {
     }
 
     @Override
-    public State getState() {
+    public RaftSession.State getState() {
         return state;
     }
 
@@ -185,7 +185,7 @@ public class RaftSessionContext implements RaftSession {
      * Updates the session state.
      * @param state The session state.
      */
-    private void setState(State state) {
+    private void setState(RaftSession.State state) {
         if (this.state != state) {
             this.state = state;
             LOGGER.debug("State changed: {}", state);
@@ -232,9 +232,9 @@ public class RaftSessionContext implements RaftSession {
     @Override
     public void publish(RaftEvent event) {
         // Store volatile state in a local variable.
-        State state = this.state;
-        Preconditions.checkState(state != State.EXPIRED, "session is expired");
-        Preconditions.checkState(state != State.CLOSED, "session is closed");
+        RaftSession.State state = this.state;
+        Preconditions.checkState(state != RaftSession.State.EXPIRED, "session is expired");
+        Preconditions.checkState(state != RaftSession.State.CLOSED, "session is closed");
         Preconditions.checkState(context.currentOperation() == OperationType.COMMAND, "session events can only be published during command execution");
 
         // If the client acked an index greater than the current event sequence number since we know the
@@ -247,7 +247,7 @@ public class RaftSessionContext implements RaftSession {
         if (this.currentEventList == null || this.currentEventList.eventIndex != context.currentIndex()) {
             long previousIndex = eventIndex;
             eventIndex = context.currentIndex();
-            this.currentEventList = new EventHolder(eventIndex, previousIndex);
+            this.currentEventList = new RaftSessionContext.EventHolder(eventIndex, previousIndex);
         }
 
         // Add the event to the event holder.
@@ -497,7 +497,7 @@ public class RaftSessionContext implements RaftSession {
      */
     public long getLastCompleted() {
         // If there are any queued events, return the index prior to the first event in the queue.
-        EventHolder event = events.peek();
+        RaftSessionContext.EventHolder event = events.peek();
         if (event != null && event.eventIndex > completeIndex) {
             return event.eventIndex - 1;
         }
@@ -517,7 +517,7 @@ public class RaftSessionContext implements RaftSession {
      * Expires the session.
      */
     public void expire() {
-        setState(State.EXPIRED);
+        setState(RaftSession.State.EXPIRED);
         protocol.unregisterResetListener(sessionId);
     }
 
@@ -525,7 +525,7 @@ public class RaftSessionContext implements RaftSession {
      * Closes the session.
      */
     public void close() {
-        setState(State.CLOSED);
+        setState(RaftSession.State.CLOSED);
         protocol.unregisterResetListener(sessionId);
     }
 

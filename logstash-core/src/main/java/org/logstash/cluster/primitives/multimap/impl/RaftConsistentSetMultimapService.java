@@ -28,15 +28,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import org.logstash.cluster.primitives.multimap.MultimapEvent;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.ContainsEntry;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.ContainsKey;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.ContainsValue;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.Get;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.MultiRemove;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.MultimapOperation;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.Put;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.RemoveAll;
-import org.logstash.cluster.primitives.multimap.impl.RaftConsistentSetMultimapOperations.Replace;
 import org.logstash.cluster.protocols.raft.service.AbstractRaftService;
 import org.logstash.cluster.protocols.raft.service.Commit;
 import org.logstash.cluster.protocols.raft.service.RaftServiceExecutor;
@@ -58,28 +49,28 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         .register(KryoNamespaces.BASIC)
         .register(RaftConsistentSetMultimapOperations.NAMESPACE)
         .register(RaftConsistentSetMultimapEvents.NAMESPACE)
-        .register(ByteArrayComparator.class)
+        .register(RaftConsistentSetMultimapService.ByteArrayComparator.class)
         .register(new HashMap().keySet().getClass())
         .register(TreeSet.class)
-        .register(new com.esotericsoftware.kryo.Serializer<NonTransactionalCommit>() {
+        .register(new com.esotericsoftware.kryo.Serializer<RaftConsistentSetMultimapService.NonTransactionalCommit>() {
             @Override
-            public void write(Kryo kryo, Output output, NonTransactionalCommit object) {
+            public void write(Kryo kryo, Output output, RaftConsistentSetMultimapService.NonTransactionalCommit object) {
                 kryo.writeClassAndObject(output, object.valueSet);
             }
 
             @Override
             @SuppressWarnings("unchecked")
-            public NonTransactionalCommit read(Kryo kryo, Input input, Class<NonTransactionalCommit> type) {
-                NonTransactionalCommit commit = new NonTransactionalCommit();
+            public RaftConsistentSetMultimapService.NonTransactionalCommit read(Kryo kryo, Input input, Class<RaftConsistentSetMultimapService.NonTransactionalCommit> type) {
+                RaftConsistentSetMultimapService.NonTransactionalCommit commit = new RaftConsistentSetMultimapService.NonTransactionalCommit();
                 commit.valueSet.addAll((Collection<byte[]>) kryo.readClassAndObject(input));
                 return commit;
             }
-        }, NonTransactionalCommit.class)
+        }, RaftConsistentSetMultimapService.NonTransactionalCommit.class)
         .build());
 
     private AtomicLong globalVersion = new AtomicLong(1);
     private Map<Long, RaftSession> listeners = new LinkedHashMap<>();
-    private Map<String, MapEntryValue> backingMap = Maps.newHashMap();
+    private Map<String, RaftConsistentSetMultimapService.MapEntryValue> backingMap = Maps.newHashMap();
 
     @Override
     public void snapshot(SnapshotWriter writer) {
@@ -156,7 +147,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit ContainsKey commit
      * @return returns true if the key is in the multimap, else false
      */
-    protected boolean containsKey(Commit<? extends ContainsKey> commit) {
+    protected boolean containsKey(Commit<? extends RaftConsistentSetMultimapOperations.ContainsKey> commit) {
         return backingMap.containsKey(commit.value().key());
     }
 
@@ -165,7 +156,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit ContainsValue commit
      * @return true if the value is in the multimap, else false
      */
-    protected boolean containsValue(Commit<? extends ContainsValue> commit) {
+    protected boolean containsValue(Commit<? extends RaftConsistentSetMultimapOperations.ContainsValue> commit) {
         if (backingMap.values().isEmpty()) {
             return false;
         }
@@ -186,8 +177,8 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit ContainsEntry commit
      * @return true if the key-value pair exists, else false
      */
-    protected boolean containsEntry(Commit<? extends ContainsEntry> commit) {
-        MapEntryValue entryValue =
+    protected boolean containsEntry(Commit<? extends RaftConsistentSetMultimapOperations.ContainsEntry> commit) {
+        RaftConsistentSetMultimapService.MapEntryValue entryValue =
             backingMap.get(commit.value().key());
         if (entryValue == null) {
             return false;
@@ -240,7 +231,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         return backingMap
             .values()
             .stream()
-            .collect(new HashMultisetValueCollector());
+            .collect(new RaftConsistentSetMultimapService.HashMultisetValueCollector());
     }
 
     /**
@@ -252,7 +243,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         return backingMap
             .entrySet()
             .stream()
-            .collect(new EntrySetCollector());
+            .collect(new RaftConsistentSetMultimapService.EntrySetCollector());
     }
 
     /**
@@ -261,7 +252,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @return the collection of values associated with the key or an empty
      * list if none exist
      */
-    protected Versioned<Collection<? extends byte[]>> get(Commit<? extends Get> commit) {
+    protected Versioned<Collection<? extends byte[]>> get(Commit<? extends RaftConsistentSetMultimapOperations.Get> commit) {
         return toVersioned(backingMap.get(commit.value().key()));
     }
 
@@ -272,7 +263,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * null
      */
     private static Versioned<Collection<? extends byte[]>> toVersioned(
-        MapEntryValue value) {
+        RaftConsistentSetMultimapService.MapEntryValue value) {
         return value == null ? new Versioned<>(Lists.newArrayList(), -1) :
             new Versioned<>(value.values(),
                 value.version());
@@ -283,7 +274,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit removeAll commit
      * @return collection of removed values
      */
-    protected Versioned<Collection<? extends byte[]>> removeAll(Commit<? extends RemoveAll> commit) {
+    protected Versioned<Collection<? extends byte[]>> removeAll(Commit<? extends RaftConsistentSetMultimapOperations.RemoveAll> commit) {
         String key = commit.value().key();
 
         if (!backingMap.containsKey(key)) {
@@ -313,7 +304,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit multiRemove commit
      * @return true if any change results, else false
      */
-    protected boolean multiRemove(Commit<? extends MultiRemove> commit) {
+    protected boolean multiRemove(Commit<? extends RaftConsistentSetMultimapOperations.MultiRemove> commit) {
         String key = commit.value().key();
 
         if (!backingMap.containsKey(key)) {
@@ -345,13 +336,13 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * @param commit a put commit
      * @return true if this commit results in a change, else false
      */
-    protected boolean put(Commit<? extends Put> commit) {
+    protected boolean put(Commit<? extends RaftConsistentSetMultimapOperations.Put> commit) {
         String key = commit.value().key();
         if (commit.value().values().isEmpty()) {
             return false;
         }
         if (!backingMap.containsKey(key)) {
-            backingMap.put(key, new NonTransactionalCommit());
+            backingMap.put(key, new RaftConsistentSetMultimapService.NonTransactionalCommit());
         }
 
         Versioned<Collection<? extends byte[]>> addedValues = backingMap
@@ -370,10 +361,10 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
     }
 
     protected Versioned<Collection<? extends byte[]>> replace(
-        Commit<? extends Replace> commit) {
+        Commit<? extends RaftConsistentSetMultimapOperations.Replace> commit) {
         if (!backingMap.containsKey(commit.value().key())) {
             backingMap.put(commit.value().key(),
-                new NonTransactionalCommit());
+                new RaftConsistentSetMultimapService.NonTransactionalCommit());
         }
         return backingMap.get(commit.value().key()).addCommit(commit);
     }
@@ -417,7 +408,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
          * @param commit the commit to be added
          */
         Versioned<Collection<? extends byte[]>> addCommit(
-            Commit<? extends MultimapOperation> commit);
+            Commit<? extends RaftConsistentSetMultimapOperations.MultimapOperation> commit);
     }
 
     private static class ByteArrayComparator implements Comparator<byte[]> {
@@ -439,8 +430,8 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         }
     }
 
-    private class NonTransactionalCommit implements MapEntryValue {
-        private final TreeSet<byte[]> valueSet = Sets.newTreeSet(new ByteArrayComparator());
+    private class NonTransactionalCommit implements RaftConsistentSetMultimapService.MapEntryValue {
+        private final TreeSet<byte[]> valueSet = Sets.newTreeSet(new RaftConsistentSetMultimapService.ByteArrayComparator());
         private long version;
 
         public NonTransactionalCommit() {
@@ -461,16 +452,16 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
 
         @Override
         public Versioned<Collection<? extends byte[]>> addCommit(
-            Commit<? extends MultimapOperation> commit) {
+            Commit<? extends RaftConsistentSetMultimapOperations.MultimapOperation> commit) {
             Preconditions.checkNotNull(commit);
             Preconditions.checkNotNull(commit.value());
             Versioned<Collection<? extends byte[]>> retVersion;
 
-            if (commit.value() instanceof Put) {
+            if (commit.value() instanceof RaftConsistentSetMultimapOperations.Put) {
                 //Using a treeset here sanitizes the input, removing duplicates
                 Set<byte[]> valuesToAdd =
-                    Sets.newTreeSet(new ByteArrayComparator());
-                ((Put) commit.value()).values().forEach(value -> {
+                    Sets.newTreeSet(new RaftConsistentSetMultimapService.ByteArrayComparator());
+                ((RaftConsistentSetMultimapOperations.Put) commit.value()).values().forEach(value -> {
                     if (!valueSet.contains(value)) {
                         valuesToAdd.add(value);
                     }
@@ -484,27 +475,27 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
                 version++;
                 return retVersion;
 
-            } else if (commit.value() instanceof Replace) {
+            } else if (commit.value() instanceof RaftConsistentSetMultimapOperations.Replace) {
                 //Will this work??  Need to check before check-in!
                 Set<byte[]> removedValues = Sets.newHashSet();
                 removedValues.addAll(valueSet);
                 retVersion = new Versioned<>(removedValues, version);
                 valueSet.clear();
                 Set<byte[]> valuesToAdd =
-                    Sets.newTreeSet(new ByteArrayComparator());
-                ((Replace) commit.value()).values().forEach(value -> {
+                    Sets.newTreeSet(new RaftConsistentSetMultimapService.ByteArrayComparator());
+                ((RaftConsistentSetMultimapOperations.Replace) commit.value()).values().forEach(value -> {
                     valuesToAdd.add(value);
                 });
                 if (valuesToAdd.isEmpty()) {
                     version = globalVersion.incrementAndGet();
-                    backingMap.remove(((Replace) commit.value()).key());
+                    backingMap.remove(((RaftConsistentSetMultimapOperations.Replace) commit.value()).key());
                     return retVersion;
                 }
                 valuesToAdd.forEach(value -> valueSet.add(value));
                 version = globalVersion.incrementAndGet();
                 return retVersion;
 
-            } else if (commit.value() instanceof RemoveAll) {
+            } else if (commit.value() instanceof RaftConsistentSetMultimapOperations.RemoveAll) {
                 Set<byte[]> removed = Sets.newHashSet();
                 //We can assume here that values only appear once and so we
                 //do not need to sanitize the return for duplicates.
@@ -516,17 +507,17 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
                 //dependencies among additive and removal commits.
 
                 //Save the key for use after the commit is closed
-                String key = ((RemoveAll) commit.value()).key();
+                String key = ((RaftConsistentSetMultimapOperations.RemoveAll) commit.value()).key();
                 version = globalVersion.incrementAndGet();
                 backingMap.remove(key);
                 return retVersion;
 
-            } else if (commit.value() instanceof MultiRemove) {
+            } else if (commit.value() instanceof RaftConsistentSetMultimapOperations.MultiRemove) {
                 //Must first calculate how many commits the removal depends on.
                 //At this time we also sanitize the removal set by adding to a
                 //set with proper handling of byte[] equality.
                 Set<byte[]> removed = Sets.newHashSet();
-                ((MultiRemove) commit.value()).values().forEach(value -> {
+                ((RaftConsistentSetMultimapOperations.MultiRemove) commit.value()).values().forEach(value -> {
                     if (valueSet.contains(value)) {
                         removed.add(value);
                     }
@@ -536,7 +527,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
                     return null;
                 }
                 //Save key in case countdown results in closing the commit.
-                String removedKey = ((MultiRemove) commit.value()).key();
+                String removedKey = ((RaftConsistentSetMultimapOperations.MultiRemove) commit.value()).key();
                 removed.forEach(removedValue -> {
                     valueSet.remove(removedValue);
                 });
@@ -562,7 +553,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * which they participate.
      */
     private static class HashMultisetValueCollector implements
-        Collector<MapEntryValue,
+        Collector<RaftConsistentSetMultimapService.MapEntryValue,
             HashMultiset<byte[]>,
             HashMultiset<byte[]>> {
 
@@ -572,7 +563,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         }
 
         @Override
-        public BiConsumer<HashMultiset<byte[]>, MapEntryValue> accumulator() {
+        public BiConsumer<HashMultiset<byte[]>, RaftConsistentSetMultimapService.MapEntryValue> accumulator() {
             return (multiset, mapEntryValue) ->
                 multiset.addAll(mapEntryValue.values());
         }
@@ -592,8 +583,8 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         }
 
         @Override
-        public Set<Characteristics> characteristics() {
-            return EnumSet.of(Characteristics.UNORDERED);
+        public Set<Collector.Characteristics> characteristics() {
+            return EnumSet.of(Collector.Characteristics.UNORDERED);
         }
     }
 
@@ -602,7 +593,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
      * creates a set of entries all key value pairs in the map.
      */
     private static class EntrySetCollector implements
-        Collector<Map.Entry<String, MapEntryValue>,
+        Collector<Map.Entry<String, RaftConsistentSetMultimapService.MapEntryValue>,
             Set<Map.Entry<String, byte[]>>,
             Set<Map.Entry<String, byte[]>>> {
         private Set<Map.Entry<String, byte[]>> set = null;
@@ -619,7 +610,7 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
 
         @Override
         public BiConsumer<Set<Map.Entry<String, byte[]>>,
-            Map.Entry<String, MapEntryValue>> accumulator() {
+            Map.Entry<String, RaftConsistentSetMultimapService.MapEntryValue>> accumulator() {
             return (set, entry) -> {
                 entry
                     .getValue()
@@ -645,8 +636,8 @@ public class RaftConsistentSetMultimapService extends AbstractRaftService {
         }
 
         @Override
-        public Set<Characteristics> characteristics() {
-            return EnumSet.of(Characteristics.UNORDERED);
+        public Set<Collector.Characteristics> characteristics() {
+            return EnumSet.of(Collector.Characteristics.UNORDERED);
         }
     }
 }

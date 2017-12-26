@@ -23,8 +23,8 @@ public final class InternalRequest extends InternalMessage {
     }
 
     @Override
-    public Type type() {
-        return Type.REQUEST;
+    public InternalMessage.Type type() {
+        return InternalMessage.Type.REQUEST;
     }
 
     public String subject() {

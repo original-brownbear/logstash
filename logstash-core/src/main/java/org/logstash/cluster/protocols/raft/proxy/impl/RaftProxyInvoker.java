@@ -30,7 +30,7 @@ import org.logstash.cluster.utils.concurrent.ThreadContext;
  * Session operation submitter.
  */
 final class RaftProxyInvoker {
-    private static final int[] FIBONACCI = new int[]{1, 1, 2, 3, 5};
+    private static final int[] FIBONACCI = {1, 1, 2, 3, 5};
     private static final Predicate<Throwable> EXCEPTION_PREDICATE = e ->
         e instanceof RaftException.ProtocolException
             || e instanceof ConnectException
@@ -46,7 +46,7 @@ final class RaftProxyInvoker {
     private final RaftProxySequencer sequencer;
     private final RaftProxyManager manager;
     private final ThreadContext context;
-    private final Map<Long, OperationAttempt> attempts = new LinkedHashMap<>();
+    private final Map<Long, RaftProxyInvoker.OperationAttempt> attempts = new LinkedHashMap<>();
     private final AtomicLong keepAliveIndex = new AtomicLong();
 
     public RaftProxyInvoker(
@@ -100,14 +100,14 @@ final class RaftProxyInvoker {
      * Submits a command request to the cluster.
      */
     private void invokeCommand(final CommandRequest request, final CompletableFuture<byte[]> future) {
-        invoke(new CommandAttempt(sequencer.nextRequest(), request, future));
+        invoke(new RaftProxyInvoker.CommandAttempt(sequencer.nextRequest(), request, future));
     }
 
     /**
      * Submits an operation attempt.
      * @param attempt The attempt to submit.
      */
-    private <T extends OperationRequest, U extends OperationResponse> void invoke(final OperationAttempt<T, U> attempt) {
+    private <T extends OperationRequest, U extends OperationResponse> void invoke(final RaftProxyInvoker.OperationAttempt<T, U> attempt) {
         if (state.getState() == RaftProxy.State.CLOSED) {
             attempt.fail(new RaftException.ClosedSession("session closed"));
         } else {
@@ -146,7 +146,7 @@ final class RaftProxyInvoker {
      * operation attempts and retrying commands where the sequence number is greater than the given
      * {@code commandSequence} number and the attempt number is less than or equal to the version.
      */
-    private void resubmit(final long commandSequence, final OperationAttempt<?, ?> attempt) {
+    private void resubmit(final long commandSequence, final RaftProxyInvoker.OperationAttempt<?, ?> attempt) {
         // If the client's response sequence number is greater than the given command sequence number,
         // the cluster likely has a new leader, and we need to reset the sequencing in the leader by
         // sending a keep-alive request.
@@ -164,9 +164,9 @@ final class RaftProxyInvoker {
                 }
             }, context);
         } else {
-            for (final Map.Entry<Long, OperationAttempt> entry : attempts.entrySet()) {
-                final OperationAttempt operation = entry.getValue();
-                if (operation instanceof CommandAttempt && operation.request.sequenceNumber() > commandSequence && operation.attempt <= attempt.attempt) {
+            for (final Map.Entry<Long, RaftProxyInvoker.OperationAttempt> entry : attempts.entrySet()) {
+                final RaftProxyInvoker.OperationAttempt operation = entry.getValue();
+                if (operation instanceof RaftProxyInvoker.CommandAttempt && operation.request.sequenceNumber() > commandSequence && operation.attempt <= attempt.attempt) {
                     operation.retry();
                 }
             }
@@ -178,7 +178,7 @@ final class RaftProxyInvoker {
      * @return A completable future to be completed with a list of pending operations.
      */
     public CompletableFuture<Void> close() {
-        for (final OperationAttempt attempt : new ArrayList<>(attempts.values())) {
+        for (final RaftProxyInvoker.OperationAttempt attempt : new ArrayList<>(attempts.values())) {
             attempt.fail(new RaftException.ClosedSession("session closed"));
         }
         attempts.clear();
@@ -261,7 +261,7 @@ final class RaftProxyInvoker {
          * Returns the next instance of the attempt.
          * @return The next instance of the attempt.
          */
-        protected abstract OperationAttempt<T, U> next();
+        protected abstract RaftProxyInvoker.OperationAttempt<T, U> next();
 
         /**
          * Retries the attempt after the given duration.
@@ -275,7 +275,7 @@ final class RaftProxyInvoker {
     /**
      * Command operation attempt.
      */
-    private final class CommandAttempt extends OperationAttempt<CommandRequest, CommandResponse> {
+    private final class CommandAttempt extends RaftProxyInvoker.OperationAttempt<CommandRequest, CommandResponse> {
         private final long time = System.currentTimeMillis();
 
         public CommandAttempt(final long sequence, final CommandRequest request, final CompletableFuture<byte[]> future) {
@@ -327,8 +327,8 @@ final class RaftProxyInvoker {
                 fail(error);
             }
         }        @Override
-        protected OperationAttempt<CommandRequest, CommandResponse> next() {
-            return new CommandAttempt(sequence, this.attempt + 1, request, future);
+        protected RaftProxyInvoker.OperationAttempt<CommandRequest, CommandResponse> next() {
+            return new RaftProxyInvoker.CommandAttempt(sequence, this.attempt + 1, request, future);
         }
 
         @Override
@@ -362,7 +362,7 @@ final class RaftProxyInvoker {
     /**
      * Query operation attempt.
      */
-    private final class QueryAttempt extends OperationAttempt<QueryRequest, QueryResponse> {
+    private final class QueryAttempt extends RaftProxyInvoker.OperationAttempt<QueryRequest, QueryResponse> {
         public QueryAttempt(final long sequence, final QueryRequest request, final CompletableFuture<byte[]> future) {
             super(sequence, 1, request, future);
         }
@@ -377,7 +377,7 @@ final class RaftProxyInvoker {
         }
 
         @Override
-        protected OperationAttempt<QueryRequest, QueryResponse> next() {
+        protected RaftProxyInvoker.OperationAttempt<QueryRequest, QueryResponse> next() {
             return new QueryAttempt(sequence, this.attempt + 1, request, future);
         }
 

@@ -11,9 +11,9 @@ public class RaftLogReader extends DelegatingJournalReader<RaftLogEntry> {
 
     private final SegmentedJournalReader<RaftLogEntry> reader;
     private final RaftLog log;
-    private final Mode mode;
+    private final RaftLogReader.Mode mode;
 
-    public RaftLogReader(SegmentedJournalReader<RaftLogEntry> reader, RaftLog log, Mode mode) {
+    public RaftLogReader(SegmentedJournalReader<RaftLogEntry> reader, RaftLog log, RaftLogReader.Mode mode) {
         super(reader);
         this.reader = reader;
         this.log = log;
@@ -30,7 +30,7 @@ public class RaftLogReader extends DelegatingJournalReader<RaftLogEntry> {
 
     @Override
     public boolean hasNext() {
-        if (mode == Mode.ALL) {
+        if (mode == RaftLogReader.Mode.ALL) {
             return super.hasNext();
         }
 

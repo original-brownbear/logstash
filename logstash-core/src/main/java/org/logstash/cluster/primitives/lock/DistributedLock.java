@@ -2,6 +2,7 @@ package org.logstash.cluster.primitives.lock;
 
 import java.time.Duration;
 import java.util.Optional;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.SyncPrimitive;
 import org.logstash.cluster.time.Version;
 
@@ -11,8 +12,8 @@ import org.logstash.cluster.time.Version;
 public interface DistributedLock extends SyncPrimitive {
 
     @Override
-    default Type primitiveType() {
-        return Type.LOCK;
+    default DistributedPrimitive.Type primitiveType() {
+        return DistributedPrimitive.Type.LOCK;
     }
 
     /**

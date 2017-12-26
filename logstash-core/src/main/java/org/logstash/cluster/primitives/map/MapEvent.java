@@ -12,7 +12,7 @@ import org.logstash.cluster.time.Versioned;
 public class MapEvent<K, V> {
 
     private final String name;
-    private final Type type;
+    private final MapEvent.Type type;
     private final K key;
     private final Versioned<V> newValue;
     private final Versioned<V> oldValue;
@@ -24,7 +24,7 @@ public class MapEvent<K, V> {
      * @param previousValue value that was replaced
      */
     public MapEvent(String name, K key, Versioned<V> currentValue, Versioned<V> previousValue) {
-        this(currentValue != null ? previousValue != null ? Type.UPDATE : Type.INSERT : Type.REMOVE,
+        this(currentValue != null ? previousValue != null ? MapEvent.Type.UPDATE : MapEvent.Type.INSERT : MapEvent.Type.REMOVE,
             name, key, currentValue, previousValue);
     }
 
@@ -36,7 +36,7 @@ public class MapEvent<K, V> {
      * @param currentValue new value key is mapped to
      * @param previousValue value that was replaced
      */
-    public MapEvent(Type type, String name, K key, Versioned<V> currentValue, Versioned<V> previousValue) {
+    public MapEvent(MapEvent.Type type, String name, K key, Versioned<V> currentValue, Versioned<V> previousValue) {
         this.type = type;
         this.name = name;
         this.key = key;
@@ -56,7 +56,7 @@ public class MapEvent<K, V> {
      * Returns the type of the event.
      * @return the type of event
      */
-    public Type type() {
+    public MapEvent.Type type() {
         return type;
     }
 

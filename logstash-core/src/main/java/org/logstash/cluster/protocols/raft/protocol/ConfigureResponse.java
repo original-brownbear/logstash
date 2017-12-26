@@ -7,7 +7,7 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class ConfigureResponse extends AbstractRaftResponse {
 
-    public ConfigureResponse(Status status, RaftError error) {
+    public ConfigureResponse(RaftResponse.Status status, RaftError error) {
         super(status, error);
     }
 
@@ -15,14 +15,14 @@ public class ConfigureResponse extends AbstractRaftResponse {
      * Returns a new configure response builder.
      * @return A new configure response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ConfigureResponse.Builder builder() {
+        return new ConfigureResponse.Builder();
     }
 
     /**
      * Heartbeat response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, ConfigureResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<ConfigureResponse.Builder, ConfigureResponse> {
         @Override
         public ConfigureResponse build() {
             return new ConfigureResponse(status, error);

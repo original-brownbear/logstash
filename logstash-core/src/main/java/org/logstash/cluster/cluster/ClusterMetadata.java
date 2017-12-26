@@ -29,8 +29,8 @@ public final class ClusterMetadata {
      * Returns a new cluster metadata builder.
      * @return a new cluster metadata builder
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ClusterMetadata.Builder builder() {
+        return new ClusterMetadata.Builder();
     }
 
     /**
@@ -80,7 +80,7 @@ public final class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the name is null
          */
-        public Builder withClusterName(final String name) {
+        public ClusterMetadata.Builder withClusterName(final String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -90,7 +90,7 @@ public final class ClusterMetadata {
          * @param localNode the local node metadata
          * @return the cluster metadata builder
          */
-        public Builder withLocalNode(final Node localNode) {
+        public ClusterMetadata.Builder withLocalNode(final Node localNode) {
             this.localNode = Preconditions.checkNotNull(localNode, "localNode cannot be null");
             return this;
         }
@@ -101,7 +101,7 @@ public final class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(final Node... bootstrapNodes) {
+        public ClusterMetadata.Builder withBootstrapNodes(final Node... bootstrapNodes) {
             return withBootstrapNodes(Arrays.asList(Preconditions.checkNotNull(bootstrapNodes)));
         }
 
@@ -111,7 +111,7 @@ public final class ClusterMetadata {
          * @return the cluster metadata builder
          * @throws NullPointerException if the bootstrap nodes are {@code null}
          */
-        public Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
+        public ClusterMetadata.Builder withBootstrapNodes(final Collection<Node> bootstrapNodes) {
             this.bootstrapNodes = Preconditions.checkNotNull(bootstrapNodes, "bootstrapNodes cannot be null");
             return this;
         }

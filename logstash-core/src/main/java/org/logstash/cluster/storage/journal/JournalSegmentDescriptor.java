@@ -88,8 +88,8 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
      * The descriptor builder will write segment metadata to a {@code 48} byte in-memory buffer.
      * @return The descriptor builder.
      */
-    public static Builder builder() {
-        return new Builder(HeapBuffer.allocate(BYTES));
+    public static JournalSegmentDescriptor.Builder builder() {
+        return new JournalSegmentDescriptor.Builder(HeapBuffer.allocate(BYTES));
     }
 
     /**
@@ -98,8 +98,8 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
      * @return The descriptor builder.
      * @throws NullPointerException if {@code buffer} is null
      */
-    public static Builder builder(Buffer buffer) {
-        return new Builder(buffer);
+    public static JournalSegmentDescriptor.Builder builder(Buffer buffer) {
+        return new JournalSegmentDescriptor.Builder(buffer);
     }
 
     /**
@@ -239,7 +239,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
          * @param id The segment identifier.
          * @return The segment descriptor builder.
          */
-        public Builder withId(long id) {
+        public JournalSegmentDescriptor.Builder withId(long id) {
             buffer.writeLong(ID_POSITION, id);
             return this;
         }
@@ -249,7 +249,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
          * @param index The segment starting index.
          * @return The segment descriptor builder.
          */
-        public Builder withIndex(long index) {
+        public JournalSegmentDescriptor.Builder withIndex(long index) {
             buffer.writeLong(INDEX_POSITION, index);
             return this;
         }
@@ -259,7 +259,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
          * @param maxSegmentSize The maximum count of the segment.
          * @return The segment descriptor builder.
          */
-        public Builder withMaxSegmentSize(int maxSegmentSize) {
+        public JournalSegmentDescriptor.Builder withMaxSegmentSize(int maxSegmentSize) {
             buffer.writeInt(MAX_SIZE_POSITION, maxSegmentSize);
             return this;
         }
@@ -269,7 +269,7 @@ public final class JournalSegmentDescriptor implements AutoCloseable {
          * @param maxEntries The maximum number of entries in the segment.
          * @return The segment descriptor builder.
          */
-        public Builder withMaxEntries(int maxEntries) {
+        public JournalSegmentDescriptor.Builder withMaxEntries(int maxEntries) {
             buffer.writeInt(MAX_ENTRIES_POSITION, maxEntries);
             return this;
         }

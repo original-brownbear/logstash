@@ -13,14 +13,14 @@ public class CloseSessionRequest extends SessionRequest {
      * Returns a new unregister request builder.
      * @return A new unregister request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static CloseSessionRequest.Builder builder() {
+        return new CloseSessionRequest.Builder();
     }
 
     /**
      * Unregister request builder.
      */
-    public static class Builder extends SessionRequest.Builder<Builder, CloseSessionRequest> {
+    public static class Builder extends SessionRequest.Builder<CloseSessionRequest.Builder, CloseSessionRequest> {
         @Override
         public CloseSessionRequest build() {
             validate();

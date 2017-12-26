@@ -79,7 +79,7 @@ public interface RaftSession {
      * Returns the session state.
      * @return The session state.
      */
-    State getState();
+    RaftSession.State getState();
 
     /**
      * Adds a state change listener to the session.

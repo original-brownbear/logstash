@@ -15,7 +15,7 @@ public class ClusterEvent extends AbstractEvent<ClusterEvent.Type, Node> {
      * @param type cluster event type
      * @param instance cluster device subject
      */
-    public ClusterEvent(Type type, Node instance) {
+    public ClusterEvent(ClusterEvent.Type type, Node instance) {
         super(type, instance);
     }
 
@@ -25,7 +25,7 @@ public class ClusterEvent extends AbstractEvent<ClusterEvent.Type, Node> {
      * @param instance event device subject
      * @param time occurrence time
      */
-    public ClusterEvent(Type type, Node instance, long time) {
+    public ClusterEvent(ClusterEvent.Type type, Node instance, long time) {
         super(type, instance, time);
     }
 

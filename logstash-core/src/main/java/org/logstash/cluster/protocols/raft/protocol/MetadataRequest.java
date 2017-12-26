@@ -13,14 +13,14 @@ public class MetadataRequest extends SessionRequest {
      * Returns a new metadata request builder.
      * @return A new metadata request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static MetadataRequest.Builder builder() {
+        return new MetadataRequest.Builder();
     }
 
     /**
      * Metadata request builder.
      */
-    public static class Builder extends SessionRequest.Builder<Builder, MetadataRequest> {
+    public static class Builder extends SessionRequest.Builder<MetadataRequest.Builder, MetadataRequest> {
         @Override
         public MetadataRequest build() {
             return new MetadataRequest(session);

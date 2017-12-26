@@ -23,13 +23,13 @@ import org.logstash.cluster.utils.concurrent.Scheduled;
 public final class DefaultRaftMember implements RaftMember, AutoCloseable {
     private final MemberId id;
     private final int hash;
-    private final transient Set<Consumer<Type>> typeChangeListeners = new CopyOnWriteArraySet<>();
-    private Type type;
+    private final transient Set<Consumer<RaftMember.Type>> typeChangeListeners = new CopyOnWriteArraySet<>();
+    private RaftMember.Type type;
     private Instant updated;
     private transient Scheduled configureTimeout;
     private transient RaftClusterContext cluster;
 
-    public DefaultRaftMember(MemberId id, Type type, Instant updated) {
+    public DefaultRaftMember(MemberId id, RaftMember.Type type, Instant updated) {
         this.id = Preconditions.checkNotNull(id, "id cannot be null");
         this.hash = Hashing.murmur3_32()
             .hashUnencodedChars(id.id())
@@ -65,17 +65,17 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
      * Sets the member type.
      * @param type the member type
      */
-    void setType(Type type) {
+    void setType(RaftMember.Type type) {
         this.type = type;
     }
 
     @Override
-    public void addTypeChangeListener(Consumer<Type> listener) {
+    public void addTypeChangeListener(Consumer<RaftMember.Type> listener) {
         typeChangeListeners.add(listener);
     }
 
     @Override
-    public void removeTypeChangeListener(Consumer<Type> listener) {
+    public void removeTypeChangeListener(Consumer<RaftMember.Type> listener) {
         typeChangeListeners.remove(listener);
     }
 
@@ -86,33 +86,33 @@ public final class DefaultRaftMember implements RaftMember, AutoCloseable {
 
     @Override
     public CompletableFuture<Void> promote() {
-        if (Type.values().length > type.ordinal() + 1) {
-            return configure(Type.values()[type.ordinal() + 1]);
+        if (RaftMember.Type.values().length > type.ordinal() + 1) {
+            return configure(RaftMember.Type.values()[type.ordinal() + 1]);
         }
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletableFuture<Void> promote(Type type) {
+    public CompletableFuture<Void> promote(RaftMember.Type type) {
         return configure(type);
     }
 
     @Override
     public CompletableFuture<Void> demote() {
         if (type.ordinal() > 0) {
-            return configure(Type.values()[type.ordinal() - 1]);
+            return configure(RaftMember.Type.values()[type.ordinal() - 1]);
         }
         return CompletableFuture.completedFuture(null);
     }
 
     @Override
-    public CompletableFuture<Void> demote(Type type) {
+    public CompletableFuture<Void> demote(RaftMember.Type type) {
         return configure(type);
     }
 
     @Override
     public CompletableFuture<Void> remove() {
-        return configure(Type.INACTIVE);
+        return configure(RaftMember.Type.INACTIVE);
     }
 
     /**

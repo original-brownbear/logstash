@@ -34,8 +34,8 @@ public class PublishRequest extends SessionRequest {
      * Returns a new publish request builder.
      * @return A new publish request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static PublishRequest.Builder builder() {
+        return new PublishRequest.Builder();
     }
 
     /**
@@ -92,7 +92,7 @@ public class PublishRequest extends SessionRequest {
     /**
      * Publish request builder.
      */
-    public static class Builder extends SessionRequest.Builder<Builder, PublishRequest> {
+    public static class Builder extends SessionRequest.Builder<PublishRequest.Builder, PublishRequest> {
         private long eventIndex;
         private long previousIndex;
         private List<RaftEvent> events;
@@ -103,7 +103,7 @@ public class PublishRequest extends SessionRequest {
          * @return The request builder.
          * @throws IllegalArgumentException if {@code index} is less than 1
          */
-        public Builder withEventIndex(long eventIndex) {
+        public PublishRequest.Builder withEventIndex(long eventIndex) {
             Preconditions.checkArgument(eventIndex > 0, "eventIndex must be positive");
             this.eventIndex = eventIndex;
             return this;
@@ -115,7 +115,7 @@ public class PublishRequest extends SessionRequest {
          * @return The request builder.
          * @throws IllegalArgumentException if {@code index} is less than 1
          */
-        public Builder withPreviousIndex(long previousIndex) {
+        public PublishRequest.Builder withPreviousIndex(long previousIndex) {
             Preconditions.checkArgument(previousIndex >= 0, "previousIndex must be positive");
             this.previousIndex = previousIndex;
             return this;
@@ -126,7 +126,7 @@ public class PublishRequest extends SessionRequest {
          * @param events The request events.
          * @return The publish request builder.
          */
-        public Builder withEvents(RaftEvent... events) {
+        public PublishRequest.Builder withEvents(RaftEvent... events) {
             return withEvents(Arrays.asList(Preconditions.checkNotNull(events, "events cannot be null")));
         }
 
@@ -135,7 +135,7 @@ public class PublishRequest extends SessionRequest {
          * @param events The request events.
          * @return The publish request builder.
          */
-        public Builder withEvents(List<RaftEvent> events) {
+        public PublishRequest.Builder withEvents(List<RaftEvent> events) {
             this.events = Preconditions.checkNotNull(events, "events cannot be null");
             return this;
         }

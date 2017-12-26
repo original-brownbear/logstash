@@ -16,6 +16,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 import org.logstash.cluster.primitives.multimap.AsyncConsistentMultimap;
 import org.logstash.cluster.primitives.multimap.MultimapEvent;
 import org.logstash.cluster.primitives.multimap.MultimapEventListener;
@@ -44,7 +45,7 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
         Versioned<Collection<? extends V1>>> versionedValueCollectionDecode;
     private final Function<Collection<? extends V1>, Collection<V2>>
         valueCollectionEncode;
-    private final Map<MultimapEventListener<K1, V1>, InternalBackingMultimapEventListener> listeners =
+    private final Map<MultimapEventListener<K1, V1>, TranscodingAsyncConsistentMultimap.InternalBackingMultimapEventListener> listeners =
         Maps.newIdentityHashMap();
 
     public TranscodingAsyncConsistentMultimap(
@@ -202,13 +203,13 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     @Override
     public CompletableFuture<Multiset<K1>> keys() {
         return backingMap.keys().thenApply(s -> s.stream().map(keyDecoder)
-            .collect(new MultisetCollector<>()));
+            .collect(new TranscodingAsyncConsistentMultimap.MultisetCollector<>()));
     }
 
     @Override
     public CompletableFuture<Multiset<V1>> values() {
         return backingMap.values().thenApply(s ->
-            s.stream().map(valueDecoder).collect(new MultisetCollector<>()));
+            s.stream().map(valueDecoder).collect(new TranscodingAsyncConsistentMultimap.MultisetCollector<>()));
     }
 
     @Override
@@ -222,8 +223,8 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     @Override
     public CompletableFuture<Void> addListener(MultimapEventListener<K1, V1> listener, Executor executor) {
         synchronized (listeners) {
-            InternalBackingMultimapEventListener backingMapListener =
-                listeners.computeIfAbsent(listener, k -> new InternalBackingMultimapEventListener(listener));
+            TranscodingAsyncConsistentMultimap.InternalBackingMultimapEventListener backingMapListener =
+                listeners.computeIfAbsent(listener, k -> new TranscodingAsyncConsistentMultimap.InternalBackingMultimapEventListener(listener));
             return backingMap.addListener(backingMapListener, executor);
         }
     }
@@ -231,7 +232,7 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     @Override
     public CompletableFuture<Void> removeListener(MultimapEventListener<K1, V1> listener) {
         synchronized (listeners) {
-            InternalBackingMultimapEventListener backingMapListener = listeners.remove(listener);
+            TranscodingAsyncConsistentMultimap.InternalBackingMultimapEventListener backingMapListener = listeners.remove(listener);
             if (backingMapListener != null) {
                 return backingMap.removeListener(backingMapListener);
             } else {
@@ -251,17 +252,17 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         backingMap.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         backingMap.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return backingMap.statusChangeListeners();
     }
 
@@ -298,8 +299,8 @@ public class TranscodingAsyncConsistentMultimap<K1, V1, K2, V2> implements Async
         }
 
         @Override
-        public Set<Characteristics> characteristics() {
-            return EnumSet.of(Characteristics.UNORDERED);
+        public Set<Collector.Characteristics> characteristics() {
+            return EnumSet.of(Collector.Characteristics.UNORDERED);
         }
     }
 

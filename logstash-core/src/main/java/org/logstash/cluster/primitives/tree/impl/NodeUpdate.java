@@ -13,7 +13,7 @@ import org.logstash.cluster.utils.ArraySizeHashPrinter;
  */
 public final class NodeUpdate<V> {
 
-    private Type type;
+    private NodeUpdate.Type type;
     private DocumentPath path;
     private V value;
     private long version = -1;
@@ -22,7 +22,7 @@ public final class NodeUpdate<V> {
      * Returns the type of update operation.
      * @return type of update.
      */
-    public Type type() {
+    public NodeUpdate.Type type() {
         return type;
     }
 
@@ -70,8 +70,8 @@ public final class NodeUpdate<V> {
      * @param <V> value type
      * @return builder.
      */
-    public static <V> Builder<V> builder() {
-        return new Builder<>();
+    public static <V> NodeUpdate.Builder<V> builder() {
+        return new NodeUpdate.Builder<>();
     }
 
     @Override
@@ -155,22 +155,22 @@ public final class NodeUpdate<V> {
 
         }
 
-        public Builder<V> withType(Type type) {
+        public NodeUpdate.Builder<V> withType(NodeUpdate.Type type) {
             update.type = Preconditions.checkNotNull(type, "type cannot be null");
             return this;
         }
 
-        public Builder<V> withPath(DocumentPath key) {
+        public NodeUpdate.Builder<V> withPath(DocumentPath key) {
             update.path = Preconditions.checkNotNull(key, "key cannot be null");
             return this;
         }
 
-        public Builder<V> withValue(V value) {
+        public NodeUpdate.Builder<V> withValue(V value) {
             update.value = value;
             return this;
         }
 
-        public Builder<V> withVersion(long version) {
+        public NodeUpdate.Builder<V> withVersion(long version) {
             update.version = version;
             return this;
         }

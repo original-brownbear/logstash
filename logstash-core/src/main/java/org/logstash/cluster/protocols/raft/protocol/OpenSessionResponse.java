@@ -13,7 +13,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
     protected final long session;
     protected final long timeout;
 
-    public OpenSessionResponse(Status status, RaftError error, long session, long timeout) {
+    public OpenSessionResponse(RaftResponse.Status status, RaftError error, long session, long timeout) {
         super(status, error);
         this.session = session;
         this.timeout = timeout;
@@ -23,8 +23,8 @@ public class OpenSessionResponse extends AbstractRaftResponse {
      * Returns a new register client response builder.
      * @return A new register client response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static OpenSessionResponse.Builder builder() {
+        return new OpenSessionResponse.Builder();
     }
 
     /**
@@ -62,7 +62,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("session", session)
@@ -79,7 +79,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
     /**
      * Register response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, OpenSessionResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<OpenSessionResponse.Builder, OpenSessionResponse> {
         private long session;
         private long timeout;
 
@@ -89,7 +89,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
          * @return The register response builder.
          * @throws IllegalArgumentException if {@code session} is less than 1
          */
-        public Builder withSession(long session) {
+        public OpenSessionResponse.Builder withSession(long session) {
             Preconditions.checkArgument(session > 0, "session must be positive");
             this.session = session;
             return this;
@@ -100,7 +100,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
          * @param timeout The session timeout.
          * @return The response builder.
          */
-        public Builder withTimeout(long timeout) {
+        public OpenSessionResponse.Builder withTimeout(long timeout) {
             Preconditions.checkArgument(timeout > 0, "timeout must be positive");
             this.timeout = timeout;
             return this;
@@ -115,7 +115,7 @@ public class OpenSessionResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(session > 0, "session must be positive");
                 Preconditions.checkArgument(timeout > 0, "timeout must be positive");
             }

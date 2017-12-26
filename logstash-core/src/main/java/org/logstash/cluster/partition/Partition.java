@@ -3,7 +3,7 @@ package org.logstash.cluster.partition;
 import org.logstash.cluster.primitives.PrimitiveService;
 
 /**
- * Atomix partition.
+ * Partition.
  */
 public interface Partition extends PrimitiveService {
 

@@ -28,8 +28,8 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
      * Returns a new Raft log builder.
      * @return A new Raft log builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static RaftLog.Builder builder() {
+        return new RaftLog.Builder();
     }
 
     @Override
@@ -121,7 +121,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @param name The storage name.
          * @return The storage builder.
          */
-        public Builder withName(String name) {
+        public RaftLog.Builder withName(String name) {
             journalBuilder.withName(name);
             return this;
         }
@@ -133,7 +133,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @param storageLevel The log storage level.
          * @return The storage builder.
          */
-        public Builder withStorageLevel(StorageLevel storageLevel) {
+        public RaftLog.Builder withStorageLevel(StorageLevel storageLevel) {
             journalBuilder.withStorageLevel(storageLevel);
             return this;
         }
@@ -146,7 +146,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder withDirectory(String directory) {
+        public RaftLog.Builder withDirectory(String directory) {
             journalBuilder.withDirectory(directory);
             return this;
         }
@@ -159,7 +159,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder withDirectory(File directory) {
+        public RaftLog.Builder withDirectory(File directory) {
             journalBuilder.withDirectory(directory);
             return this;
         }
@@ -169,7 +169,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @param serializer The journal serializer.
          * @return The journal builder.
          */
-        public Builder withSerializer(Serializer serializer) {
+        public RaftLog.Builder withSerializer(Serializer serializer) {
             journalBuilder.withSerializer(serializer);
             return this;
         }
@@ -186,7 +186,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @return The storage builder.
          * @throws IllegalArgumentException If the {@code maxSegmentSize} is not positive
          */
-        public Builder withMaxSegmentSize(int maxSegmentSize) {
+        public RaftLog.Builder withMaxSegmentSize(int maxSegmentSize) {
             journalBuilder.withMaxSegmentSize(maxSegmentSize);
             return this;
         }
@@ -204,7 +204,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @throws IllegalArgumentException If the {@code maxEntriesPerSegment} not greater than the default max entries per
          * segment
          */
-        public Builder withMaxEntriesPerSegment(int maxEntriesPerSegment) {
+        public RaftLog.Builder withMaxEntriesPerSegment(int maxEntriesPerSegment) {
             journalBuilder.withMaxEntriesPerSegment(maxEntriesPerSegment);
             return this;
         }
@@ -217,7 +217,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * an entry is committed in a given segment.
          * @return The storage builder.
          */
-        public Builder withFlushOnCommit() {
+        public RaftLog.Builder withFlushOnCommit() {
             return withFlushOnCommit(true);
         }
 
@@ -230,7 +230,7 @@ public class RaftLog extends DelegatingJournal<RaftLogEntry> {
          * @param flushOnCommit Whether to flush buffers to disk when entries are committed to a segment.
          * @return The storage builder.
          */
-        public Builder withFlushOnCommit(boolean flushOnCommit) {
+        public RaftLog.Builder withFlushOnCommit(boolean flushOnCommit) {
             this.flushOnCommit = flushOnCommit;
             return this;
         }

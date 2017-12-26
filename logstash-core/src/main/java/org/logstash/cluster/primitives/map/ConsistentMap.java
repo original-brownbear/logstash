@@ -3,7 +3,6 @@ package org.logstash.cluster.primitives.map;
 import com.google.common.util.concurrent.MoreExecutors;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.function.BiFunction;
@@ -185,7 +184,7 @@ public interface ConsistentMap<K, V> extends SyncPrimitive {
      * result in an UnsupportedOperationException.
      * @return set of entries contained in this map.
      */
-    Set<Entry<K, Versioned<V>>> entrySet();
+    Set<Map.Entry<K, Versioned<V>>> entrySet();
 
     /**
      * If the specified key is not already associated with a value

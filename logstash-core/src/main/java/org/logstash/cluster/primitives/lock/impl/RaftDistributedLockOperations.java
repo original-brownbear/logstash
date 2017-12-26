@@ -16,8 +16,8 @@ public enum RaftDistributedLockOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Lock.class)
-        .register(Unlock.class)
+        .register(RaftDistributedLockOperations.Lock.class)
+        .register(RaftDistributedLockOperations.Unlock.class)
         .build(RaftDistributedLockOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
@@ -50,7 +50,7 @@ public enum RaftDistributedLockOperations implements OperationId {
     /**
      * Lock command.
      */
-    public static class Lock extends LockOperation {
+    public static class Lock extends RaftDistributedLockOperations.LockOperation {
         private final int id;
         private final long timeout;
 
@@ -91,7 +91,7 @@ public enum RaftDistributedLockOperations implements OperationId {
     /**
      * Unlock command.
      */
-    public static class Unlock extends LockOperation {
+    public static class Unlock extends RaftDistributedLockOperations.LockOperation {
         private final int id;
 
         public Unlock(int id) {

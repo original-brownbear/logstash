@@ -47,7 +47,7 @@ public class NotNullAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     @Override
     public CompletableFuture<Versioned<V>> put(K key, V value) {
         if (value == null) {
-            return super.remove(key);
+            return remove(key);
         }
         return super.put(key, value);
     }
@@ -55,7 +55,7 @@ public class NotNullAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     @Override
     public CompletableFuture<Versioned<V>> putAndGet(K key, V value) {
         if (value == null) {
-            return super.remove(key).thenApply(v -> null);
+            return remove(key).thenApply(v -> null);
         }
         return super.putAndGet(key, value);
     }
@@ -77,7 +77,7 @@ public class NotNullAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     @Override
     public CompletableFuture<Versioned<V>> putIfAbsent(K key, V value) {
         if (value == null) {
-            return super.remove(key);
+            return remove(key);
         }
         return super.putIfAbsent(key, value);
     }
@@ -98,7 +98,7 @@ public class NotNullAsyncConsistentMap<K, V> extends DelegatingAsyncConsistentMa
     @Override
     public CompletableFuture<Versioned<V>> replace(K key, V value) {
         if (value == null) {
-            return super.remove(key);
+            return remove(key);
         }
         return super.replace(key, value);
     }

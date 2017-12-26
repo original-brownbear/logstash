@@ -11,7 +11,7 @@ import java.util.Objects;
 public class MultimapEvent<K, V> {
 
     private final String name;
-    private final Type type;
+    private final MultimapEvent.Type type;
     private final K key;
     private final V newValue;
     private final V oldValue;
@@ -28,7 +28,7 @@ public class MultimapEvent<K, V> {
         this.key = key;
         this.newValue = newValue;
         this.oldValue = oldValue;
-        this.type = newValue != null ? Type.INSERT : Type.REMOVE;
+        this.type = newValue != null ? MultimapEvent.Type.INSERT : MultimapEvent.Type.REMOVE;
     }
 
     /**
@@ -43,7 +43,7 @@ public class MultimapEvent<K, V> {
      * Returns the type of the event.
      * @return the type of event
      */
-    public Type type() {
+    public MultimapEvent.Type type() {
         return type;
     }
 

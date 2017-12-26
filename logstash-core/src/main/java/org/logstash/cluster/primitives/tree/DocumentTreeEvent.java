@@ -11,7 +11,7 @@ import org.logstash.cluster.time.Versioned;
 public class DocumentTreeEvent<V> {
 
     private final DocumentPath path;
-    private final Type type;
+    private final DocumentTreeEvent.Type type;
     private final Optional<Versioned<V>> newValue;
     private final Optional<Versioned<V>> oldValue;
 
@@ -31,7 +31,7 @@ public class DocumentTreeEvent<V> {
      * @param oldValue optional old value; will be empty if node was created
      */
     public DocumentTreeEvent(DocumentPath path,
-        Type type,
+        DocumentTreeEvent.Type type,
         Optional<Versioned<V>> newValue,
         Optional<Versioned<V>> oldValue) {
         this.path = path;
@@ -52,7 +52,7 @@ public class DocumentTreeEvent<V> {
      * Returns the change type.
      * @return change type
      */
-    public Type type() {
+    public DocumentTreeEvent.Type type() {
         return type;
     }
 

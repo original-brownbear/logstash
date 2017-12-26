@@ -33,13 +33,13 @@ public final class MemberSelector implements Iterator<MemberId>, AutoCloseable {
      * Returns the address selector state.
      * @return The address selector state.
      */
-    public State state() {
+    public MemberSelector.State state() {
         if (selectionsIterator == null) {
-            return State.RESET;
+            return MemberSelector.State.RESET;
         } else if (hasNext()) {
-            return State.ITERATE;
+            return MemberSelector.State.ITERATE;
         } else {
-            return State.COMPLETE;
+            return MemberSelector.State.COMPLETE;
         }
     }
 

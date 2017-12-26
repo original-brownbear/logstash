@@ -284,8 +284,8 @@ public class SegmentedJournal<E> implements Journal<E> {
      * Returns a new segmented journal builder.
      * @return A new segmented journal builder.
      */
-    public static <E> Builder<E> builder() {
-        return new Builder<>();
+    public static <E> SegmentedJournal.Builder<E> builder() {
+        return new SegmentedJournal.Builder<>();
     }
 
     /**
@@ -614,7 +614,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @param name The storage name.
          * @return The storage builder.
          */
-        public Builder<E> withName(String name) {
+        public SegmentedJournal.Builder<E> withName(String name) {
             this.name = Preconditions.checkNotNull(name, "name cannot be null");
             return this;
         }
@@ -626,7 +626,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @param storageLevel The log storage level.
          * @return The storage builder.
          */
-        public Builder<E> withStorageLevel(StorageLevel storageLevel) {
+        public SegmentedJournal.Builder<E> withStorageLevel(StorageLevel storageLevel) {
             this.storageLevel = Preconditions.checkNotNull(storageLevel, "storageLevel cannot be null");
             return this;
         }
@@ -639,7 +639,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder<E> withDirectory(String directory) {
+        public SegmentedJournal.Builder<E> withDirectory(String directory) {
             return withDirectory(new File(Preconditions.checkNotNull(directory, "directory cannot be null")));
         }
 
@@ -651,7 +651,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The storage builder.
          * @throws NullPointerException If the {@code directory} is {@code null}
          */
-        public Builder<E> withDirectory(File directory) {
+        public SegmentedJournal.Builder<E> withDirectory(File directory) {
             this.directory = Preconditions.checkNotNull(directory, "directory cannot be null");
             return this;
         }
@@ -661,7 +661,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @param serializer The journal serializer.
          * @return The journal builder.
          */
-        public Builder<E> withSerializer(Serializer serializer) {
+        public SegmentedJournal.Builder<E> withSerializer(Serializer serializer) {
             this.serializer = Preconditions.checkNotNull(serializer, "serializer cannot be null");
             return this;
         }
@@ -678,7 +678,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @return The storage builder.
          * @throws IllegalArgumentException If the {@code maxSegmentSize} is not positive
          */
-        public Builder<E> withMaxSegmentSize(int maxSegmentSize) {
+        public SegmentedJournal.Builder<E> withMaxSegmentSize(int maxSegmentSize) {
             Preconditions.checkArgument(maxSegmentSize > JournalSegmentDescriptor.BYTES, "maxSegmentSize must be greater than " + JournalSegmentDescriptor.BYTES);
             this.maxSegmentSize = maxSegmentSize;
             return this;
@@ -697,7 +697,7 @@ public class SegmentedJournal<E> implements Journal<E> {
          * @throws IllegalArgumentException If the {@code maxEntriesPerSegment} not greater than the default max entries per
          * segment
          */
-        public Builder<E> withMaxEntriesPerSegment(int maxEntriesPerSegment) {
+        public SegmentedJournal.Builder<E> withMaxEntriesPerSegment(int maxEntriesPerSegment) {
             Preconditions.checkArgument(maxEntriesPerSegment > 0, "max entries per segment must be positive");
             Preconditions.checkArgument(maxEntriesPerSegment <= DEFAULT_MAX_ENTRIES_PER_SEGMENT,
                 "max entries per segment cannot be greater than " + DEFAULT_MAX_ENTRIES_PER_SEGMENT);

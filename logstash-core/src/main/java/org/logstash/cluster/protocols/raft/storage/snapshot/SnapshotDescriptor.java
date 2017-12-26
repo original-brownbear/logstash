@@ -52,8 +52,8 @@ public final class SnapshotDescriptor implements AutoCloseable {
      * The descriptor builder will write segment metadata to a {@code 48} byte in-memory buffer.
      * @return The descriptor builder.
      */
-    public static Builder builder() {
-        return new Builder(HeapBuffer.allocate(BYTES));
+    public static SnapshotDescriptor.Builder builder() {
+        return new SnapshotDescriptor.Builder(HeapBuffer.allocate(BYTES));
     }
 
     /**
@@ -62,8 +62,8 @@ public final class SnapshotDescriptor implements AutoCloseable {
      * @return The descriptor builder.
      * @throws NullPointerException if {@code buffer} is null
      */
-    public static Builder builder(Buffer buffer) {
-        return new Builder(buffer);
+    public static SnapshotDescriptor.Builder builder(Buffer buffer) {
+        return new SnapshotDescriptor.Builder(buffer);
     }
 
     /**
@@ -153,7 +153,7 @@ public final class SnapshotDescriptor implements AutoCloseable {
          * @param id The snapshot identifier.
          * @return The snapshot builder.
          */
-        public Builder withServiceId(long id) {
+        public SnapshotDescriptor.Builder withServiceId(long id) {
             buffer.writeLong(0, id);
             return this;
         }
@@ -163,7 +163,7 @@ public final class SnapshotDescriptor implements AutoCloseable {
          * @param index The snapshot index.
          * @return The snapshot builder.
          */
-        public Builder withIndex(long index) {
+        public SnapshotDescriptor.Builder withIndex(long index) {
             buffer.writeLong(8, index);
             return this;
         }
@@ -173,7 +173,7 @@ public final class SnapshotDescriptor implements AutoCloseable {
          * @param timestamp The snapshot timestamp.
          * @return The snapshot builder.
          */
-        public Builder withTimestamp(long timestamp) {
+        public SnapshotDescriptor.Builder withTimestamp(long timestamp) {
             buffer.writeLong(16, timestamp);
             return this;
         }

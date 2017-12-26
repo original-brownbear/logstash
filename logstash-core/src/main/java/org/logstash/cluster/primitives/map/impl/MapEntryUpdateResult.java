@@ -14,12 +14,12 @@ import org.logstash.cluster.time.Versioned;
  */
 public class MapEntryUpdateResult<K, V> {
 
-    private final Status status;
+    private final MapEntryUpdateResult.Status status;
     private final long version;
     private final K key;
     private final Versioned<V> result;
 
-    public MapEntryUpdateResult(Status status, long version, K key, Versioned<V> result) {
+    public MapEntryUpdateResult(MapEntryUpdateResult.Status status, long version, K key, Versioned<V> result) {
         this.status = status;
         this.version = version;
         this.key = key;
@@ -31,14 +31,14 @@ public class MapEntryUpdateResult<K, V> {
      * @return {@code true} if yes, {@code false} otherwise
      */
     public boolean updated() {
-        return status == Status.OK;
+        return status == MapEntryUpdateResult.Status.OK;
     }
 
     /**
      * Returns the update status.
      * @return update status
      */
-    public Status status() {
+    public MapEntryUpdateResult.Status status() {
         return status;
     }
 

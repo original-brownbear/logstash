@@ -7,7 +7,7 @@ import org.logstash.cluster.protocols.raft.RaftError;
  */
 public class HeartbeatResponse extends AbstractRaftResponse {
 
-    public HeartbeatResponse(Status status, RaftError error) {
+    public HeartbeatResponse(RaftResponse.Status status, RaftError error) {
         super(status, error);
     }
 
@@ -15,14 +15,14 @@ public class HeartbeatResponse extends AbstractRaftResponse {
      * Returns a new heartbeat response builder.
      * @return A new heartbeat response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static HeartbeatResponse.Builder builder() {
+        return new HeartbeatResponse.Builder();
     }
 
     /**
      * Heartbeat response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, HeartbeatResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<HeartbeatResponse.Builder, HeartbeatResponse> {
         @Override
         public HeartbeatResponse build() {
             validate();

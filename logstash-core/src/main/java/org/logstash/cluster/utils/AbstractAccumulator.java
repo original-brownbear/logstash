@@ -100,7 +100,7 @@ public abstract class AbstractAccumulator<T> implements Accumulator<T> {
      * @param millis delay in milliseconds
      */
     private void rescheduleTask(AtomicReference<TimerTask> taskRef, long millis) {
-        ProcessorTask newTask = new ProcessorTask();
+        AbstractAccumulator.ProcessorTask newTask = new AbstractAccumulator.ProcessorTask();
         timer.schedule(newTask, millis);
         swapAndCancelTask(taskRef, newTask);
     }

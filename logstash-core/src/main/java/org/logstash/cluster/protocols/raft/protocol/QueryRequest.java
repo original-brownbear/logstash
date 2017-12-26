@@ -28,8 +28,8 @@ public class QueryRequest extends OperationRequest {
      * Returns a new query request builder.
      * @return A new query request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static QueryRequest.Builder builder() {
+        return new QueryRequest.Builder();
     }
 
     /**
@@ -69,7 +69,7 @@ public class QueryRequest extends OperationRequest {
     /**
      * Query request builder.
      */
-    public static class Builder extends OperationRequest.Builder<Builder, QueryRequest> {
+    public static class Builder extends OperationRequest.Builder<QueryRequest.Builder, QueryRequest> {
         private long index;
 
         /**
@@ -78,7 +78,7 @@ public class QueryRequest extends OperationRequest {
          * @return The request builder.
          * @throws IllegalArgumentException if {@code index} is less than {@code 0}
          */
-        public Builder withIndex(long index) {
+        public QueryRequest.Builder withIndex(long index) {
             Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;

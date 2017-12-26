@@ -16,7 +16,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
     protected final long timestamp;
     protected final Collection<RaftMember> members;
 
-    public ConfigurationResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+    public ConfigurationResponse(RaftResponse.Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
         super(status, error);
         this.index = index;
         this.term = term;
@@ -76,7 +76,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("index", index)
@@ -95,7 +95,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
     /**
      * Configuration response builder.
      */
-    public static abstract class Builder<T extends Builder<T, U>, U extends ConfigurationResponse> extends AbstractRaftResponse.Builder<T, U> {
+    public abstract static class Builder<T extends ConfigurationResponse.Builder<T, U>, U extends ConfigurationResponse> extends AbstractRaftResponse.Builder<T, U> {
         protected long index;
         protected long term;
         protected long timestamp;
@@ -155,7 +155,7 @@ public abstract class ConfigurationResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(index >= 0, "index must be positive");
                 Preconditions.checkArgument(term >= 0, "term must be positive");
                 Preconditions.checkArgument(timestamp > 0, "time must be positive");

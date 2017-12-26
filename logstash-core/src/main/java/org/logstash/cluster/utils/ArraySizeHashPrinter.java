@@ -1,7 +1,6 @@
 package org.logstash.cluster.utils;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.MoreObjects.ToStringHelper;
 import java.lang.reflect.Array;
 import java.util.Arrays;
 
@@ -103,7 +102,7 @@ public final class ArraySizeHashPrinter {
 
     @Override
     public String toString() {
-        ToStringHelper helper = MoreObjects.toStringHelper(type);
+        MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(type);
         if (array != null) {
             helper.add("length", array.length)
                 .add("hash", Arrays.hashCode(array));

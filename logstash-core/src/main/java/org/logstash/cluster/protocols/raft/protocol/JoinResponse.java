@@ -10,7 +10,7 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class JoinResponse extends ConfigurationResponse {
 
-    public JoinResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+    public JoinResponse(RaftResponse.Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
         super(status, error, index, term, timestamp, members);
     }
 
@@ -18,14 +18,14 @@ public class JoinResponse extends ConfigurationResponse {
      * Returns a new join response builder.
      * @return A new join response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static JoinResponse.Builder builder() {
+        return new JoinResponse.Builder();
     }
 
     /**
      * Join response builder.
      */
-    public static class Builder extends ConfigurationResponse.Builder<Builder, JoinResponse> {
+    public static class Builder extends ConfigurationResponse.Builder<JoinResponse.Builder, JoinResponse> {
         @Override
         public JoinResponse build() {
             validate();
@@ -36,7 +36,7 @@ public class JoinResponse extends ConfigurationResponse {
         protected void validate() {
             // JoinResponse allows null errors indicating the client should retry.
             Preconditions.checkNotNull(status, "status cannot be null");
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(index >= 0, "index must be positive");
                 Preconditions.checkArgument(term >= 0, "term must be positive");
                 Preconditions.checkArgument(timestamp > 0, "time must be positive");

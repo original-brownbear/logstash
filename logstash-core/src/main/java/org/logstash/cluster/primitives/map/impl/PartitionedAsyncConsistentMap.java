@@ -8,7 +8,6 @@ import com.google.common.collect.Maps;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
@@ -158,9 +157,9 @@ public class PartitionedAsyncConsistentMap<K, V> implements AsyncConsistentMap<K
     }
 
     @Override
-    public CompletableFuture<Set<Entry<K, Versioned<V>>>> entrySet() {
+    public CompletableFuture<Set<Map.Entry<K, Versioned<V>>>> entrySet() {
         return Futures.allOf(getMaps().stream().map(m -> m.entrySet()).collect(Collectors.toList()),
-            (s1, s2) -> ImmutableSet.<Entry<K, Versioned<V>>>builder().addAll(s1).addAll(s2).build(),
+            (s1, s2) -> ImmutableSet.<Map.Entry<K, Versioned<V>>>builder().addAll(s1).addAll(s2).build(),
             ImmutableSet.of());
     }
 

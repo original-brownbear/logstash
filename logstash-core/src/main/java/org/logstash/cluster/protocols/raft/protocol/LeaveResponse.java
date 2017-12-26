@@ -9,7 +9,7 @@ import org.logstash.cluster.protocols.raft.cluster.RaftMember;
  */
 public class LeaveResponse extends ConfigurationResponse {
 
-    public LeaveResponse(Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
+    public LeaveResponse(RaftResponse.Status status, RaftError error, long index, long term, long timestamp, Collection<RaftMember> members) {
         super(status, error, index, term, timestamp, members);
     }
 
@@ -17,14 +17,14 @@ public class LeaveResponse extends ConfigurationResponse {
      * Returns a new leave response builder.
      * @return A new leave response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static LeaveResponse.Builder builder() {
+        return new LeaveResponse.Builder();
     }
 
     /**
      * Leave response builder.
      */
-    public static class Builder extends ConfigurationResponse.Builder<Builder, LeaveResponse> {
+    public static class Builder extends ConfigurationResponse.Builder<LeaveResponse.Builder, LeaveResponse> {
         @Override
         public LeaveResponse build() {
             validate();

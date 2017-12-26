@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.logstash.cluster.primitives.AsyncPrimitive;
+import org.logstash.cluster.primitives.DistributedPrimitive;
 
 /**
  * Base class for primitive delegates.
@@ -24,22 +25,22 @@ public abstract class DelegatingDistributedPrimitive implements AsyncPrimitive {
     }
 
     @Override
-    public Type primitiveType() {
+    public DistributedPrimitive.Type primitiveType() {
         return primitive.primitiveType();
     }
 
     @Override
-    public void addStatusChangeListener(Consumer<Status> listener) {
+    public void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         primitive.addStatusChangeListener(listener);
     }
 
     @Override
-    public void removeStatusChangeListener(Consumer<Status> listener) {
+    public void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
         primitive.removeStatusChangeListener(listener);
     }
 
     @Override
-    public Collection<Consumer<Status>> statusChangeListeners() {
+    public Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return primitive.statusChangeListeners();
     }
 

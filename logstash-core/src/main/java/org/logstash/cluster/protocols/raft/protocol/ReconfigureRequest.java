@@ -23,8 +23,8 @@ public class ReconfigureRequest extends ConfigurationRequest {
      * Returns a new reconfigure request builder.
      * @return A new reconfigure request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ReconfigureRequest.Builder builder() {
+        return new ReconfigureRequest.Builder();
     }
 
     /**
@@ -69,7 +69,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
     /**
      * Reconfigure request builder.
      */
-    public static class Builder extends ConfigurationRequest.Builder<Builder, ReconfigureRequest> {
+    public static class Builder extends ConfigurationRequest.Builder<ReconfigureRequest.Builder, ReconfigureRequest> {
         private long index = -1;
         private long term = -1;
 
@@ -78,7 +78,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
          * @param index The request index.
          * @return The request builder.
          */
-        public Builder withIndex(long index) {
+        public ReconfigureRequest.Builder withIndex(long index) {
             Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
@@ -89,7 +89,7 @@ public class ReconfigureRequest extends ConfigurationRequest {
          * @param term The request term.
          * @return The request builder.
          */
-        public Builder withTerm(long term) {
+        public ReconfigureRequest.Builder withTerm(long term) {
             Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;

@@ -10,7 +10,7 @@ import java.util.Objects;
 public final class SetEvent<E> {
 
     private final String name;
-    private final Type type;
+    private final SetEvent.Type type;
     private final E entry;
 
     /**
@@ -19,7 +19,7 @@ public final class SetEvent<E> {
      * @param type type of the event
      * @param entry entry the event concerns
      */
-    public SetEvent(String name, Type type, E entry) {
+    public SetEvent(String name, SetEvent.Type type, E entry) {
         this.name = name;
         this.type = type;
         this.entry = entry;
@@ -37,7 +37,7 @@ public final class SetEvent<E> {
      * Returns the type of the event.
      * @return type of the event
      */
-    public Type type() {
+    public SetEvent.Type type() {
         return type;
     }
 

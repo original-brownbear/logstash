@@ -37,14 +37,14 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(ContainsEntry.class)
-        .register(ContainsKey.class)
-        .register(ContainsValue.class)
-        .register(Get.class)
-        .register(MultiRemove.class)
-        .register(Put.class)
-        .register(RemoveAll.class)
-        .register(Replace.class)
+        .register(RaftConsistentSetMultimapOperations.ContainsEntry.class)
+        .register(RaftConsistentSetMultimapOperations.ContainsKey.class)
+        .register(RaftConsistentSetMultimapOperations.ContainsValue.class)
+        .register(RaftConsistentSetMultimapOperations.Get.class)
+        .register(RaftConsistentSetMultimapOperations.MultiRemove.class)
+        .register(RaftConsistentSetMultimapOperations.Put.class)
+        .register(RaftConsistentSetMultimapOperations.RemoveAll.class)
+        .register(RaftConsistentSetMultimapOperations.Replace.class)
         .register(Match.class)
         .register(Versioned.class)
         .register(ArrayList.class)
@@ -84,7 +84,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Abstract key-based multimap query.
      */
     @SuppressWarnings("serial")
-    public abstract static class KeyOperation extends MultimapOperation {
+    public abstract static class KeyOperation extends RaftConsistentSetMultimapOperations.MultimapOperation {
         protected String key;
 
         public KeyOperation() {
@@ -110,7 +110,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Abstract value-based query.
      */
     @SuppressWarnings("serial")
-    public abstract static class ValueOperation extends MultimapOperation {
+    public abstract static class ValueOperation extends RaftConsistentSetMultimapOperations.MultimapOperation {
         protected byte[] value;
 
         public ValueOperation() {
@@ -140,7 +140,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Contains key query.
      */
     @SuppressWarnings("serial")
-    public static class ContainsKey extends KeyOperation {
+    public static class ContainsKey extends RaftConsistentSetMultimapOperations.KeyOperation {
         public ContainsKey() {
         }
 
@@ -153,7 +153,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Contains value query.
      */
     @SuppressWarnings("serial")
-    public static class ContainsValue extends ValueOperation {
+    public static class ContainsValue extends RaftConsistentSetMultimapOperations.ValueOperation {
         public ContainsValue() {
         }
 
@@ -166,7 +166,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Contains entry query.
      */
     @SuppressWarnings("serial")
-    public static class ContainsEntry extends MultimapOperation {
+    public static class ContainsEntry extends RaftConsistentSetMultimapOperations.MultimapOperation {
         protected String key;
         protected byte[] value;
 
@@ -199,7 +199,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Remove command, backs remove and removeAll's that return booleans.
      */
     @SuppressWarnings("serial")
-    public static class RemoveAll extends MultimapOperation {
+    public static class RemoveAll extends RaftConsistentSetMultimapOperations.MultimapOperation {
         private String key;
         private Match<Long> versionMatch;
 
@@ -232,7 +232,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Remove command, backs remove and removeAll's that return booleans.
      */
     @SuppressWarnings("serial")
-    public static class MultiRemove extends MultimapOperation {
+    public static class MultiRemove extends RaftConsistentSetMultimapOperations.MultimapOperation {
         private String key;
         private Collection<byte[]> values;
         private Match<Long> versionMatch;
@@ -273,7 +273,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Command to back the put and putAll methods.
      */
     @SuppressWarnings("serial")
-    public static class Put extends MultimapOperation {
+    public static class Put extends RaftConsistentSetMultimapOperations.MultimapOperation {
         private String key;
         private Collection<? extends byte[]> values;
         private Match<Long> versionMatch;
@@ -313,7 +313,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
      * Replace command, returns the collection that was replaced.
      */
     @SuppressWarnings("serial")
-    public static class Replace extends MultimapOperation {
+    public static class Replace extends RaftConsistentSetMultimapOperations.MultimapOperation {
         private String key;
         private Collection<byte[]> values;
         private Match<Long> versionMatch;
@@ -353,7 +353,7 @@ public enum RaftConsistentSetMultimapOperations implements OperationId {
     /**
      * Get value query.
      */
-    public static class Get extends KeyOperation {
+    public static class Get extends RaftConsistentSetMultimapOperations.KeyOperation {
         public Get() {
         }
 

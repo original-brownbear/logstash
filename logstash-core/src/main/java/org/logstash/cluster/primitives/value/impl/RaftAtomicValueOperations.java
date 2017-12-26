@@ -21,10 +21,10 @@ public enum RaftAtomicValueOperations implements OperationId {
     public static final KryoNamespace NAMESPACE = KryoNamespace.builder()
         .register(KryoNamespaces.BASIC)
         .nextId(KryoNamespaces.BEGIN_USER_CUSTOM_ID)
-        .register(Get.class)
-        .register(Set.class)
-        .register(CompareAndSet.class)
-        .register(GetAndSet.class)
+        .register(RaftAtomicValueOperations.Get.class)
+        .register(RaftAtomicValueOperations.Set.class)
+        .register(RaftAtomicValueOperations.CompareAndSet.class)
+        .register(RaftAtomicValueOperations.GetAndSet.class)
         .build(RaftAtomicValueOperations.class.getSimpleName());
     private final String id;
     private final OperationType type;
@@ -53,13 +53,13 @@ public enum RaftAtomicValueOperations implements OperationId {
     /**
      * Get query.
      */
-    public static class Get extends ValueOperation {
+    public static class Get extends RaftAtomicValueOperations.ValueOperation {
     }
 
     /**
      * Set command.
      */
-    public static class Set extends ValueOperation {
+    public static class Set extends RaftAtomicValueOperations.ValueOperation {
         private byte[] value;
 
         public Set() {
@@ -88,7 +88,7 @@ public enum RaftAtomicValueOperations implements OperationId {
     /**
      * Compare and set command.
      */
-    public static class CompareAndSet extends ValueOperation {
+    public static class CompareAndSet extends RaftAtomicValueOperations.ValueOperation {
         private byte[] expect;
         private byte[] update;
 
@@ -128,7 +128,7 @@ public enum RaftAtomicValueOperations implements OperationId {
     /**
      * Get and set operation.
      */
-    public static class GetAndSet extends ValueOperation {
+    public static class GetAndSet extends RaftAtomicValueOperations.ValueOperation {
         private byte[] value;
 
         public GetAndSet() {

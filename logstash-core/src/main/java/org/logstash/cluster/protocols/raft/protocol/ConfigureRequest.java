@@ -35,8 +35,8 @@ public class ConfigureRequest extends AbstractRaftRequest {
      * Returns a new configuration request builder.
      * @return A new configuration request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static ConfigureRequest.Builder builder() {
+        return new ConfigureRequest.Builder();
     }
 
     /**
@@ -111,7 +111,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
     /**
      * Heartbeat request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, ConfigureRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<ConfigureRequest.Builder, ConfigureRequest> {
         private long term;
         private String leader;
         private long index;
@@ -124,7 +124,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @return The append request builder.
          * @throws IllegalArgumentException if the {@code term} is not positive
          */
-        public Builder withTerm(long term) {
+        public ConfigureRequest.Builder withTerm(long term) {
             Preconditions.checkArgument(term > 0, "term must be positive");
             this.term = term;
             return this;
@@ -136,7 +136,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @return The append request builder.
          * @throws IllegalArgumentException if the {@code leader} is not positive
          */
-        public Builder withLeader(MemberId leader) {
+        public ConfigureRequest.Builder withLeader(MemberId leader) {
             this.leader = Preconditions.checkNotNull(leader, "leader cannot be null").id();
             return this;
         }
@@ -146,7 +146,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @param index The request index.
          * @return The request builder.
          */
-        public Builder withIndex(long index) {
+        public ConfigureRequest.Builder withIndex(long index) {
             Preconditions.checkArgument(index >= 0, "index must be positive");
             this.index = index;
             return this;
@@ -157,7 +157,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @param timestamp The request timestamp.
          * @return The request builder.
          */
-        public Builder withTime(long timestamp) {
+        public ConfigureRequest.Builder withTime(long timestamp) {
             Preconditions.checkArgument(timestamp > 0, "timestamp must be positive");
             this.timestamp = timestamp;
             return this;
@@ -169,7 +169,7 @@ public class ConfigureRequest extends AbstractRaftRequest {
          * @return The request builder.
          * @throws NullPointerException if {@code member} is null
          */
-        public Builder withMembers(Collection<RaftMember> members) {
+        public ConfigureRequest.Builder withMembers(Collection<RaftMember> members) {
             this.members = Preconditions.checkNotNull(members, "members cannot be null");
             return this;
         }

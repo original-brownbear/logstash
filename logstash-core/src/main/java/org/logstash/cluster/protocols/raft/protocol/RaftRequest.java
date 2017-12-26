@@ -9,6 +9,6 @@ public interface RaftRequest extends RaftMessage {
      * Request builder.
      * @param <T> The builder type.
      */
-    interface Builder<T extends Builder<T, U>, U extends RaftRequest> extends org.logstash.cluster.utils.Builder<U> {
+    interface Builder<T extends RaftRequest.Builder<T, U>, U extends RaftRequest> extends org.logstash.cluster.utils.Builder<U> {
     }
 }

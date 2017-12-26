@@ -24,27 +24,27 @@ public interface DistributedPrimitive {
      * Returns the type of primitive.
      * @return primitive type
      */
-    Type primitiveType();
+    DistributedPrimitive.Type primitiveType();
 
     /**
      * Registers a listener to be called when the primitive's status changes.
      * @param listener The listener to be called when the status changes.
      */
-    default void addStatusChangeListener(Consumer<Status> listener) {
+    default void addStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
     }
 
     /**
      * Unregisters a previously registered listener to be called when the primitive's status changes.
      * @param listener The listener to unregister
      */
-    default void removeStatusChangeListener(Consumer<Status> listener) {
+    default void removeStatusChangeListener(Consumer<DistributedPrimitive.Status> listener) {
     }
 
     /**
      * Returns the collection of status change listeners previously registered.
      * @return collection of status change listeners
      */
-    default Collection<Consumer<Status>> statusChangeListeners() {
+    default Collection<Consumer<DistributedPrimitive.Status>> statusChangeListeners() {
         return Collections.emptyList();
     }
 

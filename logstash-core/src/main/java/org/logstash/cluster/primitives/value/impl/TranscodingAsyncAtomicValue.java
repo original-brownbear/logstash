@@ -17,7 +17,7 @@ public class TranscodingAsyncAtomicValue<V1, V2> implements AsyncAtomicValue<V1>
     private final AsyncAtomicValue<V2> backingValue;
     private final Function<V1, V2> valueEncoder;
     private final Function<V2, V1> valueDecoder;
-    private final Map<AtomicValueEventListener<V1>, InternalAtomicValueEventListener> listeners = Maps.newIdentityHashMap();
+    private final Map<AtomicValueEventListener<V1>, TranscodingAsyncAtomicValue.InternalAtomicValueEventListener> listeners = Maps.newIdentityHashMap();
 
     public TranscodingAsyncAtomicValue(AsyncAtomicValue<V2> backingValue, Function<V1, V2> valueEncoder, Function<V2, V1> valueDecoder) {
         this.backingValue = backingValue;
@@ -53,8 +53,8 @@ public class TranscodingAsyncAtomicValue<V1, V2> implements AsyncAtomicValue<V1>
     @Override
     public CompletableFuture<Void> addListener(AtomicValueEventListener<V1> listener) {
         synchronized (listeners) {
-            InternalAtomicValueEventListener internalListener =
-                listeners.computeIfAbsent(listener, k -> new InternalAtomicValueEventListener(listener));
+            TranscodingAsyncAtomicValue.InternalAtomicValueEventListener internalListener =
+                listeners.computeIfAbsent(listener, k -> new TranscodingAsyncAtomicValue.InternalAtomicValueEventListener(listener));
             return backingValue.addListener(internalListener);
         }
     }
@@ -62,7 +62,7 @@ public class TranscodingAsyncAtomicValue<V1, V2> implements AsyncAtomicValue<V1>
     @Override
     public CompletableFuture<Void> removeListener(AtomicValueEventListener<V1> listener) {
         synchronized (listeners) {
-            InternalAtomicValueEventListener internalListener = listeners.remove(listener);
+            TranscodingAsyncAtomicValue.InternalAtomicValueEventListener internalListener = listeners.remove(listener);
             if (internalListener != null) {
                 return backingValue.removeListener(internalListener);
             } else {

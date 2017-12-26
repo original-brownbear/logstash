@@ -32,8 +32,8 @@ public class KeepAliveRequest extends AbstractRaftRequest {
      * Returns a new keep alive request builder.
      * @return A new keep alive request builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static KeepAliveRequest.Builder builder() {
+        return new KeepAliveRequest.Builder();
     }
 
     /**
@@ -88,7 +88,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
     /**
      * Keep alive request builder.
      */
-    public static class Builder extends AbstractRaftRequest.Builder<Builder, KeepAliveRequest> {
+    public static class Builder extends AbstractRaftRequest.Builder<KeepAliveRequest.Builder, KeepAliveRequest> {
         private long[] sessionIds;
         private long[] commandSequences;
         private long[] eventIndexes;
@@ -99,7 +99,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @return The request builders.
          * @throws NullPointerException if {@code sessionIds} is {@code null}
          */
-        public Builder withSessionIds(long[] sessionIds) {
+        public KeepAliveRequest.Builder withSessionIds(long[] sessionIds) {
             this.sessionIds = Preconditions.checkNotNull(sessionIds, "sessionIds cannot be null");
             return this;
         }
@@ -110,7 +110,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @return The request builder.
          * @throws NullPointerException if {@code commandSequences} is {@code null}
          */
-        public Builder withCommandSequences(long[] commandSequences) {
+        public KeepAliveRequest.Builder withCommandSequences(long[] commandSequences) {
             this.commandSequences = Preconditions.checkNotNull(commandSequences, "commandSequences cannot be null");
             return this;
         }
@@ -121,7 +121,7 @@ public class KeepAliveRequest extends AbstractRaftRequest {
          * @return The request builder.
          * @throws NullPointerException if {@code eventIndexes} is {@code null}
          */
-        public Builder withEventIndexes(long[] eventIndexes) {
+        public KeepAliveRequest.Builder withEventIndexes(long[] eventIndexes) {
             this.eventIndexes = Preconditions.checkNotNull(eventIndexes, "eventIndexes cannot be null");
             return this;
         }

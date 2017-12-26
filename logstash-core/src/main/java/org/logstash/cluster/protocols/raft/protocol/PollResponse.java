@@ -17,7 +17,7 @@ public class PollResponse extends AbstractRaftResponse {
     private final long term;
     private final boolean accepted;
 
-    public PollResponse(Status status, RaftError error, long term, boolean accepted) {
+    public PollResponse(RaftResponse.Status status, RaftError error, long term, boolean accepted) {
         super(status, error);
         this.term = term;
         this.accepted = accepted;
@@ -27,8 +27,8 @@ public class PollResponse extends AbstractRaftResponse {
      * Returns a new poll response builder.
      * @return A new poll response builder.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static PollResponse.Builder builder() {
+        return new PollResponse.Builder();
     }
 
     /**
@@ -65,7 +65,7 @@ public class PollResponse extends AbstractRaftResponse {
 
     @Override
     public String toString() {
-        if (status == Status.OK) {
+        if (status == RaftResponse.Status.OK) {
             return MoreObjects.toStringHelper(this)
                 .add("status", status)
                 .add("term", term)
@@ -82,7 +82,7 @@ public class PollResponse extends AbstractRaftResponse {
     /**
      * Poll response builder.
      */
-    public static class Builder extends AbstractRaftResponse.Builder<Builder, PollResponse> {
+    public static class Builder extends AbstractRaftResponse.Builder<PollResponse.Builder, PollResponse> {
         private long term = -1;
         private boolean accepted;
 
@@ -92,7 +92,7 @@ public class PollResponse extends AbstractRaftResponse {
          * @return The poll response builder.
          * @throws IllegalArgumentException if {@code term} is not positive
          */
-        public Builder withTerm(long term) {
+        public PollResponse.Builder withTerm(long term) {
             Preconditions.checkArgument(term >= 0, "term must be positive");
             this.term = term;
             return this;
@@ -103,7 +103,7 @@ public class PollResponse extends AbstractRaftResponse {
          * @param accepted Whether the poll was granted.
          * @return The poll response builder.
          */
-        public Builder withAccepted(boolean accepted) {
+        public PollResponse.Builder withAccepted(boolean accepted) {
             this.accepted = accepted;
             return this;
         }
@@ -117,7 +117,7 @@ public class PollResponse extends AbstractRaftResponse {
         @Override
         protected void validate() {
             super.validate();
-            if (status == Status.OK) {
+            if (status == RaftResponse.Status.OK) {
                 Preconditions.checkArgument(term >= 0, "term must be positive");
             }
         }

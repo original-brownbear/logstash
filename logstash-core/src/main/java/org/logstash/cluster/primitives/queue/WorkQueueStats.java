@@ -18,8 +18,8 @@ public final class WorkQueueStats {
      * Returns a {@code WorkQueueStats} builder.
      * @return builder
      */
-    public static Builder builder() {
-        return new Builder();
+    public static WorkQueueStats.Builder builder() {
+        return new WorkQueueStats.Builder();
     }
 
     /**
@@ -59,17 +59,17 @@ public final class WorkQueueStats {
 
         final WorkQueueStats workQueueStats = new WorkQueueStats();
 
-        public Builder withTotalPending(long value) {
+        public WorkQueueStats.Builder withTotalPending(long value) {
             workQueueStats.totalPending = value;
             return this;
         }
 
-        public Builder withTotalInProgress(long value) {
+        public WorkQueueStats.Builder withTotalInProgress(long value) {
             workQueueStats.totalInProgress = value;
             return this;
         }
 
-        public Builder withTotalCompleted(long value) {
+        public WorkQueueStats.Builder withTotalCompleted(long value) {
             workQueueStats.totalCompleted = value;
             return this;
         }
