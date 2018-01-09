@@ -1,24 +1,18 @@
-From yesterdays presentation:
-
-
 # Introduction - Execution Flow Overview
 
-See below Diagram for a design that involves P2P orchestration, using ES as the persistence layer.
+See below Diagram for a design that involves no P2P communication, with only LS to ES over the
+wire communication.  
 
-![diagram-3499148624186078969](https://user-images.githubusercontent.com/6490959/33259037-cfbfe5f4-d35b-11e7-9826-a2addd03ff98.png)
+![diagram-3499148624186078969](es-cluster-state-draft1.png)
 
-* Minority cannot update ES shared state
-* Minority can use ES to persist their individual append-only logs
-* No transactionality in ES required, synchronization happens P2P
-* Leader loss triggers repartitioning of tasks (guarantees at least once)
-* ES does:
-  * Bootstrapping/discovery, configuration and persisting of distributed state snapshot
-* P2P Communication does:
-  * Orchestration of execution
-  * Synchronization of ES writes (except for failover append-only log persistence on leader loss)
-* Not (fully) illustrated for simplicity:
-  * Loss of follower -> just repartition in version 1
-  * Joining follower -> Either repartition (when there's no windowing, this is what's illustrated) or just assign next task (windowing)
+* Locks in ES via Versioned Updates
+* Leader Election via ES Lock
+* Nodes advertise themselves by updating Node List in ES
+* Leader partitions according to Node List
+* Leader attempts to clean up Node List
+   * Correctness not required
+* Followers assign unassigned tasks/partitions actively by locking the respective lock document for
+each partition
 
 # 3 Things Need Implementation
 
@@ -44,7 +38,7 @@ category since we could still document and implement this based on NFS trivially
       * (NFS)
    * Leader continuously assigns tasks to followers
    * Followers leaving trigger reassignment of their task after a timeout
-   * Followers joining are assigned new tasks as they (new tasks) become available
+   * Followers joining assign themselves new tasks as they become available as a result of more nodes in the cluster
   
 ## Task Serialization
 
@@ -58,7 +52,6 @@ slaves (very ergonomic, because code can essentially be written like multi-threa
 need to work with serializable variables only in the lambdas which as proven by Spark isn’t a
 practical issue if you provide serializable concurrency primitives)
    * Needs a static way to get a hold of the Queue inside the Lambdas (trivial)
-* Serialized tasks/lambdas flow over P2P network layer
 
 ### Example Code Executed on Leader
 
@@ -103,27 +96,8 @@ while(true) {
 
 * Advertise peers in ES to allow for bootstrapping if all LS nodes go down
 * Store configuration in ES to bootstrap cluster
-* Store “offsets” (e.g. files already process) to ES for persistence when all LS nodes go down
-* Elect leader from peers registered in ES via p2p leader election
-    * All in all you would only need to configure the correct ES coordinates/credentials on each LS node
-    * Leader election and p2p consensus can be implemented using [RAFT](https://raft.github.io)
-* Make leader run actual plugin code illustrated above according to a configuration stored in ES
-
-### Example Distributed Set for storing already processed files for S3
-
-* All writes and reads to ES are executed the (RAFT-)leader if a healthy leader is available
-    * All LS nodes communicate their writes (fully processed file names) to the leader
-    * If leader goes away nodes can persist their updates for in-progress tasks to the set in form of a write-ahead-log as single ES documents per LS node
-    instead of writing to the leader, so that a newly elected leader can regenerate the cluster state once its elected 
-* Writes to ES can be made consistent by using ES versions with the RAFT term as external version-mechanism
-* Leader stores and persists serialized set to ES
-   * Large sets can be partitioned and serialized into multiple ES docs, smaller sets can be
-   serialized into a single blob (since only the leader ever writes to ES we don't need any tricks
-   for non-atomic operations on the set)
-       * Note: Partitioning a set is just a theoretical problem anyways, in reality any practically viable set of already read paths will fit into a radix/PATRICIA-trie that can be serialized as a single ES doc in any case
-   * Sets too large for storage on heap can use a bloom-filter for caching on the leader
-* This can easily be implemented as a `Serializable` to transparently work over the wire when used
-in code like the above by having the ES coordinates and leader coordinates for the set as non-transient fields in the implementation 
+* Locking via ES
+* All shared data structures use versioned updates to ensured atomic operation 
 
 
 ### Extremal Single Node Case
@@ -131,6 +105,19 @@ in code like the above by having the ES coordinates and leader coordinates for t
 * Either for non-parallelizable inputs or if no clustering is configured
 * Use on-disk flat-file as state store instead of ES
    * Can use FS locking to ensure exclusivity here and put the same API in front of ES version handling
-   * We require a clean flat-file persistence layer for the ES-backed distributed stated as well.
-   Without it, the behaviour of exceptions in the Leader-ES communication becomes very complex. 
 * Run leader and slave inside the same JVM
+
+### How to Implement ES Lock
+
+* Lock document stores random token generated by node
+* Lock document stores expire timestamp
+* Node updates expire timestamp and sets its own random token in lock document when acquiring lock
+   * i.e. when lock doc does not exist or current time is past expire timestamp
+* Can be implemented in a correctly locked way by using versions or scripted updates
+* Unlocking by setting expire time to `0`
+* Lock holder has to periodically renew hold on lock by updating expire timestamp before it loses
+hold on lock
+* Lock holder must not perform any operation requiring holding the lock once the expire time it
+inserted into the lock document has arrived
+  * This requires some care when implementing potentially slow lock-holder operations
+  (using an appropriate timeout on lock-holder indexing should be fine as a solution here)
