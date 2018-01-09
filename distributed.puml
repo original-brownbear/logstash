@@ -1,0 +1,64 @@
+@startuml
+== Bootstrap P2P Network from Clean State ==
+activate ES
+activate LS1
+LS1 -> ES: Register
+activate LS2
+LS2 -> ES: Register
+activate LS3
+LS3 -> ES: Register
+LS1 -> ES: Learn about other Nodes
+LS2 -> ES: Learn about other Nodes
+LS3 -> ES: Learn about other Nodes
+== RAFT Leader Election ==
+LS1 -> LS2: Request Vote
+LS1 -> LS3: Request Vote
+LS2 --> LS1: Vote for LS1
+LS2 --> LS3: Vote for LS1
+LS3 --> LS1: Vote for LS1
+LS3 --> LS2: Vote for LS1
+== LS1 Wins Election and Becomes Leader ==
+LS1 -> ES: Download Configuration
+LS1 -> LS1: Serialize and Submit Job Closure
+LS1 -> LS2: Serialize and Submit Job Closure
+LS1 -> LS3: Serialize and Submit Job Closure
+== Steady State Execution ==
+loop until LS1 Failure
+LS1 -> LS1: Heartbeat + Status Updates
+LS1 -> LS2: Heartbeat + Status Updates
+LS1 -> LS3: Heartbeat + Status Updates
+LS1 -> ES: Persist Global State
+end
+== LS1 Failure ==
+deactivate LS1
+LS2 -> LS1: Detect Failure and Stop Interruptable Executions
+LS3 -> LS1: Detect Failure and Stop Interruptable Executions
+LS2 -> ES: Persist State to Append-Only Log
+LS3 -> ES: Persist State to Append-Only Log
+== RAFT Leader Election ==
+LS3 -> LS2: Request Vote
+LS2 -> LS3: Vote for LS3
+== LS3 Wins Election and Becomes Leader ==
+LS3 -> ES: Increments Version of State\nto make it read-only for other\nNodes
+LS3 -> ES: Recovers State from Append-Only Logs
+LS3 -> ES: Removes LS1 from Node List
+LS3 -> LS3: Serialize and Submit New Job Closure
+LS3 -> LS2: Serialize and Submit New Job Closure
+== Steady State Execution ==
+loop until LS1 rejoins
+LS3 -> LS3: Heartbeat + Status Updates
+LS2 -> LS3: Heartbeat + Status Updates
+LS3 -> ES: Persist Global State
+end
+== LS1 Joins Cluster ==
+LS1 -> LS2: Learns LS3 is Leader
+activate LS1
+LS1 -> ES: Learns ES state progressed
+LS1 -> LS1: LS1 is not the Leader anymore
+LS1 -> ES: Learn about other Nodes
+LS1 -> LS3: Learns LS3 is Leader
+LS3 -> LS2: Serialize and Submit New Job Closure
+LS3 -> LS3: Serialize and Submit New Job Closure
+LS3 -> LS1: Serialize and Submit\n New Job Closure
+== Steady State Execution ==
+@enduml
