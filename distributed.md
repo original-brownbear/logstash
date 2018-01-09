@@ -14,6 +14,25 @@ wire communication.
 * Followers assign unassigned tasks/partitions actively by locking the respective lock document for
 each partition
 
+### Background Loop on each Node
+
+* Ensure own Advertisement in Node List
+* Poll all partition lock docs to acquire tasks when spare workers are available
+  * Try locking partitions in a non-random way (use position in Node List and Node count to determine what available partition to try and lock first)
+  if multiple partitions can be acquired
+  * Acquire partitions with some random timeout between acquisitions to make even task distribution
+  more likely
+
+### Main Loop on each Node
+
+* Run Tasks that the background loop acquired
+
+### Main Loop on Leader
+
+* Try cleanup Node List conservatively by removing Nodes that timed out on their Partition Lock(s)
+* Create new Partition Lock Documents holding serialized Tasks
+* Remove completed Partition Lock Documents whose Tasks were successfully completed
+
 # 3 Things Need Implementation
 
 ## Task Partitioning
@@ -127,7 +146,43 @@ inserted into the lock document has arrived
 
 ```json
 {
-   "token" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
+   "holder" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
    "expire" : 1515527529288
+}
+```
+
+#### Node List Document
+
+* Can be safely updated by versioned updates
+* Identify nodes by their tokens and worker count (need the count for more precise partitioning),
+no need to know anything else about other nodes
+
+```json
+{
+ "nodes" : [
+ {
+ "token" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
+ "workers" : 5
+ }, 
+ {
+ "token": "07121045-3df3-4755-be40-9a90e47bda6f",
+ "workers" : 3
+ }
+ ]
+}
+```
+
+#### Partition Lock Document
+
+* Like Leader Lock
+* Holds base64 encoded serialized task to be worked on once holding the Lock
+* Can have states "outstanding" (if holder is non-empty it implies "in progress"), "done"
+
+```json
+{
+   "holder" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
+   "expire" : 1515527529288,
+   "task": "ZnNkZnNkZnNkZ2JuamJkbmZpb2dkc2Zpb2dub2RpZm5vaW5pMjQyMTM0bjMyaTQzLy9kc2Y=",
+   "state": "outstanding" 
 }
 ```
