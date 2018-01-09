@@ -1,5 +1,5 @@
 @startuml
-== Bootstrap P2P Network from Clean State ==
+== Bootstrap Network from Clean State ==
 activate ES
 activate LS1
 LS1 -> ES: Register
@@ -58,7 +58,7 @@ LS2 <-> ES: Lock Leader Document Successfully
 == LS2 Wins Election and Becomes Leader ==
 group Background on Leader (L2)
 loop until Node Shutdown
-LS2 -> ES: Enqueue new tasks
+LS2 -> ES: Enqueue new tasks (now fewer partitions)
 end
 end
 group Background on all Nodes
@@ -84,5 +84,11 @@ LS2 <- ES: Download Partition Locks
 LS3 <- ES: Download Partition Locks
 end
 end
+group Background on Leader (L2)
+loop until Node Shutdown
+LS2 -> ES: Enqueue new tasks (now more partitions)
+end
+end
+
 == Steady State Execution ==
 @enduml
