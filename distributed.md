@@ -134,24 +134,3 @@ in code like the above by having the ES coordinates and leader coordinates for t
    * We require a clean flat-file persistence layer for the ES-backed distributed stated as well.
    Without it, the behaviour of exceptions in the Leader-ES communication becomes very complex. 
 * Run leader and slave inside the same JVM
-
-## Q & A
-
-### Why RAFT?
-
-* Simple and fast
-* We need heart-beating the `master`/`leader` for our business logic -> using a RAFT approach gives us heartbeats exactly the way we need them to monitor worker nodes.
-* Rafts term concept neatly allows us to persist the state to ES via ES's versioning
-* Persistent (ES) state updates only flow form the leader to the workers 
-   * Easy to implement if we want to store part of the state in ES 
-   * Workers can read if their term agrees with the data version in ES
-   * Only leader at the correct term can write to ES
- 
-### Why not Handle Orchestration via ES
-
-* Would require polling ES for updates
-* Things like leader election would involve at least twice as many network trips
-* We don't have a number of LS nodes involved that prohibits each Node from connecting
-to all other known Nodes
-* Detecting a Node going down would require constantly polling ES for heartbeats from that node
-* Atomic operations are very hard across multiple ES documents
