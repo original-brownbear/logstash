@@ -111,6 +111,12 @@ while(true) {
 
 ```
 
+## Leader Tasks
+
+* Should not have side effects other than atomic operations on ES
+   * i.e. changes in leadership should be completely transparent to workers and not interfere with
+   task execution of already enqueued tasks in any way
+
 ## Distributed State
 
 * Advertise peers in ES to allow for bootstrapping if all LS nodes go down
