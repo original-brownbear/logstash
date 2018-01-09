@@ -28,7 +28,7 @@ LS1 <-> ES: Lock Leader Document Successfully
 end
 == LS1 Wins Election and Becomes Leader ==
 LS1 -> ES: Download Configuration
-LS1 -> ES: Serialize and Submit Partitioned (3 Partitions)\n Task Closures
+LS1 -> ES: Serialize and Submit Partitioned\nTask Closures
 == Steady State Execution ==
 group Background on Leader (LS1)
 loop until Node Shutdown
