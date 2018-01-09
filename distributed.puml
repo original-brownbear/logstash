@@ -10,7 +10,7 @@ LS3 -> ES: Register
 LS1 -> ES: Learn about other Nodes
 LS2 -> ES: Learn about other Nodes
 LS3 -> ES: Learn about other Nodes
-group Background on all Nodes\n-Poll to Have Ordered List of Nodes\n-Ensure their own Published State
+group Background on all Nodes\n-Poll to Have Ordered List of Nodes\n-Ensure they're published to Node List
 loop until Node Shutdown
 LS1 <- ES: Download Partition Locks
 LS2 <- ES: Download Partition Locks
