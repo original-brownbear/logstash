@@ -151,6 +151,9 @@ inserted into the lock document has arrived
 }
 ```
 
+* Polling can happen at a relatively low rate on all nodes since it never makes sense to poll
+before `expire`
+
 #### Node List Document
 
 * Can be safely updated by versioned updates
@@ -186,3 +189,6 @@ no need to know anything else about other nodes
    "state": "outstanding" 
 }
 ```
+
+* Getting all partition's `expire` field in a single request should be possible for any kind
+of plugin
