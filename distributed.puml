@@ -10,6 +10,13 @@ LS3 -> ES: Register
 LS1 -> ES: Learn about other Nodes
 LS2 -> ES: Learn about other Nodes
 LS3 -> ES: Learn about other Nodes
+group Background on all Nodes\n-Poll to Have Ordered List of Nodes\n-Ensure their own Published State
+loop until Node Shutdown
+LS1 <- ES: Download Partition Locks
+LS2 <- ES: Download Partition Locks
+LS3 <- ES: Download Partition Locks
+end
+end
 == Leader Election ==
 group Background on all Nodes
 loop until Node Leader Acquires Leader Lock
@@ -22,17 +29,11 @@ end
 == LS1 Wins Election and Becomes Leader ==
 LS1 -> ES: Download Configuration
 LS1 -> ES: Serialize and Submit Partitioned (3 Partitions)\n Task Closures
-group Background on all Nodes
-loop until Node Shutdown
-LS1 <- ES: Download Partition Locks
-LS2 <- ES: Download Partition Locks
-LS3 <- ES: Download Partition Locks
-end
-end
 == Steady State Execution ==
-group Background on Leader (L1)
+group Background on Leader (LS1)
 loop until Node Shutdown
 LS1 -> ES: Enqueue new tasks
+LS1 -> ES: Try Cleanup Node List (Remove Nodes without any Locked Partitions)
 end
 end
 loop until Node Shutdown
@@ -56,9 +57,10 @@ end
 end
 LS2 <-> ES: Lock Leader Document Successfully
 == LS2 Wins Election and Becomes Leader ==
-group Background on Leader (L2)
+group Background on Leader (LS2)
 loop until Node Shutdown
-LS2 -> ES: Enqueue new tasks (now fewer partitions)
+LS1 -> ES: Try Cleanup Node List (Drop LS1 from Node List once LS1's Partition )
+LS2 -> ES: Enqueue new tasks (now Fewer Partitions since Node List Shrank)
 end
 end
 group Background on all Nodes
@@ -84,9 +86,10 @@ LS2 <- ES: Download Partition Locks
 LS3 <- ES: Download Partition Locks
 end
 end
-group Background on Leader (L2)
+group Background on Leader (LS2)
 loop until Node Shutdown
-LS2 -> ES: Enqueue new tasks (now more partitions)
+LS2 -> ES: Enqueue new tasks (Now more Partitions because new Node Appeared in Node List)
+LS1 -> ES: Try Cleanup Node List (None to Remove)
 end
 end
 
