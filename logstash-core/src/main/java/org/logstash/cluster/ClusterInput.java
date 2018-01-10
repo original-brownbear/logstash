@@ -27,7 +27,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(2);
+    private final ExecutorService executor = Executors.newFixedThreadPool(3);
 
     private final CountDownLatch done = new CountDownLatch(1);
 
@@ -66,6 +66,7 @@ public final class ClusterInput implements Runnable, Closeable {
     @Override
     public void run() {
         executor.submit(new ClusterInput.BackgroundHeartbeatLoop(esClient));
+        executor.submit(new ClusterInput.BackgroundLeaderElectionLoop(esClient));
         try {
             synchronized (this) {
                 leaderTask = setupLeaderTask();
@@ -170,9 +171,10 @@ public final class ClusterInput implements Runnable, Closeable {
                 final long expire = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
                 LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
                 if (leaderLock.lock(expire)) {
-
+                    LOGGER.info("{} acquired leadership until {}", local, expire);
                 } else {
-
+                    final EsLock.LockState lockState = leaderLock.holder();
+                    LOGGER.info("{} did not acquire leadership since {} acquired leadership until {}", local, lockState.getHolder(), lockState.getExpire());
                 }
             }
         }
