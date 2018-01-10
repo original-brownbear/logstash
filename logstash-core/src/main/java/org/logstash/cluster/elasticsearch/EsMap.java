@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.apache.http.HttpHeaders;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
@@ -76,6 +77,55 @@ public final class EsMap {
         } catch (final ResponseException ex) {
             if (ex.getResponse().getStatusLine().getStatusCode() == 409) {
                 putAll(entries);
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
+    }
+
+    public boolean putAllConditionally(final Map<String, Object> entries,
+        final Predicate<? super Map<String, Object>> predicate) {
+        try {
+            final GetResponse response = client.getClient().get(
+                new GetRequest().index(client.getConfig().esIndex()).id(name)
+            );
+            final long version = response.getVersion();
+            final Map<String, Object> source = response.getSource();
+            if (predicate.test(source)) {
+                final Map<String, Object> data = source;
+                if (data != null) {
+                    final Map<String, Object> updated = new HashMap<>();
+                    updated.putAll(data);
+                    updated.putAll(entries);
+                    client.getClient().getLowLevelClient().performRequest(
+                        "PUT", String.format("/%s/maps/%s", client.getConfig().esIndex(), name),
+                        Collections.singletonMap("version", String.valueOf(version)),
+                        new NStringEntity(
+                            ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
+                                .writeValueAsString(updated)
+                        ),
+                        new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                    );
+                } else {
+                    client.getClient().getLowLevelClient().performRequest(
+                        "PUT", String.format("/%s/maps/%s/_create", client.getConfig().esIndex(), name),
+                        Collections.emptyMap(),
+                        new NStringEntity(
+                            ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
+                                .writeValueAsString(entries)
+                        ),
+                        new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                    );
+                }
+                return true;
+            } else {
+                return false;
+            }
+        } catch (final ResponseException ex) {
+            if (ex.getResponse().getStatusLine().getStatusCode() == 409) {
+                return false;
+            } else {
+                throw new IllegalStateException(ex);
             }
         } catch (final IOException ex) {
             throw new IllegalStateException(ex);

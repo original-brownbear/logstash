@@ -166,18 +166,32 @@ public final class ClusterInput implements Runnable, Closeable {
         public void run() {
             final String local = client.getConfig().localNode();
             LOGGER.info("Started background leader election loop on {}", local);
-            while (!Thread.currentThread().isInterrupted()) {
-                final EsLock leaderLock = client.lock(LEADERSHIP_IDENTIFIER);
-                final long expire = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
-                LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
-                if (leaderLock.lock(expire)) {
-                    LOGGER.info("{} acquired leadership until {}", local, expire);
-                } else {
-                    final EsLock.LockState lockState = leaderLock.holder();
-                    LOGGER.info(
-                        "{} did not acquire leadership since {} acquired leadership until {}",
-                        local, lockState.getHolder(), lockState.getExpire());
+            final EsLock leaderLock = client.lock(LEADERSHIP_IDENTIFIER);
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    final long expire = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+                    LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
+                    if (leaderLock.lock(expire)) {
+                        LOGGER.info("{} acquired leadership until {}", local, expire);
+                        TimeUnit.MILLISECONDS.sleep(
+                            expire - System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(10L)
+                        );
+                    } else {
+                        final EsLock.LockState lockState = leaderLock.holder();
+                        LOGGER.info(
+                            "{} did not acquire leadership since {} acquired leadership until {}",
+                            local, lockState.getHolder(), lockState.getExpire());
+                        TimeUnit.MILLISECONDS.sleep(
+                            lockState.getExpire() - System.currentTimeMillis()
+                        );
+                    }
                 }
+            } catch (final Exception ex) {
+                LOGGER.error("Error in leader election loop:", ex);
+                throw new IllegalStateException(ex);
+            } finally {
+                LOGGER.info("Background leader election loop stopped on {}", local);
+                leaderLock.unlock();
             }
         }
     }
