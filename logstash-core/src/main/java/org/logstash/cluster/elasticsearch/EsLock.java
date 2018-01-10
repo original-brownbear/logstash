@@ -15,11 +15,35 @@ public final class EsLock {
         this.name = name;
     }
 
+    public EsLock.LockState holder() {
+        return null;
+    }
+
     public boolean lock(final long expire) {
         return false;
     }
 
     public void unlock() {
 
+    }
+
+    public static final class LockState {
+
+        private final String holder;
+
+        private final long expire;
+
+        LockState(final String holder, final long expire) {
+            this.holder = holder;
+            this.expire = expire;
+        }
+
+        public String getHolder() {
+            return holder;
+        }
+
+        public long getExpire() {
+            return expire;
+        }
     }
 }

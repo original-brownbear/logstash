@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.elasticsearch.EsLock;
 import org.logstash.cluster.elasticsearch.EsQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
@@ -64,7 +65,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void run() {
-        executor.submit(new ClusterInput.BackgroundLoop(esClient));
+        executor.submit(new ClusterInput.BackgroundHeartbeatLoop(esClient));
         try {
             synchronized (this) {
                 leaderTask = setupLeaderTask();
@@ -128,7 +129,12 @@ public final class ClusterInput implements Runnable, Closeable {
                     return null;
                 }
             }
-            return Class.forName((String) configuration.get(LOGSTASH_TASK_CLASS_SETTING))
+            final String clazz = (String) configuration.get(LOGSTASH_TASK_CLASS_SETTING);
+            LOGGER.info(
+                "Found valid cluster input configuration, starting leader task of type {}.",
+                clazz
+            );
+            return Class.forName(clazz)
                 .asSubclass(ClusterInput.LeaderTask.class).getConstructor(ClusterInput.class)
                 .newInstance(this);
         } catch (final Exception ex) {
@@ -144,19 +150,49 @@ public final class ClusterInput implements Runnable, Closeable {
         void stop();
     }
 
-    private static final class BackgroundLoop implements Runnable {
+    private static final class BackgroundLeaderElectionLoop implements Runnable {
 
-        private static final Logger LOGGER = LogManager.getLogger(ClusterInput.BackgroundLoop.class);
+        private static final Logger LOGGER =
+            LogManager.getLogger(ClusterInput.BackgroundLeaderElectionLoop.class);
 
         private final EsClient client;
 
-        BackgroundLoop(final EsClient client) {
+        BackgroundLeaderElectionLoop(final EsClient client) {
             this.client = client;
         }
 
         @Override
         public void run() {
             final String local = client.getConfig().localNode();
+            LOGGER.info("Started background leader election loop on {}", local);
+            while (!Thread.currentThread().isInterrupted()) {
+                final EsLock leaderLock = client.lock(LEADERSHIP_IDENTIFIER);
+                final long expire = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
+                LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
+                if (leaderLock.lock(expire)) {
+
+                } else {
+
+                }
+            }
+        }
+    }
+
+    private static final class BackgroundHeartbeatLoop implements Runnable {
+
+        private static final Logger LOGGER =
+            LogManager.getLogger(ClusterInput.BackgroundHeartbeatLoop.class);
+
+        private final EsClient client;
+
+        BackgroundHeartbeatLoop(final EsClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public void run() {
+            final String local = client.getConfig().localNode();
+            LOGGER.info("Started background heartbeat loop on {}", local);
             while (!Thread.currentThread().isInterrupted()) {
                 if (!client.currentClusterNodes().contains(local)) {
                     LOGGER.info(
@@ -169,7 +205,7 @@ public final class ClusterInput implements Runnable, Closeable {
                 try {
                     TimeUnit.SECONDS.sleep(5L);
                 } catch (final InterruptedException ex) {
-                    LOGGER.error("Background task on {} interrupted", local);
+                    LOGGER.error("Background heartbeat loop on {} interrupted", local);
                     throw new IllegalStateException(ex);
                 }
             }
