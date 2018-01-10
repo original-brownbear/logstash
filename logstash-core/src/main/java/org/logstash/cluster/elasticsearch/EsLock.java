@@ -2,7 +2,7 @@ package org.logstash.cluster.elasticsearch;
 
 public final class EsLock {
 
-    public EsLock(final EsClient client, final String name) {
+    public EsLock(final LsEsRestClient client, final String name) {
 
     }
 

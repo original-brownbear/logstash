@@ -16,7 +16,6 @@ import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
 /**
@@ -30,31 +29,20 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
     public void testSimpleTask() throws Exception {
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
         final String index = "testsimpletask";
-        final LogstashClusterConfig config = new LogstashClusterConfig(
-            "node1", index
-        );
-        try (EsClient configProvider = EsClient.create(client(), config)) {
-            configProvider.publishJobSettings(
+        final LogstashClusterConfig config = new LogstashClusterConfig(index, getClusterHosts());
+        try (EsClient esClient = EsClient.create(config)) {
+            esClient.publishJobSettings(
                 Collections.singletonMap(
                     ClusterInput.LOGSTASH_TASK_CLASS_SETTING,
                     ClusterInputTest.SimpleTaskLeader.class.getName()
                 )
             );
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
-            try (ClusterInput input = new ClusterInput(EventQueue.wrap(queue), configProvider)) {
+            try (ClusterInput input = new ClusterInput(EventQueue.wrap(queue), esClient)) {
                 exec.execute(input);
-                final LogstashClusterServer cluster = LogstashClusterServer.fromConfig(
-                    new LogstashClusterConfig(
-                        "node2", index
-                    )
-                );
-                MatcherAssert.assertThat(
-                    cluster.getWorkQueueNames(), contains(ClusterInput.P2P_QUEUE_NAME)
-                );
                 MatcherAssert.assertThat(
                     queue.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)
                 );
-                cluster.close().join();
             } finally {
                 exec.shutdownNow();
             }

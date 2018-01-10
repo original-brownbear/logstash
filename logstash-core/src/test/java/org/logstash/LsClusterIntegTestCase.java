@@ -1,13 +1,12 @@
 package org.logstash;
 
-import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.rest.ESRestTestCase;
 import org.junit.Before;
 
-public abstract class LsClusterIntegTestCase extends ESIntegTestCase {
+public abstract class LsClusterIntegTestCase extends ESRestTestCase {
 
     @Before
     public void beforeEach() {
-        ensureGreen();
         System.setSecurityManager(null);
     }
 }

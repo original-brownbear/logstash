@@ -1,6 +1,5 @@
 package org.logstash.cluster.elasticsearch;
 
-import java.net.InetAddress;
 import java.util.Collections;
 import java.util.UUID;
 import org.hamcrest.MatcherAssert;
@@ -9,12 +8,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.logstash.LsClusterIntegTestCase;
-import org.logstash.TestUtils;
 import org.logstash.cluster.LogstashClusterConfig;
-import org.logstash.cluster.cluster.Node;
-import org.logstash.cluster.cluster.NodeId;
-import org.logstash.cluster.cluster.impl.DefaultNode;
-import org.logstash.cluster.messaging.Endpoint;
 
 /**
  * Tests for {@link EsClient}.
@@ -26,14 +20,11 @@ public final class EsClientTest extends LsClusterIntegTestCase {
 
     @Test
     public void clusterBootstrapTest() throws Exception {
-        final Node local = new DefaultNode(
-            NodeId.from("someId"),
-            new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
-        );
-        try (EsClient client = EsClient.create(
-            client(),
-            new LogstashClusterConfig("clusterbootstraptest")
-        )
+        final String local = UUID.randomUUID().toString();
+        try (
+            EsClient client = EsClient.create(
+                new LogstashClusterConfig("clusterbootstraptest", getClusterHosts())
+            )
         ) {
             MatcherAssert.assertThat(client.currentClusterNodes(), Matchers.contains(local));
         }
@@ -41,22 +32,11 @@ public final class EsClientTest extends LsClusterIntegTestCase {
 
     @Test
     public void multipleNodesTest() throws Exception {
-        final String nodeOne = UUID.randomUUID().toString();
         final String index = "multiplenodestest";
-        try (EsClient clientOne =
-                 EsClient.create(
-                     client(),
-                     new LogstashClusterConfig(
-                         nodeOne, index
-                     )
-                 )
-        ) {
-            final String nodeTwo = UUID.randomUUID().toString();
-            try (EsClient clientTwo =
-                     EsClient.create(
-                         client(), new LogstashClusterConfig(nodeTwo, index)
-                     )
-            ) {
+        try (EsClient clientOne = EsClient.create(new LogstashClusterConfig(index, getClusterHosts()))) {
+            try (EsClient clientTwo = EsClient.create(new LogstashClusterConfig(index, getClusterHosts()))) {
+                final String nodeOne = clientOne.getConfig().localNode();
+                final String nodeTwo = UUID.randomUUID().toString();
                 MatcherAssert.assertThat(
                     clientOne.currentClusterNodes(), Matchers.contains(nodeOne, nodeTwo)
                 );
@@ -69,10 +49,11 @@ public final class EsClientTest extends LsClusterIntegTestCase {
 
     @Test
     public void getAndUpdateSettings() throws Exception {
-        final String local = UUID.randomUUID().toString();
         try (EsClient client =
                  EsClient.create(
-                     client(), new LogstashClusterConfig(local, "getandupdatesettings")
+                     new LogstashClusterConfig(
+                         "getandupdatesettings", getClusterHosts()
+                     )
                  )
         ) {
             MatcherAssert.assertThat(client.currentJobSettings(), Matchers.is(Collections.emptyMap()));

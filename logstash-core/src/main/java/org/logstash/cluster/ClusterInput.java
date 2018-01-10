@@ -142,4 +142,18 @@ public final class ClusterInput implements Runnable, Closeable {
 
         void stop();
     }
+
+    private static final class BackgroundLoop implements Runnable {
+
+        private final EsClient client;
+
+        BackgroundLoop(final EsClient client) {
+            this.client = client;
+        }
+
+        @Override
+        public void run() {
+            client.publishLocalNode();
+        }
+    }
 }

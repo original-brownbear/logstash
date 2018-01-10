@@ -10,46 +10,46 @@ String jacksonVersion = versionMap['jackson']
 String esVersion = versionMap['elasticsearch']
 
 repositories {
-    mavenCentral()
+  mavenCentral()
 }
 
 buildscript {
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'org.yaml:snakeyaml:1.17'
-    }
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath 'org.yaml:snakeyaml:1.17'
+  }
 }
 
 task sourcesJar(type: Jar, dependsOn: classes) {
-    from sourceSets.main.allSource
-    classifier 'sources'
-    extension 'jar'
+  from sourceSets.main.allSource
+  classifier 'sources'
+  extension 'jar'
 }
 
 task javadocJar(type: Jar, dependsOn: javadoc) {
-    from javadoc.destinationDir
-    classifier 'javadoc'
-    extension 'jar'
+  from javadoc.destinationDir
+  classifier 'javadoc'
+  extension 'jar'
 }
 
 task copyRuntimeLibs(type: Copy) {
-    into project.file('lib/jars/')
-    from configurations.compile, configurations.runtime
+  into project.file('lib/jars/')
+  from configurations.compile, configurations.runtime
 }
 
 // copy jar file into the gem lib dir but without the version number in filename
 task copyGemjar(type: Copy, dependsOn: [sourcesJar, copyRuntimeLibs]) {
-    from project.jar
-    into project.file('lib/jars/')
-    rename(/(.+)-${project.version}.jar/, '$1.jar')
+  from project.jar
+  into project.file('lib/jars/')
+  rename(/(.+)-${project.version}.jar/, '$1.jar')
 }
 
 task cleanGemjar {
-    delete fileTree(project.file('lib/logstash-core/')) {
-        include '*.jar'
-    }
+  delete fileTree(project.file('lib/logstash-core/')) {
+    include '*.jar'
+  }
 }
 
 clean.dependsOn(cleanGemjar)
@@ -58,114 +58,107 @@ jar.finalizedBy(copyGemjar)
 configurations.create('sources')
 configurations.create('javadoc')
 configurations.archives {
-    extendsFrom configurations.sources
-    extendsFrom configurations.javadoc
+  extendsFrom configurations.sources
+  extendsFrom configurations.javadoc
 }
 
 task javaTests(type: Test) {
-    systemProperty 'tests.security.manager', "false"
-    exclude '/org/logstash/RSpecTests.class'
-    exclude '/org/logstash/config/ir/ConfigCompilerTest.class'
+  systemProperty 'tests.security.manager', "false"
+  exclude '/org/logstash/RSpecTests.class'
+  exclude '/org/logstash/config/ir/ConfigCompilerTest.class'
 }
 
 task rubyTests(type: Test) {
-    inputs.files fileTree("${projectDir}/lib")
-    inputs.files fileTree("${projectDir}/spec")
-    systemProperty 'logstash.core.root.dir', projectDir.absolutePath
-    systemProperty 'tests.security.manager', "false"
-    include '/org/logstash/RSpecTests.class'
-    include '/org/logstash/config/ir/ConfigCompilerTest.class'
+  inputs.files fileTree("${projectDir}/lib")
+  inputs.files fileTree("${projectDir}/spec")
+  systemProperty 'logstash.core.root.dir', projectDir.absolutePath
+  systemProperty 'tests.security.manager', "false"
+  include '/org/logstash/RSpecTests.class'
+  include '/org/logstash/config/ir/ConfigCompilerTest.class'
 }
 
 test {
-    exclude '/**'
+  exclude '/**'
 }
 test.dependsOn javaTests, rubyTests
 
 artifacts {
-    sources(sourcesJar) {
-        // Weird Gradle quirk where type will be used for the extension, but only for sources
-        type 'jar'
-    }
-    javadoc(javadocJar) {
-        type 'javadoc'
-    }
+  sources(sourcesJar) {
+    // Weird Gradle quirk where type will be used for the extension, but only for sources
+    type 'jar'
+  }
+  javadoc(javadocJar) {
+    type 'javadoc'
+  }
 }
 
 configurations {
-    provided
+  provided
 }
 
 project.sourceSets {
-    main.compileClasspath += project.configurations.provided
-    main.runtimeClasspath += project.configurations.provided
-    test.compileClasspath += project.configurations.provided
-    test.runtimeClasspath += project.configurations.provided
+  main.compileClasspath += project.configurations.provided
+  main.runtimeClasspath += project.configurations.provided
+  test.compileClasspath += project.configurations.provided
+  test.runtimeClasspath += project.configurations.provided
 }
 project.javadoc.classpath += project.configurations.provided
 
 idea {
-    module {
-        scopes.PROVIDED.plus += [project.configurations.provided]
-    }
+  module {
+    scopes.PROVIDED.plus += [project.configurations.provided]
+  }
 }
 
 dependencies {
-    compile 'io.netty:netty-all:4.1.13.Final'
-    compile("org.elasticsearch.client:transport:${esVersion}") {
-        exclude group: 'joda-time', module: 'joda-time'
-        exclude group: 'io.netty', module: 'netty-buffer'
-        exclude group: 'io.netty', module: 'netty-codec'
-        exclude group: 'io.netty', module: 'netty-codec-http'
-        exclude group: 'io.netty', module: 'netty-common'
-        exclude group: 'io.netty', module: 'netty-handler'
-        exclude group: 'io.netty', module: 'netty-resolver'
-        exclude group: 'io.netty', module: 'netty-transport'
-    }
-    compile 'com.esotericsoftware:kryo:4.0.1'
-    compile 'com.google.guava:guava:22.0'
-    compile 'net.sourceforge.argparse4j:argparse4j:0.8.1'
-    compile 'org.apache.commons:commons-lang3:3.7'
-    compile 'org.apache.commons:commons-math3:3.6.1'
-    compile 'org.apache.logging.log4j:log4j-api:2.9.1'
-    compile 'org.apache.logging.log4j:log4j-core:2.9.1'
-    runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
-    // Jackson version moved to versions.yml in the project root (the JrJackson version is there too)
-    compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
-    compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
-    compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
-    compile 'org.codehaus.janino:janino:3.0.7'
-    compile('com.amazonaws:aws-java-sdk-s3:1.11.254') {
-        exclude group: 'joda-time', module: 'joda-time'
-    }
-    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jacksonVersion}"
-    compile "org.jruby:jruby-complete:${jrubyVersion}"
-    compile 'io.netty:netty-all:4.1.17.Final'
-    compile 'org.elasticsearch.client:elasticsearch-rest-client:6.0.0'
-    compile "org.jruby:jruby-complete:${jrubyVersion}"
-    runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
-    compile("org.jruby:jruby-complete:${jrubyVersion}")
-    testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
-    testCompile 'net.jodah:concurrentunit:0.4.3'
-    testCompile("org.elasticsearch.test:framework:${esVersion}") {
-        exclude group: 'org.elasticsearch', module: 'securemock'
-        exclude group: 'junit', module: 'junit'
-        exclude group: 'joda-time', module: 'joda-time'
-    }
-    testCompile('junit:junit:4.12') {
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-    }
-    testCompile('com.google.guava:guava-testlib:22.0') {
-        exclude group: 'junit', module: 'junit'
-    }
-    testCompile 'org.apache.logging.log4j:log4j-core:2.6.2:tests'
-    testCompile 'org.apache.logging.log4j:log4j-api:2.6.2:tests'
-    testCompile('net.javacrumbs.json-unit:json-unit:1.9.0') {
-        exclude group: 'org.hamcrest', module: 'hamcrest-core'
-        exclude group: 'org.slf4j', module: 'slf4j-api'
-    }
-    testCompile 'org.assertj:assertj-core:3.8.0'
-    testCompile('org.mockito:mockito-core:2.13.0') {
-        exclude group: 'org.objenesis', module: 'objenesis'
-    }
+  compile 'io.netty:netty-all:4.1.13.Final'
+  compile("org.elasticsearch.client:elasticsearch-rest-high-level-client:${esVersion}") {
+    exclude group: 'joda-time', module: 'joda-time'
+  }
+  compile 'com.esotericsoftware:kryo:4.0.1'
+  compile 'com.google.guava:guava:22.0'
+  compile 'net.sourceforge.argparse4j:argparse4j:0.8.1'
+  compile 'org.apache.commons:commons-lang3:3.7'
+  compile 'org.apache.commons:commons-math3:3.6.1'
+  compile 'org.apache.logging.log4j:log4j-api:2.9.1'
+  compile 'org.apache.logging.log4j:log4j-core:2.9.1'
+  runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
+  // Jackson version moved to versions.yml in the project root (the JrJackson version is there too)
+  compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
+  compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
+  compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
+  compile 'org.codehaus.janino:janino:3.0.7'
+  compile('com.amazonaws:aws-java-sdk-s3:1.11.254') {
+    exclude group: 'joda-time', module: 'joda-time'
+  }
+  compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${jacksonVersion}"
+  compile "org.jruby:jruby-complete:${jrubyVersion}"
+  compile 'io.netty:netty-all:4.1.17.Final'
+  compile 'org.elasticsearch.client:elasticsearch-rest-client:6.0.0'
+  compile "org.jruby:jruby-complete:${jrubyVersion}"
+  runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
+  compile("org.jruby:jruby-complete:${jrubyVersion}")
+  testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
+  testCompile 'net.jodah:concurrentunit:0.4.3'
+  testCompile("org.elasticsearch.test:framework:${esVersion}") {
+    exclude group: 'org.elasticsearch', module: 'securemock'
+    exclude group: 'junit', module: 'junit'
+    exclude group: 'joda-time', module: 'joda-time'
+  }
+  testCompile('junit:junit:4.12') {
+    exclude group: 'org.hamcrest', module: 'hamcrest-core'
+  }
+  testCompile('com.google.guava:guava-testlib:22.0') {
+    exclude group: 'junit', module: 'junit'
+  }
+  testCompile 'org.apache.logging.log4j:log4j-core:2.6.2:tests'
+  testCompile 'org.apache.logging.log4j:log4j-api:2.6.2:tests'
+  testCompile('net.javacrumbs.json-unit:json-unit:1.9.0') {
+    exclude group: 'org.hamcrest', module: 'hamcrest-core'
+    exclude group: 'org.slf4j', module: 'slf4j-api'
+  }
+  testCompile 'org.assertj:assertj-core:3.8.0'
+  testCompile('org.mockito:mockito-core:2.13.0') {
+    exclude group: 'org.objenesis', module: 'objenesis'
+  }
 }
