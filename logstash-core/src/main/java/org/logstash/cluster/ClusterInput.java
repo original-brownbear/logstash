@@ -50,7 +50,7 @@ public final class ClusterInput implements Runnable, Closeable {
         tasks = null;
     }
 
-    public Map<String, String> getConfig() {
+    public Map<String, Object> getConfig() {
         return configProvider.currentJobSettings();
     }
 
@@ -116,7 +116,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private ClusterInput.LeaderTask setupLeaderTask() {
         try {
-            Map<String, String> configuration;
+            Map<String, Object> configuration;
             while (!(configuration = getConfig()).containsKey(LOGSTASH_TASK_CLASS_SETTING)) {
                 LOGGER.info(
                     "No valid cluster input configuration found, sleeping 5s before retrying."
@@ -127,7 +127,7 @@ public final class ClusterInput implements Runnable, Closeable {
                     return null;
                 }
             }
-            return Class.forName(configuration.get(LOGSTASH_TASK_CLASS_SETTING))
+            return Class.forName((String) configuration.get(LOGSTASH_TASK_CLASS_SETTING))
                 .asSubclass(ClusterInput.LeaderTask.class).getConstructor(ClusterInput.class)
                 .newInstance(this);
         } catch (final Exception ex) {

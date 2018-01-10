@@ -74,10 +74,11 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
             }
             LOGGER.info("Elected {}", localId);
             LOGGER.info("Indexing Bucket on Node {}", localId);
-            final Map<String, String> config = cluster.getConfig();
+            final Map<String, Object> config = cluster.getConfig();
             final LsS3ClusterInput.S3Config s3cfg = new LsS3ClusterInput.S3Config(
-                config.get(S3_KEY_INDEX), config.get(S3_SECRET_INDEX), config.get(S3_REGION_INDEX),
-                config.get(S3_BUCKET_INDEX)
+                (String) config.get(S3_KEY_INDEX), (String) config.get(S3_SECRET_INDEX),
+                (String) config.get(S3_REGION_INDEX),
+                (String) config.get(S3_BUCKET_INDEX)
             );
             final EsQueue tasks = cluster.getTasks();
             final EsMap finishedMap = esClient.map(FINISHED_OBJECTS_MAP);

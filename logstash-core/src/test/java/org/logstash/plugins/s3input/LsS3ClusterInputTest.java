@@ -52,7 +52,7 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
                              new LogstashClusterConfig(index, getClusterHosts())
                          )
                 ) {
-                    final Map<String, String> jobSettings = new HashMap<>();
+                    final Map<String, Object> jobSettings = new HashMap<>();
                     jobSettings.put(
                         ClusterInput.LOGSTASH_TASK_CLASS_SETTING, LsS3ClusterInput.class.getName()
                     );
@@ -97,7 +97,7 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
         final String index = "readsononenode";
         final LogstashClusterConfig config = new LogstashClusterConfig(index, getClusterHosts());
         try (EsClient configProvider = EsClient.create(config)) {
-            final Map<String, String> jobSettings = new HashMap<>();
+            final Map<String, Object> jobSettings = new HashMap<>();
             jobSettings.put(
                 ClusterInput.LOGSTASH_TASK_CLASS_SETTING, LsS3ClusterInput.class.getName()
             );

@@ -37,11 +37,11 @@ public final class EsMap {
         }
     }
 
-    public void put(final String key, final String value) {
+    public void put(final String key, final Object value) {
         putAll(Collections.singletonMap(key, value));
     }
 
-    public void putAll(final Map<String, String> entries) {
+    public void putAll(final Map<String, Object> entries) {
         try {
             final GetResponse response = client.getClient().get(
                 new GetRequest().index(client.getConfig().esIndex()).id(name)
@@ -57,7 +57,7 @@ public final class EsMap {
                     Collections.singletonMap("version", String.valueOf(version)),
                     new NStringEntity(
                         ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
-                            .writeValueAsString(entries)
+                            .writeValueAsString(updated)
                     ),
                     new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 );
@@ -81,7 +81,18 @@ public final class EsMap {
 
     }
 
-    public Map<String, String> asMap() {
-        return Collections.emptyMap();
+    public Map<String, Object> asMap() {
+        try {
+            final GetResponse response = client.getClient().get(
+                new GetRequest().index(client.getConfig().esIndex()).id(name)
+            );
+            if (response.isExists()) {
+                return response.getSource();
+            } else {
+                return Collections.emptyMap();
+            }
+        } catch (final IOException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 }

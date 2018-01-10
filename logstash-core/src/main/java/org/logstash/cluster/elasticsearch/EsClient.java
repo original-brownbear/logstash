@@ -48,11 +48,11 @@ public final class EsClient implements AutoCloseable {
         return new EsSet(this, ES_BOOTSTRAP_DOC).asSet();
     }
 
-    public Map<String, String> currentJobSettings() {
+    public Map<String, Object> currentJobSettings() {
         return map(ES_JOB_SETTINGS_DOC).asMap();
     }
 
-    public void publishJobSettings(final Map<String, String> settings) {
+    public void publishJobSettings(final Map<String, Object> settings) {
         map(ES_JOB_SETTINGS_DOC).putAll(settings);
     }
 
