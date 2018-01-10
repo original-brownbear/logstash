@@ -20,6 +20,7 @@ public final class EsLock {
     }
 
     public boolean lock(final long expire) {
+
         return false;
     }
 

@@ -174,7 +174,9 @@ public final class ClusterInput implements Runnable, Closeable {
                     LOGGER.info("{} acquired leadership until {}", local, expire);
                 } else {
                     final EsLock.LockState lockState = leaderLock.holder();
-                    LOGGER.info("{} did not acquire leadership since {} acquired leadership until {}", local, lockState.getHolder(), lockState.getExpire());
+                    LOGGER.info(
+                        "{} did not acquire leadership since {} acquired leadership until {}",
+                        local, lockState.getHolder(), lockState.getExpire());
                 }
             }
         }

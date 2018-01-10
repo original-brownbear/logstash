@@ -30,7 +30,7 @@ public final class EsMap {
     public boolean containsKey(final String key) {
         try {
             final GetResponse response = client.getClient().get(
-                new GetRequest().index(client.getConfig().esIndex()).id(name)
+                new GetRequest().index(client.getConfig().esIndex()).type("maps").id(name)
             );
             return response.isExists() && response.getSource().containsKey(key);
         } catch (final IOException ex) {
