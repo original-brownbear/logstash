@@ -1,6 +1,7 @@
 package org.logstash.cluster;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -10,10 +11,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
-import org.logstash.cluster.primitives.queue.AsyncWorkQueue;
-import org.logstash.cluster.primitives.queue.Task;
-import org.logstash.cluster.primitives.queue.WorkQueue;
-import org.logstash.cluster.serializer.Serializer;
+import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.elasticsearch.EsQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -33,37 +32,33 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private final LogstashClusterServer cluster;
-
-    private final ClusterConfigProvider configProvider;
+    private final EsClient configProvider;
 
     private final EventQueue queue;
 
-    private final AsyncWorkQueue<EnqueueEvent> tasks;
+    private final EsQueue tasks;
 
     private ClusterInput.LeaderTask leaderTask;
 
-    public ClusterInput(final IRubyObject queue, final ClusterConfigProvider provider) {
+    public ClusterInput(final IRubyObject queue, final EsClient provider) {
         this(new JavaQueue(queue), provider);
     }
 
-    public ClusterInput(final EventQueue queue, final ClusterConfigProvider provider) {
+    public ClusterInput(final EventQueue queue, final EsClient provider) {
         this.queue = queue;
         this.configProvider = provider;
-        cluster = LogstashClusterServer.fromConfig(provider.currentClusterConfig());
-        tasks = cluster.<EnqueueEvent>workQueueBuilder().withName(P2P_QUEUE_NAME)
-            .withSerializer(Serializer.JAVA).buildAsync();
+        tasks = null;
     }
 
     public Map<String, String> getConfig() {
         return configProvider.currentJobSettings();
     }
 
-    public LogstashClusterServer getCluster() {
-        return cluster;
+    public EsClient getEsClient() {
+        return configProvider;
     }
 
-    public AsyncWorkQueue<EnqueueEvent> getTasks() {
+    public EsQueue getTasks() {
         return tasks;
     }
 
@@ -78,12 +73,11 @@ public final class ClusterInput implements Runnable, Closeable {
                     return;
                 }
             }
-            final WorkQueue<EnqueueEvent> work = tasks.asWorkQueue();
             while (running.get()) {
-                final Task<EnqueueEvent> task = work.take();
+                final EnqueueEvent task = tasks.nextTask();
                 if (task != null) {
-                    task.payload().enqueue(this, queue);
-                    work.complete(task.taskId());
+                    task.enqueue(this, queue);
+                    tasks.complete(task);
                 }
             }
         } finally {
@@ -92,7 +86,7 @@ public final class ClusterInput implements Runnable, Closeable {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         LOGGER.info("Closing cluster input.");
         if (running.compareAndSet(true, false)) {
             synchronized (this) {
@@ -101,7 +95,7 @@ public final class ClusterInput implements Runnable, Closeable {
                     leaderTask.awaitStop();
                 }
             }
-            tasks.close().join();
+            tasks.close();
             try {
                 done.await();
             } catch (final InterruptedException ex) {
@@ -114,11 +108,6 @@ public final class ClusterInput implements Runnable, Closeable {
                     }
                 } catch (final InterruptedException ex) {
                     throw new IllegalStateException(ex);
-                }
-                synchronized (this) {
-                    if (cluster.isOpen()) {
-                        cluster.close().join();
-                    }
                 }
                 LOGGER.info("Closed cluster input.");
             }

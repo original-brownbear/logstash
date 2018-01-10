@@ -1,10 +1,6 @@
 package org.logstash.plugins.s3input;
 
 import com.amazonaws.http.IdleConnectionReaper;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -19,10 +15,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.logstash.LsClusterIntegTestCase;
-import org.logstash.TestUtils;
-import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -52,8 +47,8 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
         try {
             final String index = "readsonmultiplenodes";
             exec.submit(() -> {
-                try (ClusterConfigProvider configProvider =
-                         ClusterConfigProvider.esConfigProvider(
+                try (EsClient configProvider =
+                         EsClient.create(
                              client(), new LogstashClusterConfig(index)
                          )
                 ) {
@@ -67,28 +62,20 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
                     jobSettings.put(LsS3ClusterInput.S3_BUCKET_INDEX, TEST_BUCKET);
                     startJob.await();
                     configProvider.publishJobSettings(jobSettings);
-                } catch (final InterruptedException | IOException | ExecutionException ex) {
+                } catch (final InterruptedException | ExecutionException ex) {
                     throw new IllegalStateException(ex);
                 }
             });
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue1 = new LinkedTransferQueue<>();
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue2 = new LinkedTransferQueue<>();
-            try (ClusterConfigProvider configProvider1 =
-                     ClusterConfigProvider.esConfigProvider(
-                         client(), new LogstashClusterConfig(
-                             "node1",
-                             new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
-                             Collections.emptyList(), temporaryFolder.newFolder(), index
-                         )
+            try (EsClient configProvider1 =
+                     EsClient.create(
+                         client(), new LogstashClusterConfig("node1", index)
                      );
                  ClusterInput input1 = new ClusterInput(EventQueue.wrap(queue1), configProvider1);
-                 ClusterConfigProvider configProvider2 =
-                     ClusterConfigProvider.esConfigProvider(
-                         client(), new LogstashClusterConfig(
-                             "node2",
-                             new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
-                             Collections.emptyList(), temporaryFolder.newFolder(), index
-                         )
+                 EsClient configProvider2 =
+                     EsClient.create(
+                         client(), new LogstashClusterConfig("node2", index)
                      );
                  ClusterInput input2 = new ClusterInput(EventQueue.wrap(queue2), configProvider2)
             ) {
@@ -112,13 +99,9 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
     public void readsOnOneNode() throws Exception {
         Assume.assumeNotNull(TEST_BUCKET, TEST_REGION, TEST_KEY, TEST_SECRET);
         final String index = "readsononenode";
-        final LogstashClusterConfig config = new LogstashClusterConfig(
-            "node1",
-            new InetSocketAddress(InetAddress.getLoopbackAddress(), TestUtils.freePort()),
-            Collections.emptyList(), temporaryFolder.newFolder(), index
-        );
-        try (ClusterConfigProvider configProvider =
-                 ClusterConfigProvider.esConfigProvider(client(), config)) {
+        final LogstashClusterConfig config = new LogstashClusterConfig("node1", index);
+        try (EsClient configProvider =
+                 EsClient.create(client(), config)) {
             final Map<String, String> jobSettings = new HashMap<>();
             jobSettings.put(
                 ClusterInput.LOGSTASH_TASK_CLASS_SETTING, LsS3ClusterInput.class.getName()

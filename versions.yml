@@ -22,3 +22,4 @@ jruby:
 # Ensure Jackson version here is kept in sync with version used by jrjackson gem
 jrjackson: 0.4.4
 jackson: 2.9.1
+elasticsearch: 6.1.1

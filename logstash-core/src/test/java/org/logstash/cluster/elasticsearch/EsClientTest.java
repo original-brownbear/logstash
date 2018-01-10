@@ -2,6 +2,7 @@ package org.logstash.cluster.elasticsearch;
 
 import java.net.InetAddress;
 import java.util.Collections;
+import java.util.UUID;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -9,7 +10,6 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.TestUtils;
-import org.logstash.cluster.ClusterConfigProvider;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.cluster.Node;
 import org.logstash.cluster.cluster.NodeId;
@@ -30,50 +30,38 @@ public final class EsClientTest extends LsClusterIntegTestCase {
             NodeId.from("someId"),
             new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
         );
-        try (ClusterConfigProvider client =
-                 ClusterConfigProvider.esConfigProvider(
-                     client(),
-                     new LogstashClusterConfig(
-                         local, Collections.emptyList(), temporaryFolder.newFolder(),
-                         "clusterbootstraptest"
-                     )
-                 )
+        try (EsClient client = EsClient.create(
+            client(),
+            new LogstashClusterConfig("clusterbootstraptest")
+        )
         ) {
-            MatcherAssert.assertThat(client.currentClusterConfig().getBootstrap(), Matchers.contains(local));
+            MatcherAssert.assertThat(client.currentClusterNodes(), Matchers.contains(local));
         }
     }
 
     @Test
     public void multipleNodesTest() throws Exception {
-        final Node nodeOne = new DefaultNode(
-            NodeId.from("id-one"), new Endpoint(InetAddress.getLoopbackAddress(),
-            TestUtils.freePort())
-        );
+        final String nodeOne = UUID.randomUUID().toString();
         final String index = "multiplenodestest";
-        try (ClusterConfigProvider clientOne =
-                 ClusterConfigProvider.esConfigProvider(
+        try (EsClient clientOne =
+                 EsClient.create(
                      client(),
                      new LogstashClusterConfig(
-                         nodeOne, Collections.emptyList(), temporaryFolder.newFolder(), index
+                         nodeOne, index
                      )
                  )
         ) {
-            final Node nodeTwo = new DefaultNode(
-                NodeId.from("id-two"),
-                new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
-            );
-            try (ClusterConfigProvider clientTwo =
-                     ClusterConfigProvider.esConfigProvider(
-                         client(), new LogstashClusterConfig(
-                             nodeTwo, Collections.emptyList(), temporaryFolder.newFolder(), index
-                         )
+            final String nodeTwo = UUID.randomUUID().toString();
+            try (EsClient clientTwo =
+                     EsClient.create(
+                         client(), new LogstashClusterConfig(nodeTwo, index)
                      )
             ) {
                 MatcherAssert.assertThat(
-                    clientOne.currentClusterConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientOne.currentClusterNodes(), Matchers.contains(nodeOne, nodeTwo)
                 );
                 MatcherAssert.assertThat(
-                    clientTwo.currentClusterConfig().getBootstrap(), Matchers.contains(nodeOne, nodeTwo)
+                    clientTwo.currentClusterNodes(), Matchers.contains(nodeOne, nodeTwo)
                 );
             }
         }
@@ -81,17 +69,10 @@ public final class EsClientTest extends LsClusterIntegTestCase {
 
     @Test
     public void getAndUpdateSettings() throws Exception {
-        final Node local = new DefaultNode(
-            NodeId.from("someId"),
-            new Endpoint(InetAddress.getLoopbackAddress(), TestUtils.freePort())
-        );
-        try (ClusterConfigProvider client =
-                 ClusterConfigProvider.esConfigProvider(
-                     client(),
-                     new LogstashClusterConfig(
-                         local, Collections.emptyList(), temporaryFolder.newFolder(),
-                         "getandupdatesettings"
-                     )
+        final String local = UUID.randomUUID().toString();
+        try (EsClient client =
+                 EsClient.create(
+                     client(), new LogstashClusterConfig(local, "getandupdatesettings")
                  )
         ) {
             MatcherAssert.assertThat(client.currentJobSettings(), Matchers.is(Collections.emptyMap()));

@@ -24,12 +24,10 @@ import org.logstash.FieldReference;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.EnqueueEvent;
-import org.logstash.cluster.LogstashClusterServer;
-import org.logstash.cluster.cluster.Node;
-import org.logstash.cluster.primitives.leadership.LeaderElector;
-import org.logstash.cluster.primitives.leadership.Leadership;
-import org.logstash.cluster.primitives.map.ConsistentTreeMap;
-import org.logstash.cluster.primitives.queue.WorkQueue;
+import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.elasticsearch.EsLock;
+import org.logstash.cluster.elasticsearch.EsMap;
+import org.logstash.cluster.elasticsearch.EsQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -61,39 +59,34 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
     @Override
     public void run() {
-        final LogstashClusterServer clusterServer = cluster.getCluster();
-        final String localId = clusterServer.getClusterService().getLocalNode().id().id();
-        try (final LeaderElector<String> elector = clusterServer
-            .<String>leaderElectorBuilder().withName(ClusterInput.LEADERSHIP_IDENTIFIER).build();
-             final ConsistentTreeMap<String, String> finishedMap = clusterServer
-                 .<String, String>consistentTreeMapBuilder()
-                 .withName(FINISHED_OBJECTS_MAP).build()
-        ) {
-            Leadership<String> leader;
-            while (!(leader = elector.run(localId)).leader().id().equals(localId)) {
+        final EsClient esClient = cluster.getEsClient();
+        final String localId = esClient.getConfig().localNode();
+        try {
+            final EsLock leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
+            while (!leaderLock.lock(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L))) {
                 final CountDownLatch latch = new CountDownLatch(1);
-                elector.addStatusChangeListener(status -> latch.countDown());
-                while (!Uninterruptibles.awaitUninterruptibly(latch, 1L, TimeUnit.SECONDS)) {
+                while (!Uninterruptibles.awaitUninterruptibly(latch, 20L, TimeUnit.SECONDS)) {
                     if (stopped.get()) {
                         LOGGER.info("S3 input has been stopped.");
                         return;
                     }
                 }
             }
-            LOGGER.info("Elected {}", leader);
+            LOGGER.info("Elected {}", localId);
             LOGGER.info("Indexing Bucket on Node {}", localId);
             final Map<String, String> config = cluster.getConfig();
             final LsS3ClusterInput.S3Config s3cfg = new LsS3ClusterInput.S3Config(
                 config.get(S3_KEY_INDEX), config.get(S3_SECRET_INDEX), config.get(S3_REGION_INDEX),
                 config.get(S3_BUCKET_INDEX)
             );
-            final WorkQueue<EnqueueEvent> tasks = cluster.getTasks().asWorkQueue();
+            final EsQueue tasks = cluster.getTasks();
+            final EsMap finishedMap = esClient.map(FINISHED_OBJECTS_MAP);
             while (!stopped.get()) {
                 int found = 0;
                 for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
                     found++;
                     LOGGER.info("Enqueuing task to process {}", object);
-                    tasks.addOne(new LsS3ClusterInput.S3Task(s3cfg, object));
+                    tasks.pushTask(new LsS3ClusterInput.S3Task(s3cfg, object));
                     finishedMap.put(object, PROCESSING_STATE);
                     if (stopped.get()) {
                         LOGGER.info("S3 input has been stopped.");
@@ -146,10 +139,9 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
         private final LsS3ClusterInput.S3Config config;
 
-        private final ConsistentTreeMap<String, String> finished;
+        private final EsMap finished;
 
-        private S3PathIterator(final LsS3ClusterInput.S3Config config,
-            final ConsistentTreeMap<String, String> finished) {
+        private S3PathIterator(final LsS3ClusterInput.S3Config config, final EsMap finished) {
             this.config = config;
             this.finished = finished;
         }
@@ -199,7 +191,7 @@ public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
 
         @Override
         public void enqueue(final ClusterInput cluster, final EventQueue queue) {
-            final Node localNode = cluster.getCluster().getClusterService().getLocalNode();
+            final String localNode = cluster.getEsClient().getConfig().localNode();
             LOGGER.info("Processing {} on {}", object, localNode);
             final AmazonS3 s3Client = AmazonS3Client.builder().withRegion(config.region)
                 .withCredentials(

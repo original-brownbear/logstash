@@ -7,6 +7,7 @@ description = """Logstash Core Java"""
 version = versionMap['logstash-core']
 String jrubyVersion = versionMap['jruby']['version']
 String jacksonVersion = versionMap['jackson']
+String esVersion = versionMap['elasticsearch']
 
 repositories {
     mavenCentral()
@@ -62,6 +63,7 @@ configurations.archives {
 }
 
 task javaTests(type: Test) {
+    systemProperty 'tests.security.manager', "false"
     exclude '/org/logstash/RSpecTests.class'
     exclude '/org/logstash/config/ir/ConfigCompilerTest.class'
 }
@@ -70,6 +72,7 @@ task rubyTests(type: Test) {
     inputs.files fileTree("${projectDir}/lib")
     inputs.files fileTree("${projectDir}/spec")
     systemProperty 'logstash.core.root.dir', projectDir.absolutePath
+    systemProperty 'tests.security.manager', "false"
     include '/org/logstash/RSpecTests.class'
     include '/org/logstash/config/ir/ConfigCompilerTest.class'
 }
@@ -109,7 +112,7 @@ idea {
 
 dependencies {
     compile 'io.netty:netty-all:4.1.13.Final'
-    compile('org.elasticsearch.client:transport:6.0.0') {
+    compile("org.elasticsearch.client:transport:${esVersion}") {
         exclude group: 'joda-time', module: 'joda-time'
         exclude group: 'io.netty', module: 'netty-buffer'
         exclude group: 'io.netty', module: 'netty-codec'
@@ -141,10 +144,10 @@ dependencies {
     compile 'org.elasticsearch.client:elasticsearch-rest-client:6.0.0'
     compile "org.jruby:jruby-complete:${jrubyVersion}"
     runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
-    testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
     compile("org.jruby:jruby-complete:${jrubyVersion}")
+    testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
     testCompile 'net.jodah:concurrentunit:0.4.3'
-    testCompile('org.elasticsearch.test:framework:6.0.0') {
+    testCompile("org.elasticsearch.test:framework:${esVersion}") {
         exclude group: 'org.elasticsearch', module: 'securemock'
         exclude group: 'junit', module: 'junit'
         exclude group: 'joda-time', module: 'joda-time'

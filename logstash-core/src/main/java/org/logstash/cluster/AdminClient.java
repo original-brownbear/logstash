@@ -11,6 +11,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.logstash.ObjectMappers;
+import org.logstash.cluster.elasticsearch.EsClient;
 
 public final class AdminClient {
 
@@ -24,7 +25,7 @@ public final class AdminClient {
         try (
             final TransportClient transportClient = new PreBuiltTransportClient(Settings.EMPTY)
                 .addTransportAddress(new TransportAddress(host, port));
-            final ClusterConfigProvider esClient = ClusterConfigProvider.esConfigProvider(
+            final EsClient esClient = EsClient.create(
                 transportClient, new LogstashClusterConfig(index)
             )
         ) {
