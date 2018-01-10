@@ -39,12 +39,8 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             )
         ) {
             exec.submit(input);
-            int waits = 100;
             final String local = client.getConfig().localNode();
-            while (!client.currentClusterNodes().contains(local) && waits > 0) {
-                waits -= 1;
-                TimeUnit.MILLISECONDS.sleep(100L);
-            }
+            waitForNodeRegistration(client, local);
             MatcherAssert.assertThat(client.currentClusterNodes(), Matchers.contains(local));
         } finally {
             exec.shutdownNow();
@@ -68,22 +64,8 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             exec.submit(inputTwo);
             final String nodeOne = clientOne.getConfig().localNode();
             final String nodeTwo = clientTwo.getConfig().localNode();
-            int waits = 1000;
-            while (!clientOne.currentClusterNodes().containsAll(Arrays.asList(nodeOne, nodeTwo))) {
-                waits -= 1;
-                TimeUnit.MILLISECONDS.sleep(100L);
-                if (waits == 0) {
-                    Assert.fail();
-                }
-            }
-            waits = 1000;
-            while (!clientTwo.currentClusterNodes().containsAll(Arrays.asList(nodeOne, nodeTwo))) {
-                waits -= 1;
-                TimeUnit.MILLISECONDS.sleep(100L);
-                if (waits == 0) {
-                    Assert.fail();
-                }
-            }
+            waitForNodeRegistration(clientOne, nodeOne, nodeTwo);
+            waitForNodeRegistration(clientTwo, nodeOne, nodeTwo);
             MatcherAssert.assertThat(
                 clientOne.currentClusterNodes(), Matchers.containsInAnyOrder(nodeOne, nodeTwo)
             );
@@ -145,6 +127,18 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
                 )
             );
             stoppedLatch.countDown();
+        }
+    }
+
+    private static void waitForNodeRegistration(final EsClient clientTwo, final String... nodes)
+        throws InterruptedException {
+        int waits = 1000;
+        while (!clientTwo.currentClusterNodes().containsAll(Arrays.asList(nodes))) {
+            waits -= 1;
+            TimeUnit.MILLISECONDS.sleep(100L);
+            if (waits == 0) {
+                Assert.fail();
+            }
         }
     }
 }
