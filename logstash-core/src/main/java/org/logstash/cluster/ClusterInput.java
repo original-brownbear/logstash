@@ -156,11 +156,21 @@ public final class ClusterInput implements Runnable, Closeable {
 
         @Override
         public void run() {
-            while (true) {
-                final String local = client.getConfig().localNode();
+            final String local = client.getConfig().localNode();
+            while (!Thread.currentThread().isInterrupted()) {
                 if (!client.currentClusterNodes().contains(local)) {
-                    LOGGER.info("Publishing local node {} since it wasn't found in the node list.", local);
+                    LOGGER.info(
+                        "Publishing local node {} since it wasn't found in the node list.",
+                        local
+                    );
                     client.publishLocalNode();
+                    LOGGER.info("Published local node {} to node list.", local);
+                }
+                try {
+                    TimeUnit.SECONDS.sleep(5L);
+                } catch (final InterruptedException ex) {
+                    LOGGER.error("Background task on {} interrupted", local);
+                    throw new IllegalStateException(ex);
                 }
             }
         }

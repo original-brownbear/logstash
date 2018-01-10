@@ -85,10 +85,10 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
                 }
             }
             MatcherAssert.assertThat(
-                clientOne.currentClusterNodes(), Matchers.contains(nodeOne, nodeTwo)
+                clientOne.currentClusterNodes(), Matchers.containsInAnyOrder(nodeOne, nodeTwo)
             );
             MatcherAssert.assertThat(
-                clientTwo.currentClusterNodes(), Matchers.contains(nodeOne, nodeTwo)
+                clientTwo.currentClusterNodes(), Matchers.containsInAnyOrder(nodeOne, nodeTwo)
             );
         } finally {
             exec.shutdownNow();

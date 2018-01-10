@@ -33,12 +33,16 @@ public final class LsEsRestClient implements Closeable {
     private static RestHighLevelClient createIndex(final LogstashClusterConfig config,
         final RestHighLevelClient client) {
         try {
+            final String index = config.esIndex();
             try {
-                client.getLowLevelClient().performRequest("GET", config.esIndex());
+                client.getLowLevelClient().performRequest("GET", index);
             } catch (final ResponseException ex) {
                 if (ex.getResponse().getStatusLine().getStatusCode() ==
                     HttpURLConnection.HTTP_NOT_FOUND) {
-                    client.getLowLevelClient().performRequest("PUT", config.esIndex());
+                    LOGGER.info("Creating pipeline index {} since it doesn't exist yet.", index);
+                    client.getLowLevelClient().performRequest("PUT", index);
+                } else {
+                    throw new IllegalStateException(ex);
                 }
             }
         } catch (final IOException ex) {
