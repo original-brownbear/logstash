@@ -1,6 +1,5 @@
 package org.logstash.cluster.elasticsearch;
 
-import java.util.Collections;
 import java.util.Set;
 
 public final class EsSet {
@@ -20,6 +19,6 @@ public final class EsSet {
     }
 
     public Set<String> asSet() {
-        return Collections.emptySet();
+        return map.asMap().keySet();
     }
 }

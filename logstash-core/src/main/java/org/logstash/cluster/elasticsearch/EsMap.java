@@ -9,6 +9,7 @@ import org.apache.http.message.BasicHeader;
 import org.apache.http.nio.entity.NStringEntity;
 import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.client.ResponseException;
 import org.logstash.ObjectMappers;
 
 public final class EsMap {
@@ -71,6 +72,10 @@ public final class EsMap {
                     ),
                     new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 );
+            }
+        } catch (final ResponseException ex) {
+            if (ex.getResponse().getStatusLine().getStatusCode() == 409) {
+                putAll(entries);
             }
         } catch (final IOException ex) {
             throw new IllegalStateException(ex);

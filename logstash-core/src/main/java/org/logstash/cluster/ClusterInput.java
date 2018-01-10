@@ -22,17 +22,17 @@ public final class ClusterInput implements Runnable, Closeable {
 
     public static final String LEADERSHIP_IDENTIFIER = "lsclusterleader";
 
-    public static final String P2P_QUEUE_NAME = "logstashWorkQueue";
+    public static final String TASK_QUEUE_NAME = "logstashWorkQueue";
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
 
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     private final CountDownLatch done = new CountDownLatch(1);
 
     private final AtomicBoolean running = new AtomicBoolean(true);
 
-    private final EsClient configProvider;
+    private final EsClient esClient;
 
     private final EventQueue queue;
 
@@ -46,16 +46,16 @@ public final class ClusterInput implements Runnable, Closeable {
 
     public ClusterInput(final EventQueue queue, final EsClient provider) {
         this.queue = queue;
-        this.configProvider = provider;
-        tasks = null;
+        this.esClient = provider;
+        tasks = provider.queue(TASK_QUEUE_NAME);
     }
 
     public Map<String, Object> getConfig() {
-        return configProvider.currentJobSettings();
+        return esClient.currentJobSettings();
     }
 
     public EsClient getEsClient() {
-        return configProvider;
+        return esClient;
     }
 
     public EsQueue getTasks() {
@@ -64,6 +64,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void run() {
+        executor.submit(new ClusterInput.BackgroundLoop(esClient));
         try {
             synchronized (this) {
                 leaderTask = setupLeaderTask();
@@ -145,6 +146,8 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private static final class BackgroundLoop implements Runnable {
 
+        private static final Logger LOGGER = LogManager.getLogger(ClusterInput.BackgroundLoop.class);
+
         private final EsClient client;
 
         BackgroundLoop(final EsClient client) {
@@ -153,7 +156,13 @@ public final class ClusterInput implements Runnable, Closeable {
 
         @Override
         public void run() {
-            client.publishLocalNode();
+            while (true) {
+                final String local = client.getConfig().localNode();
+                if (!client.currentClusterNodes().contains(local)) {
+                    LOGGER.info("Publishing local node {} since it wasn't found in the node list.", local);
+                    client.publishLocalNode();
+                }
+            }
         }
     }
 }

@@ -40,8 +40,12 @@ public final class EsClient implements AutoCloseable {
         return EsMap.create(client, name);
     }
 
+    public EsQueue queue(final String name) {
+        return EsQueue.create(client, name);
+    }
+
     public EsLock lock(final String name) {
-        return new EsLock(client, name);
+        return EsLock.create(client, name);
     }
 
     public Collection<String> currentClusterNodes() {
