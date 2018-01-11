@@ -29,6 +29,7 @@ public final class WorkerHeartbeatAction implements Runnable {
 
     @Override
     public void run() {
+        LOGGER.info("Running worker heartbeat actions on {}", local);
         publishOwnNode();
         maintainPartitionAssignments();
     }
@@ -60,10 +61,18 @@ public final class WorkerHeartbeatAction implements Runnable {
         final int unassignedCount = unassigned.size();
         if (unassignedCount > 0 && ownCount < LeaderElectionAction.PARTITIONS_PER_NODE) {
             LOGGER.info("Found {} unassigned partitions on {}", unassignedCount, local);
-            final Collection<Partition> aquired = partitions.stream()
-                .limit((long) Math.min(unassignedCount, ownCount - LeaderElectionAction.PARTITIONS_PER_NODE)).filter(
-                    Partition::acquire
-                ).collect(Collectors.toList());
+            unassigned.stream()
+                .limit(
+                    (long) Math.min(
+                        unassignedCount, LeaderElectionAction.PARTITIONS_PER_NODE - ownCount
+                    )
+                )
+                .filter(Partition::acquire)
+                .forEach(
+                    partition -> LOGGER.info(
+                        "Acquired partition {} on {}", partition.getId(), local
+                    )
+                );
         }
     }
 }

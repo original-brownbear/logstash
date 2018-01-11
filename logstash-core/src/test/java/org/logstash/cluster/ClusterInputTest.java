@@ -16,7 +16,6 @@ import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.execution.LeaderElectionAction;
 import org.logstash.cluster.state.Partition;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
@@ -74,7 +73,7 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             MatcherAssert.assertThat(
                 clientTwo.currentClusterNodes(), Matchers.containsInAnyOrder(nodeOne, nodeTwo)
             );
-            TimeUnit.MILLISECONDS.sleep(10L * LeaderElectionAction.ELECTION_PERIOD);
+            waitAllPartitionsAssigned(clientOne, 2);
             final Collection<Partition> partitions = clientOne.getPartitions();
             MatcherAssert.assertThat(partitions.size(), is(2));
             MatcherAssert.assertThat(
@@ -131,10 +130,26 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
         }
     }
 
-    private static void waitForNodeRegistration(final EsClient clientTwo, final String... nodes)
+    private static void waitAllPartitionsAssigned(final EsClient client, final int count)
         throws InterruptedException {
         int waits = 1000;
-        while (!clientTwo.currentClusterNodes().containsAll(Arrays.asList(nodes))) {
+        while (
+            client.getPartitions().size() != count ||
+                client.getPartitions().stream().anyMatch(partition -> partition.getOwner() != null
+                    && partition.getOwner().isEmpty())
+            ) {
+            waits -= 1;
+            TimeUnit.MILLISECONDS.sleep(100L);
+            if (waits == 0) {
+                Assert.fail();
+            }
+        }
+    }
+
+    private static void waitForNodeRegistration(final EsClient client, final String... nodes)
+        throws InterruptedException {
+        int waits = 1000;
+        while (!client.currentClusterNodes().containsAll(Arrays.asList(nodes))) {
             waits -= 1;
             TimeUnit.MILLISECONDS.sleep(100L);
             if (waits == 0) {

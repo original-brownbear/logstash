@@ -45,7 +45,7 @@ public final class Partition {
             Collections.singletonMap(String.format("p%d", id), updated), current -> {
                 final Map<String, Object> raw =
                     (Map<String, Object>) current.get(String.format("p%d", id));
-                return (long) raw.get(EsLock.EXPIRE_TIME_KEY) > System.currentTimeMillis()
+                return (long) raw.get(EsLock.EXPIRE_TIME_KEY) < System.currentTimeMillis()
                     || raw.get(EsLock.TOKEN_KEY).equals(local);
             }
         );
