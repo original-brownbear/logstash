@@ -6,9 +6,9 @@ import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsLock {
 
-    private static final String TOKEN_KEY = "token";
+    public static final String TOKEN_KEY = "token";
 
-    private static final String EXPIRE_TIME_KEY = "expire";
+    public static final String EXPIRE_TIME_KEY = "expire";
 
     private final EsMap map;
 

@@ -29,6 +29,10 @@ public final class EsMap {
         this.name = name;
     }
 
+    public LsEsRestClient getClient() {
+        return client;
+    }
+
     public boolean containsKey(final String key) {
         try {
             final GetResponse response = client.getClient().get(

@@ -1,6 +1,7 @@
 package org.logstash.cluster;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -15,10 +16,13 @@ import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.execution.LeaderElectionAction;
+import org.logstash.cluster.state.Partition;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests for {@link ClusterInput}.
@@ -69,6 +73,17 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             );
             MatcherAssert.assertThat(
                 clientTwo.currentClusterNodes(), Matchers.containsInAnyOrder(nodeOne, nodeTwo)
+            );
+            TimeUnit.MILLISECONDS.sleep(10L * LeaderElectionAction.ELECTION_PERIOD);
+            final Collection<Partition> partitions = clientOne.getPartitions();
+            MatcherAssert.assertThat(partitions.size(), is(2));
+            MatcherAssert.assertThat(
+                partitions.stream().filter(partition -> partition.getOwner().equals(nodeOne)).count(),
+                is(1L)
+            );
+            MatcherAssert.assertThat(
+                partitions.stream().filter(partition -> partition.getOwner().equals(nodeTwo)).count(),
+                is(1L)
             );
         } finally {
             exec.shutdownNow();

@@ -11,6 +11,8 @@ import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.cluster.elasticsearch.primitives.EsSet;
+import org.logstash.cluster.execution.LeaderElectionAction;
+import org.logstash.cluster.state.Partition;
 
 public final class EsClient implements AutoCloseable {
 
@@ -50,6 +52,10 @@ public final class EsClient implements AutoCloseable {
 
     public EsLock lock(final String name) {
         return EsLock.create(client, name);
+    }
+
+    public Collection<Partition> getPartitions() {
+        return Partition.fromMap(map(LeaderElectionAction.PARTITION_MAP_DOC));
     }
 
     public Collection<String> currentClusterNodes() {

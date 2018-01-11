@@ -13,8 +13,8 @@ import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
-import org.logstash.cluster.execution.HeartbeatAction;
 import org.logstash.cluster.execution.LeaderElectionAction;
+import org.logstash.cluster.execution.WorkerHeartbeatAction;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -76,7 +76,8 @@ public final class ClusterInput implements Runnable, Closeable {
     @Override
     public void run() {
         executor.scheduleAtFixedRate(
-            new HeartbeatAction(esClient), 0L, 5L, TimeUnit.SECONDS
+            new WorkerHeartbeatAction(esClient), 0L,
+            WorkerHeartbeatAction.HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS
         );
         executor.scheduleAtFixedRate(
             new LeaderElectionAction(this),
