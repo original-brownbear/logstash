@@ -16,7 +16,6 @@ import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.cluster.execution.HeartbeatAction;
 import org.logstash.cluster.execution.LeaderElectionAction;
-import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -42,7 +41,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final EsQueue tasks;
 
-    private StoppableLoop leaderTask;
+    private final EsLock leaderLock;
 
     public ClusterInput(final IRubyObject queue, final EsClient provider) {
         this(new JavaQueue(queue), provider);
@@ -51,7 +50,8 @@ public final class ClusterInput implements Runnable, Closeable {
     public ClusterInput(final EventQueue queue, final EsClient provider) {
         this.queue = queue;
         this.esClient = provider;
-        tasks = provider.queue(TASK_QUEUE_NAME);
+        tasks = esClient.queue(TASK_QUEUE_NAME);
+        leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
     }
 
     public Map<String, Object> getConfig() {
@@ -66,27 +66,25 @@ public final class ClusterInput implements Runnable, Closeable {
         return tasks;
     }
 
+    public EsLock leaderLock() {
+        return leaderLock;
+    }
+
+    public ScheduledExecutorService getExecutor() {
+        return executor;
+    }
+
     @Override
     public void run() {
         executor.scheduleAtFixedRate(
             new HeartbeatAction(esClient), 0L, 5L, TimeUnit.SECONDS
         );
-        final EsLock leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
         executor.scheduleAtFixedRate(
-            new LeaderElectionAction(
-                leaderLock, esClient.getConfig().localNode()),
+            new LeaderElectionAction(this),
             0L, LeaderElectionAction.ELECTION_PERIOD,
             TimeUnit.MILLISECONDS
         );
         try {
-            synchronized (this) {
-                leaderTask = setupLeaderTask();
-                if (leaderTask != null) {
-                    executor.submit(leaderTask);
-                } else {
-                    return;
-                }
-            }
             while (running.get()) {
                 final WorkerTask task = tasks.nextTask();
                 if (task != null) {
@@ -104,12 +102,6 @@ public final class ClusterInput implements Runnable, Closeable {
     public void close() throws IOException {
         LOGGER.info("Closing cluster input.");
         if (running.compareAndSet(true, false)) {
-            synchronized (this) {
-                if (leaderTask != null) {
-                    leaderTask.stop();
-                    leaderTask.awaitStop();
-                }
-            }
             tasks.close();
             try {
                 done.await();
@@ -126,33 +118,6 @@ public final class ClusterInput implements Runnable, Closeable {
                 }
                 LOGGER.info("Closed cluster input.");
             }
-        }
-    }
-
-    private StoppableLoop setupLeaderTask() {
-        try {
-            Map<String, Object> configuration;
-            while (!(configuration = getConfig()).containsKey(LOGSTASH_TASK_CLASS_SETTING)) {
-                LOGGER.info(
-                    "No valid cluster input configuration found, sleeping 5s before retrying."
-                );
-                TimeUnit.SECONDS.sleep(5L);
-                if (!running.get()) {
-                    LOGGER.warn("Gave up trying to configure cluster leader task");
-                    return null;
-                }
-            }
-            final String clazz = (String) configuration.get(LOGSTASH_TASK_CLASS_SETTING);
-            LOGGER.info(
-                "Found valid cluster input configuration, starting leader task of type {}.",
-                clazz
-            );
-            return Class.forName(clazz)
-                .asSubclass(StoppableLoop.class).getConstructor(ClusterInput.class)
-                .newInstance(this);
-        } catch (final Exception ex) {
-            LOGGER.error("Failed to set up leader task because of: {}", ex);
-            throw new IllegalStateException(ex);
         }
     }
 }

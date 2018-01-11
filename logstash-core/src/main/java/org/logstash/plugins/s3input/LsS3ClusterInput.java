@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.util.IOUtils;
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
@@ -25,14 +24,12 @@ import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
-import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
-public final class LsS3ClusterInput implements StoppableLoop {
+public final class LsS3ClusterInput implements Runnable {
 
     public static final String PROCESSING_STATE = "PROCESSING";
 
@@ -63,17 +60,6 @@ public final class LsS3ClusterInput implements StoppableLoop {
         final EsClient esClient = cluster.getEsClient();
         final String localId = esClient.getConfig().localNode();
         try {
-            final EsLock leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
-            while (!leaderLock.lock(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L))) {
-                final CountDownLatch latch = new CountDownLatch(1);
-                while (!Uninterruptibles.awaitUninterruptibly(latch, 20L, TimeUnit.SECONDS)) {
-                    if (stopped.get()) {
-                        LOGGER.info("S3 input has been stopped.");
-                        return;
-                    }
-                }
-            }
-            LOGGER.info("Elected {}", localId);
             LOGGER.info("Indexing Bucket on Node {}", localId);
             final Map<String, Object> config = cluster.getConfig();
             final LsS3ClusterInput.S3Config s3cfg = new LsS3ClusterInput.S3Config(
@@ -110,16 +96,6 @@ public final class LsS3ClusterInput implements StoppableLoop {
             stopLatch.countDown();
             LOGGER.info("Finished shutting down S3 Input Leader on {}", localId);
         }
-    }
-
-    @Override
-    public void awaitStop() {
-        Uninterruptibles.awaitUninterruptibly(stopLatch);
-    }
-
-    @Override
-    public void stop() {
-        stopped.set(true);
     }
 
     private static final class S3Config implements Serializable {

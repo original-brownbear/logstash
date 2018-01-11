@@ -1,11 +1,9 @@
 package org.logstash.cluster;
 
-import com.google.common.util.concurrent.Uninterruptibles;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
@@ -17,7 +15,6 @@ import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -101,23 +98,12 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
         }
     }
 
-    public static final class SimpleTaskLeader implements StoppableLoop {
+    public static final class SimpleTaskLeader implements Runnable {
 
         private final ClusterInput cluster;
 
-        private final CountDownLatch stoppedLatch = new CountDownLatch(1);
-
         public SimpleTaskLeader(final ClusterInput cluster) {
             this.cluster = cluster;
-        }
-
-        @Override
-        public void awaitStop() {
-            Uninterruptibles.awaitUninterruptibly(stoppedLatch);
-        }
-
-        @Override
-        public void stop() {
         }
 
         @Override
@@ -127,7 +113,6 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
                     new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
                 )
             );
-            stoppedLatch.countDown();
         }
     }
 
