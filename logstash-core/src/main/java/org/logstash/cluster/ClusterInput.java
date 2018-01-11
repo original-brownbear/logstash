@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.cluster.execution.HeartbeatAction;
 import org.logstash.cluster.execution.LeaderElectionAction;
@@ -70,8 +71,11 @@ public final class ClusterInput implements Runnable, Closeable {
         executor.scheduleAtFixedRate(
             new HeartbeatAction(esClient), 0L, 5L, TimeUnit.SECONDS
         );
+        final EsLock leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
         executor.scheduleAtFixedRate(
-            new LeaderElectionAction(esClient), 0L, LeaderElectionAction.ELECTION_PERIOD,
+            new LeaderElectionAction(
+                leaderLock, esClient.getConfig().localNode()),
+            0L, LeaderElectionAction.ELECTION_PERIOD,
             TimeUnit.MILLISECONDS
         );
         try {
@@ -84,13 +88,14 @@ public final class ClusterInput implements Runnable, Closeable {
                 }
             }
             while (running.get()) {
-                final EnqueueEvent task = tasks.nextTask();
+                final WorkerTask task = tasks.nextTask();
                 if (task != null) {
-                    task.enqueue(this, queue);
+                    task.enqueueEvents(this, queue);
                     tasks.complete(task);
                 }
             }
         } finally {
+            leaderLock.unlock();
             done.countDown();
         }
     }

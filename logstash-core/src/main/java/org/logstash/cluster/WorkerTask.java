@@ -4,7 +4,7 @@ import java.io.Serializable;
 import org.logstash.ext.EventQueue;
 
 @FunctionalInterface
-public interface EnqueueEvent extends Serializable {
+public interface WorkerTask extends Serializable {
 
-    void enqueue(ClusterInput cluster, EventQueue queue);
+    void enqueueEvents(ClusterInput cluster, EventQueue queue);
 }

@@ -3,8 +3,6 @@ package org.logstash.cluster.execution;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.logstash.cluster.ClusterInput;
-import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 
 public final class LeaderElectionAction implements Runnable {
@@ -15,17 +13,17 @@ public final class LeaderElectionAction implements Runnable {
 
     private static final Logger LOGGER = LogManager.getLogger(LeaderElectionAction.class);
 
-    private final EsClient client;
+    private final EsLock leaderLock;
+    private final String local;
 
-    public LeaderElectionAction(final EsClient client) {
-        this.client = client;
+    public LeaderElectionAction(final EsLock leaderLock, final String localNode) {
+        this.leaderLock = leaderLock;
+        local = localNode;
     }
 
     @Override
     public void run() {
-        final String local = client.getConfig().localNode();
         LOGGER.info("Started background leader election loop on {}", local);
-        final EsLock leaderLock = client.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
         try {
             final long expire = System.currentTimeMillis() + TERM_LENGTH;
             LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);

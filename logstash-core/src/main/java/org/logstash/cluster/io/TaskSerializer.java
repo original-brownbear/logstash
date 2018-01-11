@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Base64;
-import org.logstash.cluster.EnqueueEvent;
+import org.logstash.cluster.WorkerTask;
 
 public final class TaskSerializer {
 
@@ -14,7 +14,7 @@ public final class TaskSerializer {
         // Utility Class
     }
 
-    public static String serialize(final EnqueueEvent task) {
+    public static String serialize(final WorkerTask task) {
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try (final ObjectOutputStream oaos = new ObjectOutputStream(baos)) {
             oaos.writeObject(task);
@@ -24,11 +24,11 @@ public final class TaskSerializer {
         return Base64.getEncoder().encodeToString(baos.toByteArray());
     }
 
-    public static EnqueueEvent deserialize(final String raw) {
+    public static WorkerTask deserialize(final String raw) {
         try (ObjectInputStream ois = new ObjectInputStream(
             new ByteArrayInputStream(Base64.getDecoder().decode(raw)))
         ) {
-            return (EnqueueEvent) ois.readObject();
+            return (WorkerTask) ois.readObject();
         } catch (final IOException | ClassNotFoundException ex) {
             throw new IllegalStateException(ex);
         }

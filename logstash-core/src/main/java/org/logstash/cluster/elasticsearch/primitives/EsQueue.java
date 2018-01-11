@@ -2,7 +2,7 @@ package org.logstash.cluster.elasticsearch.primitives;
 
 import java.io.Closeable;
 import java.io.IOException;
-import org.logstash.cluster.EnqueueEvent;
+import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsQueue implements Closeable {
@@ -20,15 +20,15 @@ public final class EsQueue implements Closeable {
         this.name = name;
     }
 
-    public void pushTask(final EnqueueEvent task) {
+    public void pushTask(final WorkerTask task) {
 
     }
 
-    public void complete(final EnqueueEvent task) {
+    public void complete(final WorkerTask task) {
 
     }
 
-    public EnqueueEvent nextTask() {
+    public WorkerTask nextTask() {
         return null;
     }
 

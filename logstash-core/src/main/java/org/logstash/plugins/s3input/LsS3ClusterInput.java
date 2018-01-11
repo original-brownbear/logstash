@@ -23,7 +23,7 @@ import org.logstash.Event;
 import org.logstash.FieldReference;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
-import org.logstash.cluster.EnqueueEvent;
+import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
@@ -178,7 +178,7 @@ public final class LsS3ClusterInput implements StoppableLoop {
         }
     }
 
-    private static final class S3Task implements EnqueueEvent {
+    private static final class S3Task implements WorkerTask {
 
         private static final Logger LOGGER = LogManager.getLogger(LsS3ClusterInput.S3Task.class);
 
@@ -192,7 +192,7 @@ public final class LsS3ClusterInput implements StoppableLoop {
         }
 
         @Override
-        public void enqueue(final ClusterInput cluster, final EventQueue queue) {
+        public void enqueueEvents(final ClusterInput cluster, final EventQueue queue) {
             final String localNode = cluster.getEsClient().getConfig().localNode();
             LOGGER.info("Processing {} on {}", object, localNode);
             final AmazonS3 s3Client = AmazonS3Client.builder().withRegion(config.region)
