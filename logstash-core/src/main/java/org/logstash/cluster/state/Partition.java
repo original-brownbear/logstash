@@ -3,15 +3,24 @@ package org.logstash.cluster.state;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
 import org.logstash.cluster.execution.WorkerHeartbeatAction;
+import org.logstash.cluster.io.TaskSerializer;
 
 public final class Partition {
 
-    private final EsMap map;
+    private static final Logger LOGGER = LogManager.getLogger(Partition.class);
+
+    private final EsMap lockMap;
+
+    private final EsMap tasksMap;
 
     private final int id;
 
@@ -28,20 +37,42 @@ public final class Partition {
     }
 
     private Partition(final EsMap map, final int id) {
-        this.map = map;
+        this.lockMap = map;
         this.id = id;
+        tasksMap = EsMap.create(map.getClient(), String.format("tasksp%d", id));
+    }
+
+    public void pushTask(final WorkerTask task) {
+        LOGGER.info("Pushing new task to partition {}", id);
+        final Map<String, Object> existing = tasksMap.asMap();
+        final int newId = existing.size();
+        final Map<String, Object> taskMap = new HashMap<>();
+        taskMap.put(Task.PAYLOAD_FIELD, TaskSerializer.serialize(task));
+        taskMap.put(Task.CREATED_FIELD_KEY, System.currentTimeMillis());
+        taskMap.put(Task.STATE_FIELD_KEY, Task.State.OUTSTANDING);
+        if (tasksMap.putAllConditionally(
+            Collections.singletonMap(String.format("t%d", newId), taskMap),
+            current -> !current.containsKey(String.format("t%d", newId))
+        )) {
+            LOGGER.info("Pushed new task to partition {}", id);
+        }
+    }
+
+    public Task getCurrentTask() {
+        return Task.fromMap(tasksMap).stream().filter(t -> t.getState() == Task.State.OUTSTANDING)
+            .min(Comparator.comparingLong(Task::getCreated)).orElse(null);
     }
 
     @SuppressWarnings("unchecked")
     public boolean acquire() {
         final Map<String, Object> updated = new HashMap<>();
-        final String local = map.getClient().getConfig().localNode();
+        final String local = lockMap.getClient().getConfig().localNode();
         updated.put(EsLock.TOKEN_KEY, local);
         updated.put(
             EsLock.EXPIRE_TIME_KEY,
             System.currentTimeMillis() + WorkerHeartbeatAction.PARTITION_TIMEOUT_MS
         );
-        return map.putAllConditionally(
+        return lockMap.putAllConditionally(
             Collections.singletonMap(String.format("p%d", id), updated), current -> {
                 final Map<String, Object> raw =
                     (Map<String, Object>) current.get(String.format("p%d", id));
@@ -53,13 +84,13 @@ public final class Partition {
 
     @SuppressWarnings("unchecked")
     public String getOwner() {
-        return (String) ((Map<String, Object>) map.asMap()
+        return (String) ((Map<String, Object>) lockMap.asMap()
             .get(String.format("p%d", id))).get(EsLock.TOKEN_KEY);
     }
 
     @SuppressWarnings("unchecked")
     public long getExpire() {
-        return (long) ((Map<String, Object>) map.asMap()
+        return (long) ((Map<String, Object>) lockMap.asMap()
             .get(String.format("p%d", id))).get(EsLock.EXPIRE_TIME_KEY);
     }
 
