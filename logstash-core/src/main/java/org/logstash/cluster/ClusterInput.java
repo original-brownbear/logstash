@@ -1,7 +1,6 @@
 package org.logstash.cluster;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -99,10 +98,9 @@ public final class ClusterInput implements Runnable, Closeable {
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         LOGGER.info("Closing cluster input.");
         if (running.compareAndSet(true, false)) {
-            tasks.close();
             try {
                 done.await();
             } catch (final InterruptedException ex) {

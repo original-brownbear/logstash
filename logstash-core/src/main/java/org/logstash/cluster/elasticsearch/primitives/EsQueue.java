@@ -1,11 +1,9 @@
 package org.logstash.cluster.elasticsearch.primitives;
 
-import java.io.Closeable;
-import java.io.IOException;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
-public final class EsQueue implements Closeable {
+public final class EsQueue {
 
     private final String name;
 
@@ -31,11 +29,5 @@ public final class EsQueue implements Closeable {
     public WorkerTask nextTask() {
         return null;
     }
-
-    @Override
-    public void close() throws IOException {
-
-    }
-
 
 }

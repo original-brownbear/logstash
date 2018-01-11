@@ -75,9 +75,9 @@ public final class LeaderElectionAction implements Runnable {
             );
             return Class.forName(clazz)
                 .asSubclass(Runnable.class).getConstructor(ClusterInput.class)
-                .newInstance(this);
+                .newInstance(this.input);
         } catch (final Exception ex) {
-            LOGGER.error("Failed to set up leader task because of: {}", ex);
+            LOGGER.error("Failed to set up leader task because of:", ex);
             throw new IllegalStateException(ex);
         }
     }
