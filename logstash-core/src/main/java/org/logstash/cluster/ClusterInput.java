@@ -12,8 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.elasticsearch.EsLock;
-import org.logstash.cluster.elasticsearch.EsQueue;
+import org.logstash.cluster.execution.HeartbeatLoop;
+import org.logstash.cluster.execution.LeaderElectionLoop;
+import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -65,8 +66,8 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void run() {
-        executor.submit(new ClusterInput.BackgroundHeartbeatLoop(esClient));
-        executor.submit(new ClusterInput.BackgroundLeaderElectionLoop(esClient));
+        executor.submit(new HeartbeatLoop(esClient));
+        executor.submit(new LeaderElectionLoop(esClient));
         try {
             synchronized (this) {
                 leaderTask = setupLeaderTask();
@@ -151,82 +152,4 @@ public final class ClusterInput implements Runnable, Closeable {
         void stop();
     }
 
-    private static final class BackgroundLeaderElectionLoop implements Runnable {
-
-        private static final Logger LOGGER =
-            LogManager.getLogger(ClusterInput.BackgroundLeaderElectionLoop.class);
-
-        private final EsClient client;
-
-        BackgroundLeaderElectionLoop(final EsClient client) {
-            this.client = client;
-        }
-
-        @Override
-        public void run() {
-            final String local = client.getConfig().localNode();
-            LOGGER.info("Started background leader election loop on {}", local);
-            final EsLock leaderLock = client.lock(LEADERSHIP_IDENTIFIER);
-            try {
-                while (!Thread.currentThread().isInterrupted()) {
-                    final long expire = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(30L);
-                    LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
-                    if (leaderLock.lock(expire)) {
-                        LOGGER.info("{} acquired leadership until {}", local, expire);
-                        TimeUnit.MILLISECONDS.sleep(
-                            expire - System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(10L)
-                        );
-                    } else {
-                        final EsLock.LockState lockState = leaderLock.holder();
-                        LOGGER.info(
-                            "{} did not acquire leadership since {} acquired leadership until {}",
-                            local, lockState.getHolder(), lockState.getExpire());
-                        TimeUnit.MILLISECONDS.sleep(
-                            lockState.getExpire() - System.currentTimeMillis()
-                        );
-                    }
-                }
-            } catch (final Exception ex) {
-                LOGGER.error("Error in leader election loop:", ex);
-                throw new IllegalStateException(ex);
-            } finally {
-                LOGGER.info("Background leader election loop stopped on {}", local);
-                leaderLock.unlock();
-            }
-        }
-    }
-
-    private static final class BackgroundHeartbeatLoop implements Runnable {
-
-        private static final Logger LOGGER =
-            LogManager.getLogger(ClusterInput.BackgroundHeartbeatLoop.class);
-
-        private final EsClient client;
-
-        BackgroundHeartbeatLoop(final EsClient client) {
-            this.client = client;
-        }
-
-        @Override
-        public void run() {
-            final String local = client.getConfig().localNode();
-            LOGGER.info("Started background heartbeat loop on {}", local);
-            while (!Thread.currentThread().isInterrupted()) {
-                if (!client.currentClusterNodes().contains(local)) {
-                    LOGGER.info(
-                        "Publishing local node {} since it wasn't found in the node list.",
-                        local
-                    );
-                    client.publishLocalNode();
-                    LOGGER.info("Published local node {} to node list.", local);
-                }
-                try {
-                    TimeUnit.SECONDS.sleep(5L);
-                } catch (final InterruptedException ex) {
-                    LOGGER.error("Background heartbeat loop on {} interrupted", local);
-                    throw new IllegalStateException(ex);
-                }
-            }
-        }
-    }
 }

@@ -7,6 +7,10 @@ import org.apache.http.HttpHost;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.cluster.elasticsearch.primitives.EsLock;
+import org.logstash.cluster.elasticsearch.primitives.EsMap;
+import org.logstash.cluster.elasticsearch.primitives.EsQueue;
+import org.logstash.cluster.elasticsearch.primitives.EsSet;
 
 public final class EsClient implements AutoCloseable {
 

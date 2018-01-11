@@ -1,6 +1,7 @@
-package org.logstash.cluster.elasticsearch;
+package org.logstash.cluster.elasticsearch.primitives;
 
 import org.logstash.cluster.EnqueueEvent;
+import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsTask {
 

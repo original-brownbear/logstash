@@ -4,6 +4,7 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.cluster.LogstashClusterConfig;
+import org.logstash.cluster.elasticsearch.primitives.EsMap;
 
 import static org.hamcrest.Matchers.is;
 

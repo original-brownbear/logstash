@@ -1,4 +1,4 @@
-package org.logstash.cluster.elasticsearch;
+package org.logstash.cluster.elasticsearch.primitives;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -12,6 +12,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.ResponseException;
 import org.logstash.ObjectMappers;
+import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsMap {
 

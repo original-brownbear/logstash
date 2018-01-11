@@ -25,9 +25,9 @@ import org.logstash.RubyUtil;
 import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.EnqueueEvent;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.elasticsearch.EsLock;
-import org.logstash.cluster.elasticsearch.EsMap;
-import org.logstash.cluster.elasticsearch.EsQueue;
+import org.logstash.cluster.elasticsearch.primitives.EsLock;
+import org.logstash.cluster.elasticsearch.primitives.EsMap;
+import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 

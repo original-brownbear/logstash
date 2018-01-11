@@ -1,7 +1,8 @@
-package org.logstash.cluster.elasticsearch;
+package org.logstash.cluster.elasticsearch.primitives;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsLock {
 

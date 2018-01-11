@@ -1,8 +1,9 @@
-package org.logstash.cluster.elasticsearch;
+package org.logstash.cluster.elasticsearch.primitives;
 
 import java.io.Closeable;
 import java.io.IOException;
 import org.logstash.cluster.EnqueueEvent;
+import org.logstash.cluster.elasticsearch.LsEsRestClient;
 
 public final class EsQueue implements Closeable {
 

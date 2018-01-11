@@ -1,6 +1,7 @@
-package org.logstash.cluster.elasticsearch;
+package org.logstash.cluster.elasticsearch.primitives;
 
 import java.util.Set;
+import org.logstash.cluster.elasticsearch.EsClient;
 
 public final class EsSet {
 
