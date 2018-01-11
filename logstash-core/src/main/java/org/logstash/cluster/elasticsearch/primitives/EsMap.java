@@ -88,15 +88,14 @@ public final class EsMap {
         final Predicate<? super Map<String, Object>> predicate) {
         try {
             final GetResponse response = client.getClient().get(
-                new GetRequest().index(client.getConfig().esIndex()).id(name)
+                new GetRequest().index(client.getConfig().esIndex()).type("maps").id(name)
             );
             final long version = response.getVersion();
             final Map<String, Object> source = response.getSource();
             if (predicate.test(source)) {
-                final Map<String, Object> data = source;
-                if (data != null) {
+                if (source != null) {
                     final Map<String, Object> updated = new HashMap<>();
-                    updated.putAll(data);
+                    updated.putAll(source);
                     updated.putAll(entries);
                     client.getClient().getLowLevelClient().performRequest(
                         "PUT", String.format("/%s/maps/%s", client.getConfig().esIndex(), name),

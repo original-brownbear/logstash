@@ -4,17 +4,18 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
-import org.logstash.cluster.execution.HeartbeatLoop;
-import org.logstash.cluster.execution.LeaderElectionLoop;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
+import org.logstash.cluster.execution.HeartbeatAction;
+import org.logstash.cluster.execution.LeaderElectionAction;
+import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -28,7 +29,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
 
-    private final ExecutorService executor = Executors.newFixedThreadPool(3);
+    private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
 
     private final CountDownLatch done = new CountDownLatch(1);
 
@@ -40,7 +41,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final EsQueue tasks;
 
-    private ClusterInput.LeaderTask leaderTask;
+    private StoppableLoop leaderTask;
 
     public ClusterInput(final IRubyObject queue, final EsClient provider) {
         this(new JavaQueue(queue), provider);
@@ -66,8 +67,13 @@ public final class ClusterInput implements Runnable, Closeable {
 
     @Override
     public void run() {
-        executor.submit(new HeartbeatLoop(esClient));
-        executor.submit(new LeaderElectionLoop(esClient));
+        executor.scheduleAtFixedRate(
+            new HeartbeatAction(esClient), 0L, 5L, TimeUnit.SECONDS
+        );
+        executor.scheduleAtFixedRate(
+            new LeaderElectionAction(esClient), 0L, LeaderElectionAction.ELECTION_PERIOD,
+            TimeUnit.MILLISECONDS
+        );
         try {
             synchronized (this) {
                 leaderTask = setupLeaderTask();
@@ -118,7 +124,7 @@ public final class ClusterInput implements Runnable, Closeable {
         }
     }
 
-    private ClusterInput.LeaderTask setupLeaderTask() {
+    private StoppableLoop setupLeaderTask() {
         try {
             Map<String, Object> configuration;
             while (!(configuration = getConfig()).containsKey(LOGSTASH_TASK_CLASS_SETTING)) {
@@ -137,19 +143,11 @@ public final class ClusterInput implements Runnable, Closeable {
                 clazz
             );
             return Class.forName(clazz)
-                .asSubclass(ClusterInput.LeaderTask.class).getConstructor(ClusterInput.class)
+                .asSubclass(StoppableLoop.class).getConstructor(ClusterInput.class)
                 .newInstance(this);
         } catch (final Exception ex) {
             LOGGER.error("Failed to set up leader task because of: {}", ex);
             throw new IllegalStateException(ex);
         }
     }
-
-    public interface LeaderTask extends Runnable {
-
-        void awaitStop();
-
-        void stop();
-    }
-
 }

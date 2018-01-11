@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.RubyUtil;
 import org.logstash.cluster.elasticsearch.EsClient;
+import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -100,7 +101,7 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
         }
     }
 
-    public static final class SimpleTaskLeader implements ClusterInput.LeaderTask {
+    public static final class SimpleTaskLeader implements StoppableLoop {
 
         private final ClusterInput cluster;
 

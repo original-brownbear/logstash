@@ -43,7 +43,7 @@ public final class EsLock {
     }
 
     public void unlock() {
-        map.put(EXPIRE_TIME_KEY, 0);
+        map.put(EXPIRE_TIME_KEY, 0L);
     }
 
     public static final class LockState {

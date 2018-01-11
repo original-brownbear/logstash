@@ -28,10 +28,11 @@ import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
+import org.logstash.cluster.execution.StoppableLoop;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
-public final class LsS3ClusterInput implements ClusterInput.LeaderTask {
+public final class LsS3ClusterInput implements StoppableLoop {
 
     public static final String PROCESSING_STATE = "PROCESSING";
 
