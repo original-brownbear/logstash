@@ -90,8 +90,7 @@ public final class ClusterInput implements Runnable, Closeable {
                     task.complete();
                     LOGGER.info(
                         "Completed task {} on {} for partition {}",
-                        task.getId(), task.getPartition().getId(), localNode
-                    );
+                        task.getId(), task.getPartition().getId(), localNode);
                 }
             }
         } catch (final Exception ex) {
