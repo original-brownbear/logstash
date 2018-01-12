@@ -14,11 +14,11 @@ import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.logstash.LsClusterIntegTestCase;
-import org.logstash.RubyUtil;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.state.Partition;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
+import org.logstash.plugins.generator.GeneratorClusterInput;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -97,7 +97,7 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             esClient.publishJobSettings(
                 Collections.singletonMap(
                     ClusterInput.LOGSTASH_TASK_CLASS_SETTING,
-                    ClusterInputTest.SimpleTaskLeader.class.getName()
+                    GeneratorClusterInput.class.getName()
                 )
             );
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue = new LinkedTransferQueue<>();
@@ -109,24 +109,6 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
             } finally {
                 exec.shutdownNow();
             }
-        }
-    }
-
-    public static final class SimpleTaskLeader implements Runnable {
-
-        private final ClusterInput cluster;
-
-        public SimpleTaskLeader(final ClusterInput cluster) {
-            this.cluster = cluster;
-        }
-
-        @Override
-        public void run() {
-            cluster.getTasks().pushTask(
-                (server, events) -> events.push(
-                    new JrubyEventExtLibrary.RubyEvent(RubyUtil.RUBY, RubyUtil.RUBY_EVENT_CLASS)
-                )
-            );
         }
     }
 

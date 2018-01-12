@@ -15,6 +15,7 @@ import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.cluster.execution.LeaderElectionAction;
 import org.logstash.cluster.execution.WorkerHeartbeatAction;
+import org.logstash.cluster.state.Task;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -23,8 +24,6 @@ public final class ClusterInput implements Runnable, Closeable {
     public static final String LOGSTASH_TASK_CLASS_SETTING = "lstaskclass";
 
     public static final String LEADERSHIP_IDENTIFIER = "lsclusterleader";
-
-    public static final String TASK_QUEUE_NAME = "logstashWorkQueue";
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterInput.class);
 
@@ -42,15 +41,15 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final EsLock leaderLock;
 
-    public ClusterInput(final IRubyObject queue, final EsClient provider) {
-        this(new JavaQueue(queue), provider);
+    public ClusterInput(final IRubyObject queue, final EsClient esClient) {
+        this(new JavaQueue(queue), esClient);
     }
 
-    public ClusterInput(final EventQueue queue, final EsClient provider) {
+    public ClusterInput(final EventQueue queue, final EsClient esClient) {
         this.queue = queue;
-        this.esClient = provider;
-        tasks = esClient.queue(TASK_QUEUE_NAME);
-        leaderLock = esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
+        this.esClient = esClient;
+        tasks = this.esClient.taskQueue();
+        leaderLock = this.esClient.lock(ClusterInput.LEADERSHIP_IDENTIFIER);
     }
 
     public Map<String, Object> getConfig() {
@@ -78,11 +77,13 @@ public final class ClusterInput implements Runnable, Closeable {
                 TimeUnit.MILLISECONDS
             );
             while (running.get()) {
-                final WorkerTask task = tasks.nextTask();
+                final Task task = tasks.nextTask();
                 if (task != null) {
-                    LOGGER.info("Running new task on {}", esClient.getConfig().localNode());
-                    task.enqueueEvents(this, queue);
-                    tasks.complete(task);
+                    final String localNode = esClient.getConfig().localNode();
+                    LOGGER.info("Running new task on {}", task.getId(), localNode);
+                    task.getTask().enqueueEvents(this, queue);
+                    task.complete();
+                    LOGGER.info("Completed task {} on {}", task.getId(), localNode);
                 }
             }
         } catch (final Exception ex) {

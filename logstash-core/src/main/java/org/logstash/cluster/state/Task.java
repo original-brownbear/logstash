@@ -2,6 +2,7 @@ package org.logstash.cluster.state;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
@@ -35,6 +36,10 @@ public final class Task {
         this.id = id;
     }
 
+    public int getId() {
+        return id;
+    }
+
     @SuppressWarnings("unchecked")
     public WorkerTask getTask() {
         return TaskSerializer.deserialize(
@@ -51,11 +56,20 @@ public final class Task {
 
     @SuppressWarnings("unchecked")
     public Task.State getState() {
-        return
-            Task.State.valueOf(
-                (String) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
-                    .get(STATE_FIELD_KEY)
-            );
+        return Task.State.valueOf(
+            (String) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
+                .get(STATE_FIELD_KEY)
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    public void complete() {
+        final String taskKey = String.format("t%d", id);
+        final Map<String, Object> current =
+            (Map<String, Object>) map.asMap().get(taskKey);
+        final Map<String, Object> updated = new HashMap<>(current);
+        updated.put(STATE_FIELD_KEY, Task.State.COMPLETE);
+        map.put(taskKey, updated);
     }
 
     public enum State {

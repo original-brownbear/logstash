@@ -46,8 +46,8 @@ public final class EsClient implements AutoCloseable {
         return EsMap.create(client, name);
     }
 
-    public EsQueue queue(final String name) {
-        return EsQueue.create(client, name);
+    public EsQueue taskQueue() {
+        return EsQueue.create(client);
     }
 
     public EsLock lock(final String name) {

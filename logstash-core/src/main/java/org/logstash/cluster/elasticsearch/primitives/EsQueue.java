@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.LsEsRestClient;
 import org.logstash.cluster.execution.LeaderElectionAction;
@@ -12,17 +13,16 @@ import org.logstash.cluster.state.Task;
 
 public final class EsQueue {
 
-    private final String name;
+    private static final AtomicInteger HASH_SOURCE = new AtomicInteger(0);
 
     private final LsEsRestClient client;
 
-    public static EsQueue create(final LsEsRestClient esClient, final String name) {
-        return new EsQueue(esClient, name);
+    public static EsQueue create(final LsEsRestClient esClient) {
+        return new EsQueue(esClient);
     }
 
-    private EsQueue(final LsEsRestClient esClient, final String name) {
+    private EsQueue(final LsEsRestClient esClient) {
         client = esClient;
-        this.name = name;
     }
 
     public boolean pushTask(final WorkerTask task) {
@@ -31,27 +31,19 @@ public final class EsQueue {
         );
         final int partitionCount = partitions.size();
         if (partitionCount > 0) {
-            partitions.get(task.hashCode() % partitionCount).pushTask(task);
+            partitions.get(HASH_SOURCE.incrementAndGet() % partitionCount).pushTask(task);
             return true;
         } else {
             return false;
         }
     }
 
-    public void complete(final WorkerTask task) {
-
-    }
-
-    public WorkerTask nextTask() {
+    public Task nextTask() {
         final Optional<Task> taskOptional = Partition.fromMap(
             EsMap.create(client, LeaderElectionAction.PARTITION_MAP_DOC)
         ).stream().filter(partition -> partition.getOwner().equals(client.getConfig().localNode()))
             .map(Partition::getCurrentTask).filter(Objects::nonNull).findFirst();
-        if (taskOptional.isPresent()) {
-            return taskOptional.get().getTask();
-        } else {
-            return null;
-        }
+        return taskOptional.orElse(null);
     }
 
 }
