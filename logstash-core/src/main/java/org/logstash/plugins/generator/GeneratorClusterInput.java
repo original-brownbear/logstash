@@ -25,7 +25,6 @@ public final class GeneratorClusterInput implements Runnable {
                     events.push(event);
                 }
             }
-
         );
     }
 }
