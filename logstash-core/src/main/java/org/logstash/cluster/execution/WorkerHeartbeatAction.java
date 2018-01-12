@@ -1,7 +1,6 @@
 package org.logstash.cluster.execution;
 
 import java.util.Collection;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +19,6 @@ public final class WorkerHeartbeatAction implements Runnable {
     public WorkerHeartbeatAction(final EsClient client) {
         this.client = client;
         local = client.getConfig().localNode();
-        LOGGER.info("Started background heartbeat loop on {}", local);
     }
 
     @Override

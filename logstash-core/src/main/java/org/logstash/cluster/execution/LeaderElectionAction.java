@@ -18,11 +18,9 @@ import org.logstash.cluster.state.Partition;
 
 public final class LeaderElectionAction implements Runnable, AutoCloseable {
 
-    public static final String PARTITION_MAP_DOC = "partition-map";
+    private static final Logger LOGGER = LogManager.getLogger(LeaderElectionAction.class);
 
     public static final int PARTITIONS_PER_NODE = 1;
-
-    private static final Logger LOGGER = LogManager.getLogger(LeaderElectionAction.class);
 
     private final ScheduledExecutorService leaderExecutor =
         Executors.newSingleThreadScheduledExecutor();
@@ -41,7 +39,7 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
         this.input = input;
         this.leaderLock = input.getEsClient().lock(ClusterInput.LEADERSHIP_IDENTIFIER);
         local = input.getEsClient().getConfig().localNode();
-        partitionMap = input.getEsClient().map(PARTITION_MAP_DOC);
+        partitionMap = input.getEsClient().map(LsClusterDocuments.PARTITION_MAP_DOC);
     }
 
     @Override

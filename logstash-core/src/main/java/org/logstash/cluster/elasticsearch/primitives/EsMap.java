@@ -59,24 +59,16 @@ public final class EsMap {
                 final Map<String, Object> updated = new HashMap<>();
                 updated.putAll(data);
                 updated.putAll(entries);
-                client.getClient().getLowLevelClient().performRequest(
-                    "PUT", String.format("/%s/maps/%s", client.getConfig().esIndex(), name),
-                    Collections.singletonMap("version", String.valueOf(version)),
-                    new NStringEntity(
-                        ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
-                            .writeValueAsString(updated)
-                    ),
-                    new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                executePut(
+                    updated,
+                    String.format("/%s/maps/%s", client.getConfig().esIndex(), name),
+                    Collections.singletonMap("version", String.valueOf(version))
                 );
             } else {
-                client.getClient().getLowLevelClient().performRequest(
-                    "PUT", String.format("/%s/maps/%s/_create", client.getConfig().esIndex(), name),
-                    Collections.emptyMap(),
-                    new NStringEntity(
-                        ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
-                            .writeValueAsString(entries)
-                    ),
-                    new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                executePut(
+                    entries,
+                    String.format("/%s/maps/%s/_create", client.getConfig().esIndex(), name),
+                    Collections.emptyMap()
                 );
             }
         } catch (final ResponseException ex) {
@@ -101,24 +93,16 @@ public final class EsMap {
                     final Map<String, Object> updated = new HashMap<>();
                     updated.putAll(source);
                     updated.putAll(entries);
-                    client.getClient().getLowLevelClient().performRequest(
-                        "PUT", String.format("/%s/maps/%s", client.getConfig().esIndex(), name),
-                        Collections.singletonMap("version", String.valueOf(version)),
-                        new NStringEntity(
-                            ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
-                                .writeValueAsString(updated)
-                        ),
-                        new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                    executePut(
+                        updated,
+                        String.format("/%s/maps/%s", client.getConfig().esIndex(), name),
+                        Collections.singletonMap("version", String.valueOf(version))
                     );
                 } else {
-                    client.getClient().getLowLevelClient().performRequest(
-                        "PUT", String.format("/%s/maps/%s/_create", client.getConfig().esIndex(), name),
-                        Collections.emptyMap(),
-                        new NStringEntity(
-                            ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
-                                .writeValueAsString(entries)
-                        ),
-                        new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+                    executePut(
+                        entries,
+                        String.format("/%s/maps/%s/_create", client.getConfig().esIndex(), name),
+                        Collections.emptyMap()
                     );
                 }
                 return true;
@@ -153,5 +137,18 @@ public final class EsMap {
         } catch (final IOException ex) {
             throw new IllegalStateException(ex);
         }
+    }
+
+    private void executePut(final Map<String, Object> entries, final String path,
+        final Map<String, String> params) throws IOException {
+        client.getClient().getLowLevelClient().performRequest(
+            "PUT", String.format(path, client.getConfig().esIndex(), name),
+            params,
+            new NStringEntity(
+                ObjectMappers.JSON_MAPPER.writer().forType(Map.class)
+                    .writeValueAsString(entries)
+            ),
+            new BasicHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+        );
     }
 }

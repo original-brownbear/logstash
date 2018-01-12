@@ -12,7 +12,7 @@ import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
-import org.logstash.cluster.elasticsearch.primitives.EsQueue;
+import org.logstash.cluster.state.TaskQueue;
 import org.logstash.cluster.execution.LeaderElectionAction;
 import org.logstash.cluster.execution.TimingConstants;
 import org.logstash.cluster.execution.WorkerHeartbeatAction;
@@ -38,7 +38,7 @@ public final class ClusterInput implements Runnable, Closeable {
 
     private final EventQueue queue;
 
-    private final EsQueue tasks;
+    private final TaskQueue tasks;
 
     private final EsLock leaderLock;
 
@@ -61,16 +61,18 @@ public final class ClusterInput implements Runnable, Closeable {
         return esClient;
     }
 
-    public EsQueue getTasks() {
+    public TaskQueue getTasks() {
         return tasks;
     }
 
     @Override
     public void run() {
+        final String localNode = esClient.getConfig().localNode();
         executor.scheduleAtFixedRate(
             new WorkerHeartbeatAction(esClient), 0L,
             TimingConstants.HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS
         );
+        LOGGER.info("Started background heartbeat loop on {}", localNode);
         try (LeaderElectionAction leaderAction = new LeaderElectionAction(this)) {
             executor.scheduleAtFixedRate(
                 leaderAction,
@@ -80,7 +82,6 @@ public final class ClusterInput implements Runnable, Closeable {
             while (running.get()) {
                 final Task task = tasks.nextTask();
                 if (task != null) {
-                    final String localNode = esClient.getConfig().localNode();
                     LOGGER.info("Running new task on {}", task.getId(), localNode);
                     task.getTask().enqueueEvents(this, queue);
                     task.complete();

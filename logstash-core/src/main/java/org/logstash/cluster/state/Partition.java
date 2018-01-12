@@ -24,6 +24,8 @@ public final class Partition {
 
     private final int id;
 
+    private final String mapKey;
+
     @SuppressWarnings("unchecked")
     public static Collection<Partition> fromMap(final EsMap table) {
         final Map<String, Object> raw = table.asMap();
@@ -39,6 +41,7 @@ public final class Partition {
     private Partition(final EsMap map, final int id) {
         this.lockMap = map;
         this.id = id;
+        mapKey = String.format("p%d", id);
         tasksMap = EsMap.create(map.getClient(), String.format("tasksp%d", id));
     }
 
@@ -75,9 +78,8 @@ public final class Partition {
             System.currentTimeMillis() + TimingConstants.PARTITION_TIMEOUT_MS
         );
         return lockMap.putAllConditionally(
-            Collections.singletonMap(String.format("p%d", id), updated), current -> {
-                final Map<String, Object> raw =
-                    (Map<String, Object>) current.get(String.format("p%d", id));
+            Collections.singletonMap(mapKey, updated), current -> {
+                final Map<String, Object> raw = (Map<String, Object>) current.get(mapKey);
                 return (long) raw.get(EsLock.EXPIRE_TIME_KEY) < System.currentTimeMillis()
                     || raw.get(EsLock.TOKEN_KEY).equals(local);
             }
@@ -86,14 +88,13 @@ public final class Partition {
 
     @SuppressWarnings("unchecked")
     public String getOwner() {
-        return (String) ((Map<String, Object>) lockMap.asMap()
-            .get(String.format("p%d", id))).get(EsLock.TOKEN_KEY);
+        return (String) ((Map<String, Object>) lockMap.asMap().get(mapKey)).get(EsLock.TOKEN_KEY);
     }
 
     @SuppressWarnings("unchecked")
     public long getExpire() {
         return (long) ((Map<String, Object>) lockMap.asMap()
-            .get(String.format("p%d", id))).get(EsLock.EXPIRE_TIME_KEY);
+            .get(mapKey)).get(EsLock.EXPIRE_TIME_KEY);
     }
 
     public int getId() {

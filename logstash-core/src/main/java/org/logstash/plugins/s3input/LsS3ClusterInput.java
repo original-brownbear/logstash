@@ -25,7 +25,7 @@ import org.logstash.cluster.ClusterInput;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
-import org.logstash.cluster.elasticsearch.primitives.EsQueue;
+import org.logstash.cluster.state.TaskQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -67,7 +67,7 @@ public final class LsS3ClusterInput implements Runnable {
                 (String) config.get(S3_REGION_INDEX),
                 (String) config.get(S3_BUCKET_INDEX)
             );
-            final EsQueue tasks = cluster.getTasks();
+            final TaskQueue tasks = cluster.getTasks();
             final EsMap finishedMap = esClient.map(FINISHED_OBJECTS_MAP);
             while (!stopped.get()) {
                 int found = 0;
