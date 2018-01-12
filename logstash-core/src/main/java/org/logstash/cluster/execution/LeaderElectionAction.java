@@ -91,8 +91,8 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
 
     private Runnable setupLeaderTask() {
         try {
-            Map<String, Object> configuration;
-            if (!(configuration = input.getConfig()).containsKey(ClusterInput.LOGSTASH_TASK_CLASS_SETTING)) {
+            final Map<String, Object> configuration = input.getConfig();
+            if (!configuration.containsKey(ClusterInput.LOGSTASH_TASK_CLASS_SETTING)) {
                 LOGGER.info(
                     "No valid cluster input configuration found, will retry in the next election cycle."
                 );
