@@ -30,8 +30,12 @@ public final class WorkerHeartbeatAction implements Runnable {
     @Override
     public void run() {
         LOGGER.info("Running worker heartbeat actions on {}", local);
-        publishOwnNode();
-        maintainPartitionAssignments();
+        try {
+            publishOwnNode();
+            maintainPartitionAssignments();
+        } catch (final Exception ex) {
+            LOGGER.error("Worker heartbeat action died because of: ", ex);
+        }
     }
 
     private void publishOwnNode() {

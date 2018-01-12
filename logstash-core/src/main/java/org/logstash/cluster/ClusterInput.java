@@ -92,6 +92,9 @@ public final class ClusterInput implements Runnable, Closeable {
                     tasks.complete(task);
                 }
             }
+        } catch (final Exception ex) {
+            LOGGER.error("Cluster input main loop died because of:", ex);
+            throw new IllegalStateException(ex);
         } finally {
             leaderLock.unlock();
             done.countDown();

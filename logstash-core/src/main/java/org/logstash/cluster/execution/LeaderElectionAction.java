@@ -56,7 +56,7 @@ public final class LeaderElectionAction implements Runnable {
                     final Runnable leaderAction = setupLeaderTask();
                     if (leaderAction != null) {
                         LOGGER.info("Input configuration ready, starting leader task.");
-                        leaderTask.set(input.getExecutor().scheduleAtFixedRate(leaderAction, 0L, 1L, TimeUnit.NANOSECONDS));
+                        leaderTask.set(input.getExecutor().scheduleAtFixedRate(leaderAction, 0L, 1L, TimeUnit.SECONDS));
                     }
                 }
                 maintainPartitions();

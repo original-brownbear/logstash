@@ -52,9 +52,11 @@ public final class Partition {
         taskMap.put(Task.STATE_FIELD_KEY, Task.State.OUTSTANDING);
         if (tasksMap.putAllConditionally(
             Collections.singletonMap(String.format("t%d", newId), taskMap),
-            current -> !current.containsKey(String.format("t%d", newId))
+            current -> current == null || !current.containsKey(String.format("t%d", newId))
         )) {
             LOGGER.info("Pushed new task to partition {}", id);
+        } else {
+            LOGGER.warn("Failed to push new task to partition {} due to contention", id);
         }
     }
 

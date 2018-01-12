@@ -52,7 +52,10 @@ public final class Task {
     @SuppressWarnings("unchecked")
     public Task.State getState() {
         return
-            (Task.State) ((Map<String, Object>) map.asMap().get(String.format("t%d", id))).get(STATE_FIELD_KEY);
+            Task.State.valueOf(
+                (String) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
+                    .get(STATE_FIELD_KEY)
+            );
     }
 
     public enum State {
