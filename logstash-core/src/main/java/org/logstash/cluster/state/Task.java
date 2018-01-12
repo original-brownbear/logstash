@@ -42,34 +42,31 @@ public final class Task {
 
     @SuppressWarnings("unchecked")
     public WorkerTask getTask() {
-        return TaskSerializer.deserialize(
-            (String) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
-                .get(PAYLOAD_FIELD)
-        );
+        return TaskSerializer.deserialize((String) getTaskData().get(PAYLOAD_FIELD));
     }
 
     @SuppressWarnings("unchecked")
     public long getCreated() {
-        return (long) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
-            .get(CREATED_FIELD_KEY);
+        return (long) getTaskData().get(CREATED_FIELD_KEY);
     }
 
     @SuppressWarnings("unchecked")
     public Task.State getState() {
-        return Task.State.valueOf(
-            (String) ((Map<String, Object>) map.asMap().get(String.format("t%d", id)))
-                .get(STATE_FIELD_KEY)
-        );
+        return Task.State.valueOf((String) getTaskData().get(STATE_FIELD_KEY));
     }
 
     @SuppressWarnings("unchecked")
     public void complete() {
         final String taskKey = String.format("t%d", id);
-        final Map<String, Object> current =
-            (Map<String, Object>) map.asMap().get(taskKey);
+        final Map<String, Object> current = (Map<String, Object>) map.asMap().get(taskKey);
         final Map<String, Object> updated = new HashMap<>(current);
         updated.put(STATE_FIELD_KEY, Task.State.COMPLETE);
         map.put(taskKey, updated);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getTaskData() {
+        return (Map<String, Object>) map.asMap().get(String.format("t%d", id));
     }
 
     public enum State {

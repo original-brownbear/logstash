@@ -80,21 +80,25 @@ public final class Partition {
         return lockMap.putAllConditionally(
             Collections.singletonMap(mapKey, updated), current -> {
                 final Map<String, Object> raw = (Map<String, Object>) current.get(mapKey);
-                return (long) raw.get(EsLock.EXPIRE_TIME_KEY) < System.currentTimeMillis()
-                    || raw.get(EsLock.TOKEN_KEY).equals(local);
+                return EsLock.canLock(local, raw);
             }
         );
     }
 
     @SuppressWarnings("unchecked")
     public String getOwner() {
-        return (String) ((Map<String, Object>) lockMap.asMap().get(mapKey)).get(EsLock.TOKEN_KEY);
+        return (String) getPartitionData().get(EsLock.TOKEN_KEY);
     }
 
     @SuppressWarnings("unchecked")
     public long getExpire() {
-        return (long) ((Map<String, Object>) lockMap.asMap()
-            .get(mapKey)).get(EsLock.EXPIRE_TIME_KEY);
+        return (long) getPartitionData().get(EsLock.EXPIRE_TIME_KEY);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> getPartitionData() {
+        return (Map<String, Object>) lockMap.asMap()
+            .get(mapKey);
     }
 
     public int getId() {

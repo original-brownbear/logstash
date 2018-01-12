@@ -14,6 +14,11 @@ public final class EsLock {
 
     private final String localNode;
 
+    public static boolean canLock(final String token, final Map<String, Object> lockable) {
+        return token.equals(lockable.get(TOKEN_KEY))
+            || System.currentTimeMillis() > ((Number) lockable.get(EXPIRE_TIME_KEY)).longValue();
+    }
+
     public static EsLock create(final LsEsRestClient esClient, final String name) {
         return new EsLock(esClient, name);
     }
@@ -36,9 +41,7 @@ public final class EsLock {
         updated.put(TOKEN_KEY, localNode);
         return map.putAllConditionally(
             updated, current ->
-                current == null || !current.containsKey(TOKEN_KEY)
-                    || localNode.equals(current.get(TOKEN_KEY))
-                    || System.currentTimeMillis() > ((Number) current.get(EXPIRE_TIME_KEY)).longValue()
+                current == null || !current.containsKey(TOKEN_KEY) || canLock(localNode, current)
         );
     }
 
