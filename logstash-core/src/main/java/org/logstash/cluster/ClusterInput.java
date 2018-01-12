@@ -65,29 +65,22 @@ public final class ClusterInput implements Runnable, Closeable {
         return tasks;
     }
 
-    public EsLock leaderLock() {
-        return leaderLock;
-    }
-
-    public ScheduledExecutorService getExecutor() {
-        return executor;
-    }
-
     @Override
     public void run() {
         executor.scheduleAtFixedRate(
             new WorkerHeartbeatAction(esClient), 0L,
             WorkerHeartbeatAction.HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS
         );
-        executor.scheduleAtFixedRate(
-            new LeaderElectionAction(this),
-            0L, LeaderElectionAction.ELECTION_PERIOD,
-            TimeUnit.MILLISECONDS
-        );
-        try {
+        try (LeaderElectionAction leaderAction = new LeaderElectionAction(this)) {
+            executor.scheduleAtFixedRate(
+                leaderAction,
+                0L, LeaderElectionAction.ELECTION_PERIOD,
+                TimeUnit.MILLISECONDS
+            );
             while (running.get()) {
                 final WorkerTask task = tasks.nextTask();
                 if (task != null) {
+                    LOGGER.info("Running new task on {}", esClient.getConfig().localNode());
                     task.enqueueEvents(this, queue);
                     tasks.complete(task);
                 }

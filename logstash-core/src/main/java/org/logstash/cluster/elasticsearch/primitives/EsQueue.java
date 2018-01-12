@@ -25,11 +25,17 @@ public final class EsQueue {
         this.name = name;
     }
 
-    public void pushTask(final WorkerTask task) {
+    public boolean pushTask(final WorkerTask task) {
         final List<Partition> partitions = new ArrayList<>(
             Partition.fromMap(EsMap.create(client, LeaderElectionAction.PARTITION_MAP_DOC))
         );
-        partitions.get(task.hashCode() % partitions.size()).pushTask(task);
+        final int partitionCount = partitions.size();
+        if (partitionCount > 0) {
+            partitions.get(task.hashCode() % partitionCount).pushTask(task);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public void complete(final WorkerTask task) {

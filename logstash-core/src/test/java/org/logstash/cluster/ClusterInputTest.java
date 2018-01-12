@@ -91,7 +91,7 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
 
     public void testSimpleTask() throws Exception {
         final ExecutorService exec = Executors.newSingleThreadScheduledExecutor();
-        final String index = "testsimpletaskindexx";
+        final String index = "testsimpletask";
         final LogstashClusterConfig config = new LogstashClusterConfig(index, getClusterHosts());
         try (EsClient esClient = EsClient.create(config)) {
             esClient.publishJobSettings(

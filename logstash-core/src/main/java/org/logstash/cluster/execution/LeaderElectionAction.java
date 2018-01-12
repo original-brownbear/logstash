@@ -3,6 +3,8 @@ package org.logstash.cluster.execution;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -14,7 +16,7 @@ import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
 import org.logstash.cluster.state.Partition;
 
-public final class LeaderElectionAction implements Runnable {
+public final class LeaderElectionAction implements Runnable, AutoCloseable {
 
     public static final String PARTITION_MAP_DOC = "partition-map";
 
@@ -25,6 +27,9 @@ public final class LeaderElectionAction implements Runnable {
     public static final long ELECTION_PERIOD = TERM_LENGTH / 10L;
 
     private static final Logger LOGGER = LogManager.getLogger(LeaderElectionAction.class);
+
+    private final ScheduledExecutorService leaderExecutor =
+        Executors.newSingleThreadScheduledExecutor();
 
     private final ClusterInput input;
 
@@ -56,7 +61,18 @@ public final class LeaderElectionAction implements Runnable {
                     final Runnable leaderAction = setupLeaderTask();
                     if (leaderAction != null) {
                         LOGGER.info("Input configuration ready, starting leader task.");
-                        leaderTask.set(input.getExecutor().scheduleAtFixedRate(leaderAction, 0L, 1L, TimeUnit.SECONDS));
+                        leaderTask.set(
+                            leaderExecutor.scheduleAtFixedRate(
+                                () -> {
+                                    LOGGER.info("Execution leader action on {}", local);
+                                    try {
+                                        leaderAction.run();
+                                    } catch (final Exception ex) {
+                                        LOGGER.error("Leader action failed because of: ", ex);
+                                    }
+                                }, 0L, 1L, TimeUnit.SECONDS
+                            )
+                        );
                     }
                 }
                 maintainPartitions();
@@ -70,6 +86,11 @@ public final class LeaderElectionAction implements Runnable {
             LOGGER.error("Error in leader election loop:", ex);
             throw new IllegalStateException(ex);
         }
+    }
+
+    @Override
+    public void close() {
+        leaderExecutor.shutdownNow();
     }
 
     private Runnable setupLeaderTask() {
