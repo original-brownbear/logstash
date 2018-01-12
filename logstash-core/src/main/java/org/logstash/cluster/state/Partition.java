@@ -39,7 +39,7 @@ public final class Partition {
     }
 
     private Partition(final EsMap map, final int id) {
-        this.lockMap = map;
+        lockMap = map;
         this.id = id;
         mapKey = String.format("p%d", id);
         tasksMap = EsMap.create(map.getClient(), String.format("tasksp%d", id));
@@ -53,9 +53,10 @@ public final class Partition {
         taskMap.put(Task.PAYLOAD_FIELD, TaskSerializer.serialize(task));
         taskMap.put(Task.CREATED_FIELD_KEY, System.currentTimeMillis());
         taskMap.put(Task.STATE_FIELD_KEY, Task.State.OUTSTANDING);
+        final String taskKey = String.format("t%d", newId);
         if (tasksMap.putAllConditionally(
-            Collections.singletonMap(String.format("t%d", newId), taskMap),
-            current -> current == null || !current.containsKey(String.format("t%d", newId))
+            Collections.singletonMap(taskKey, taskMap),
+            current -> current == null || !current.containsKey(taskKey)
         )) {
             LOGGER.info("Pushed new task to partition {}", id);
         } else {
@@ -64,8 +65,10 @@ public final class Partition {
     }
 
     public Task getCurrentTask() {
-        return Task.fromMap(tasksMap).stream().filter(t -> t.getState() == Task.State.OUTSTANDING)
-            .min(Comparator.comparingLong(Task::getCreated)).orElse(null);
+        return Task.fromMap(tasksMap, this).stream()
+            .filter(t -> t.getState() == Task.State.OUTSTANDING)
+            .min(Comparator.comparingLong(Task::getCreated))
+            .orElse(null);
     }
 
     @SuppressWarnings("unchecked")
@@ -78,10 +81,8 @@ public final class Partition {
             System.currentTimeMillis() + TimingConstants.PARTITION_TIMEOUT_MS
         );
         return lockMap.putAllConditionally(
-            Collections.singletonMap(mapKey, updated), current -> {
-                final Map<String, Object> raw = (Map<String, Object>) current.get(mapKey);
-                return EsLock.canLock(local, raw);
-            }
+            Collections.singletonMap(mapKey, updated),
+            current -> EsLock.canLock(local, (Map<String, Object>) current.get(mapKey))
         );
     }
 
@@ -97,8 +98,7 @@ public final class Partition {
 
     @SuppressWarnings("unchecked")
     private Map<String, Object> getPartitionData() {
-        return (Map<String, Object>) lockMap.asMap()
-            .get(mapKey);
+        return (Map<String, Object>) lockMap.asMap().get(mapKey);
     }
 
     public int getId() {

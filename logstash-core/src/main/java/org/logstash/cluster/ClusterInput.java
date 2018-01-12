@@ -12,11 +12,11 @@ import org.apache.logging.log4j.Logger;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
-import org.logstash.cluster.state.TaskQueue;
 import org.logstash.cluster.execution.LeaderElectionAction;
 import org.logstash.cluster.execution.TimingConstants;
 import org.logstash.cluster.execution.WorkerHeartbeatAction;
 import org.logstash.cluster.state.Task;
+import org.logstash.cluster.state.TaskQueue;
 import org.logstash.ext.EventQueue;
 import org.logstash.ext.JavaQueue;
 
@@ -82,10 +82,16 @@ public final class ClusterInput implements Runnable, Closeable {
             while (running.get()) {
                 final Task task = tasks.nextTask();
                 if (task != null) {
-                    LOGGER.info("Running new task number {}", task.getId(), localNode);
+                    LOGGER.info(
+                        "Running new task number {} for partition {}",
+                        task.getId(), task.getPartition().getId(), localNode
+                    );
                     task.getTask().enqueueEvents(this, queue);
                     task.complete();
-                    LOGGER.info("Completed task {} on {}", task.getId(), localNode);
+                    LOGGER.info(
+                        "Completed task {} on {} for partition {}",
+                        task.getId(), task.getPartition().getId(), localNode
+                    );
                 }
             }
         } catch (final Exception ex) {

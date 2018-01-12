@@ -18,22 +18,29 @@ public final class Task {
 
     private final int id;
 
+    private final Partition partition;
+
     private final EsMap map;
 
-    public static Collection<Task> fromMap(final EsMap table) {
+    public static Collection<Task> fromMap(final EsMap table, final Partition partition) {
         final Map<String, Object> raw = table.asMap();
-        final Collection<Task> partitions = new ArrayList<>();
+        final Collection<Task> tasks = new ArrayList<>();
         raw.forEach((key, value) -> {
             if (key.length() > 1 && key.charAt(0) == 't') {
-                partitions.add(new Task(table, Integer.parseInt(key.substring(1))));
+                tasks.add(new Task(table, Integer.parseInt(key.substring(1)), partition));
             }
         });
-        return partitions;
+        return tasks;
     }
 
-    private Task(final EsMap map, final int id) {
+    private Task(final EsMap map, final int id, final Partition partition) {
         this.map = map;
         this.id = id;
+        this.partition = partition;
+    }
+
+    public Partition getPartition() {
+        return partition;
     }
 
     public int getId() {
