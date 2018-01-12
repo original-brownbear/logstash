@@ -10,10 +10,6 @@ import org.logstash.cluster.state.Partition;
 
 public final class WorkerHeartbeatAction implements Runnable {
 
-    public static final long HEARTBEAT_INTERVAL_MS = TimeUnit.SECONDS.toMillis(5L);
-
-    public static final long PARTITION_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(15L);
-
     private static final Logger LOGGER =
         LogManager.getLogger(WorkerHeartbeatAction.class);
 

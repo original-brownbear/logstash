@@ -14,6 +14,7 @@ import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsQueue;
 import org.logstash.cluster.execution.LeaderElectionAction;
+import org.logstash.cluster.execution.TimingConstants;
 import org.logstash.cluster.execution.WorkerHeartbeatAction;
 import org.logstash.cluster.state.Task;
 import org.logstash.ext.EventQueue;
@@ -68,12 +69,12 @@ public final class ClusterInput implements Runnable, Closeable {
     public void run() {
         executor.scheduleAtFixedRate(
             new WorkerHeartbeatAction(esClient), 0L,
-            WorkerHeartbeatAction.HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS
+            TimingConstants.HEARTBEAT_INTERVAL_MS, TimeUnit.MILLISECONDS
         );
         try (LeaderElectionAction leaderAction = new LeaderElectionAction(this)) {
             executor.scheduleAtFixedRate(
                 leaderAction,
-                0L, LeaderElectionAction.ELECTION_PERIOD,
+                0L, TimingConstants.ELECTION_PERIOD,
                 TimeUnit.MILLISECONDS
             );
             while (running.get()) {

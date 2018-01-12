@@ -22,10 +22,6 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
 
     public static final int PARTITIONS_PER_NODE = 1;
 
-    public static final long TERM_LENGTH = TimeUnit.SECONDS.toMillis(30L);
-
-    public static final long ELECTION_PERIOD = TERM_LENGTH / 10L;
-
     private static final Logger LOGGER = LogManager.getLogger(LeaderElectionAction.class);
 
     private final ScheduledExecutorService leaderExecutor =
@@ -52,7 +48,7 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
     public void run() {
         LOGGER.info("Started background leader election loop on {}", local);
         try {
-            final long expire = System.currentTimeMillis() + TERM_LENGTH;
+            final long expire = System.currentTimeMillis() + TimingConstants.TERM_LENGTH;
             LOGGER.info("Trying to acquire leader lock until {} on {}", expire, local);
             if (leaderLock.lock(expire)) {
                 LOGGER.info("{} acquired leadership until {}", local, expire);

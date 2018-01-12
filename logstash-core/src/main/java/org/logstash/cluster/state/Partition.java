@@ -11,7 +11,7 @@ import org.apache.logging.log4j.Logger;
 import org.logstash.cluster.WorkerTask;
 import org.logstash.cluster.elasticsearch.primitives.EsLock;
 import org.logstash.cluster.elasticsearch.primitives.EsMap;
-import org.logstash.cluster.execution.WorkerHeartbeatAction;
+import org.logstash.cluster.execution.TimingConstants;
 import org.logstash.cluster.io.TaskSerializer;
 
 public final class Partition {
@@ -72,7 +72,7 @@ public final class Partition {
         updated.put(EsLock.TOKEN_KEY, local);
         updated.put(
             EsLock.EXPIRE_TIME_KEY,
-            System.currentTimeMillis() + WorkerHeartbeatAction.PARTITION_TIMEOUT_MS
+            System.currentTimeMillis() + TimingConstants.PARTITION_TIMEOUT_MS
         );
         return lockMap.putAllConditionally(
             Collections.singletonMap(String.format("p%d", id), updated), current -> {
