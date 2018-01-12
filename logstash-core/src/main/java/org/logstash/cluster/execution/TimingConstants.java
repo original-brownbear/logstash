@@ -12,6 +12,8 @@ public final class TimingConstants {
 
     public static final long PARTITION_TIMEOUT_MS = TimeUnit.SECONDS.toMillis(15L);
 
+    public static final long LEADER_ACTION_PERIOD_MS = TimeUnit.SECONDS.toMillis(1L);
+
     private TimingConstants() {
         // Holder for Constants
     }

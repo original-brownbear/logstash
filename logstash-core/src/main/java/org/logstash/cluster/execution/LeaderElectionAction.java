@@ -66,7 +66,8 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
                                     } catch (final Exception ex) {
                                         LOGGER.error("Leader action failed because of: ", ex);
                                     }
-                                }, 0L, 1L, TimeUnit.SECONDS
+                                }, 0L, TimingConstants.LEADER_ACTION_PERIOD_MS,
+                                TimeUnit.MILLISECONDS
                             )
                         );
                     }
@@ -128,9 +129,11 @@ public final class LeaderElectionAction implements Runnable, AutoCloseable {
                     newMap.put(String.format("p%d", partition), partitionEntry);
                 }
             );
-            if (partitionMap.putAllConditionally(
-                newMap, existing -> existing == null || existing.isEmpty()
-            )) {
+            if (
+                partitionMap.putAllConditionally(
+                    newMap, existing -> existing == null || existing.isEmpty()
+                )
+                ) {
                 LOGGER.info("Partition table created. ({} Partitions)", partitions);
             }
         } else {
