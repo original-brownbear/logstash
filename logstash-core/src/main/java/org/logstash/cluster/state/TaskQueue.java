@@ -25,9 +25,7 @@ public final class TaskQueue {
     }
 
     public boolean pushTask(final WorkerTask task) {
-        final List<Partition> partitions = new ArrayList<>(
-            Partition.fromMap(EsMap.create(client, LsClusterDocuments.PARTITION_MAP_DOC))
-        );
+        final List<Partition> partitions = getPartitions();
         final int partitionCount = partitions.size();
         if (partitionCount > 0) {
             partitions.get(HASH_SOURCE.incrementAndGet() % partitionCount).pushTask(task);
@@ -38,11 +36,16 @@ public final class TaskQueue {
     }
 
     public Task nextTask() {
-        final Optional<Task> taskOptional = Partition.fromMap(
-            EsMap.create(client, LsClusterDocuments.PARTITION_MAP_DOC)
-        ).stream().filter(partition -> partition.getOwner().equals(client.getConfig().localNode()))
+        final Optional<Task> taskOptional = getPartitions().stream()
+            .filter(partition -> partition.getOwner().equals(client.getConfig().localNode()))
             .map(Partition::getCurrentTask).filter(Objects::nonNull).findFirst();
         return taskOptional.orElse(null);
+    }
+
+    private List<Partition> getPartitions() {
+        return new ArrayList<>(
+            Partition.fromMap(EsMap.create(client, LsClusterDocuments.PARTITION_MAP_DOC))
+        );
     }
 
 }
