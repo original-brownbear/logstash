@@ -17,7 +17,7 @@ public final class LogstashClusterConfig {
         this(UUID.randomUUID().toString(), esIndex, esHosts);
     }
 
-    public LogstashClusterConfig(final String node, final String esIndex,
+    private LogstashClusterConfig(final String node, final String esIndex,
         final Collection<HttpHost> esHosts) {
         this.node = node;
         this.esIndex = esIndex;
