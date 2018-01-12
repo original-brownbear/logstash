@@ -82,7 +82,7 @@ public final class ClusterInput implements Runnable, Closeable {
             while (running.get()) {
                 final Task task = tasks.nextTask();
                 if (task != null) {
-                    LOGGER.info("Running new task on {}", task.getId(), localNode);
+                    LOGGER.info("Running new task number {}", task.getId(), localNode);
                     task.getTask().enqueueEvents(this, queue);
                     task.complete();
                     LOGGER.info("Completed task {} on {}", task.getId(), localNode);
