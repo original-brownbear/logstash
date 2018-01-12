@@ -26,7 +26,7 @@ public final class EsLock {
     public EsLock.LockState holder() {
         final Map<String, Object> current = map.asMap();
         return new EsLock.LockState(
-            (String) current.get(TOKEN_KEY), (long) current.get(EXPIRE_TIME_KEY)
+            (String) current.get(TOKEN_KEY), ((Number) current.get(EXPIRE_TIME_KEY)).longValue()
         );
     }
 
@@ -38,7 +38,7 @@ public final class EsLock {
             updated, current ->
                 current == null || !current.containsKey(TOKEN_KEY)
                     || localNode.equals(current.get(TOKEN_KEY))
-                    || System.currentTimeMillis() > (long) current.get(EXPIRE_TIME_KEY)
+                    || System.currentTimeMillis() > ((Number) current.get(EXPIRE_TIME_KEY)).longValue()
         );
     }
 
