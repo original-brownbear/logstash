@@ -183,18 +183,40 @@ no need to know anything else about other nodes
 
 #### Partition Lock Document
 
-* Like Leader Lock
-* Holds base64 encoded serialized task to be worked on once holding the Lock
-* Can have states "outstanding" (if holder is non-empty it implies "in progress"), "done"
+* Individual locks function like leader lock
 
 ```json
 {
-   "holder" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
-   "expire" : 1515527529288,
-   "task": "ZnNkZnNkZnNkZ2JuamJkbmZpb2dkc2Zpb2dub2RpZm5vaW5pMjQyMTM0bjMyaTQzLy9kc2Y=",
-   "state": "outstanding" 
+   "p1" : {
+       "holder" : "2c717297-6375-4c14-afd2-3d246fdc5d54",
+       "expire" : 1515527529288 
+   },
+   "p2" : {
+       "holder" : "9c717297-7345-4c15-afd2-3d246fdc5d54",
+       "expire" : 1515527529473 
+   }
 }
 ```
 
-* Getting all partition's `expire` field in a single request should be possible for any kind
-of plugin
+#### Tasks Document
+
+* One document per partition (named in a way so that it can be found relative to the partition lock document)
+   * Could also be one document per task if tasks get large
+* Holds base64 encoded serialized task to be worked on once holding the Lock
+* Can have states "outstanding" (if holder is non-empty it implies "in progress"), "done"
+
+
+```json
+{
+   "t1" : {
+       "state" : "COMPLETE",
+       "created" : 1515527529288,
+       "payload" : "Wm5Oa1puTmtabk5rWjJKdWFtSmtibVpwYjJka2MyWnBiMmR1YjJScFptNXZhVzVwTWpReU1UTTBiak15YVRRekx5OWtjMlk9" 
+   },
+   "t2" : {
+       "state" : "OUTSTANDING",
+       "created" : 1515527529473,
+       "payload" : "ZnNkZnNkZnNkZ2JuamJkbmZpb2dkc2Zpb2dub2RpZm5vaW5pMjQyMTM0bjMyaTQzLy9kc2Y=" 
+   }
+}
+```
