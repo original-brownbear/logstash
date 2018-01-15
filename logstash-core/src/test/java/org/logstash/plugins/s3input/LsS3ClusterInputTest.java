@@ -11,11 +11,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedTransferQueue;
 import org.hamcrest.MatcherAssert;
 import org.junit.Assume;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 import org.logstash.LsClusterIntegTestCase;
 import org.logstash.cluster.ClusterInput;
+import org.logstash.cluster.ClusterInputTest;
 import org.logstash.cluster.LogstashClusterConfig;
 import org.logstash.cluster.elasticsearch.EsClient;
 import org.logstash.ext.EventQueue;
@@ -36,9 +35,6 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
 
     private static final String TEST_SECRET = System.getProperty("org.logstash.s3it.secret");
 
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
     @Test
     public void readsOnMultipleNodes() throws Exception {
         Assume.assumeNotNull(TEST_BUCKET, TEST_REGION, TEST_KEY, TEST_SECRET);
@@ -48,9 +44,7 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
             final String index = "readsonmultiplenodes";
             exec.submit(() -> {
                 try (EsClient configProvider =
-                         EsClient.create(
-                             new LogstashClusterConfig(index, getClusterHosts())
-                         )
+                         EsClient.create(new LogstashClusterConfig(index, getClusterHosts()))
                 ) {
                     final Map<String, Object> jobSettings = new HashMap<>();
                     jobSettings.put(
@@ -68,15 +62,17 @@ public final class LsS3ClusterInputTest extends LsClusterIntegTestCase {
             });
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue1 = new LinkedTransferQueue<>();
             final BlockingQueue<JrubyEventExtLibrary.RubyEvent> queue2 = new LinkedTransferQueue<>();
-            try (EsClient configProvider1 =
+            try (EsClient esClient1 =
                      EsClient.create(new LogstashClusterConfig(index, getClusterHosts()));
-                 ClusterInput input1 = new ClusterInput(EventQueue.wrap(queue1), configProvider1);
-                 EsClient configProvider2 =
+                 ClusterInput input1 = new ClusterInput(EventQueue.wrap(queue1), esClient1);
+                 EsClient esClient2 =
                      EsClient.create(new LogstashClusterConfig(index, getClusterHosts()));
-                 ClusterInput input2 = new ClusterInput(EventQueue.wrap(queue2), configProvider2)
+                 ClusterInput input2 = new ClusterInput(EventQueue.wrap(queue2), esClient2)
             ) {
                 exec.execute(input1);
                 exec.execute(input2);
+                // Have to wait here to ensure we actually have tasks go to different cluster nodes
+                ClusterInputTest.waitAllPartitionsAssigned(esClient1, 2);
                 startJob.countDown();
                 MatcherAssert.assertThat(
                     queue1.take(), instanceOf(JrubyEventExtLibrary.RubyEvent.class)

@@ -45,6 +45,8 @@ public final class LsEsRestClient implements Closeable {
                     throw new IllegalStateException(ex);
                 }
             }
+        } catch (final ResponseException ex) {
+            //Ignored, this means another node created the index concurrently to this one
         } catch (final IOException ex) {
             throw new IllegalStateException(ex);
         }

@@ -13,9 +13,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.Event;
@@ -45,10 +42,6 @@ public final class LsS3ClusterInput implements Runnable {
 
     private static final String FINISHED_OBJECTS_MAP = "s3finishedobjects";
 
-    private final CountDownLatch stopLatch = new CountDownLatch(1);
-
-    private final AtomicBoolean stopped = new AtomicBoolean(false);
-
     private final ClusterInput cluster;
 
     public LsS3ClusterInput(final ClusterInput cluster) {
@@ -69,32 +62,19 @@ public final class LsS3ClusterInput implements Runnable {
             );
             final TaskQueue tasks = cluster.getTasks();
             final EsMap finishedMap = esClient.map(FINISHED_OBJECTS_MAP);
-            while (!stopped.get()) {
-                int found = 0;
-                for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
-                    found++;
-                    LOGGER.info("Enqueuing task to process {}", object);
-                    tasks.pushTask(new LsS3ClusterInput.S3Task(s3cfg, object));
-                    finishedMap.put(object, PROCESSING_STATE);
-                    if (stopped.get()) {
-                        LOGGER.info("S3 input has been stopped.");
-                        break;
-                    }
-                }
-                if (found == 0) {
-                    TimeUnit.SECONDS.sleep(5L);
-                }
-                if (found > 0 && !stopped.get()) {
-                    LOGGER.info("Listening for new files in S3.");
-                }
+            int found = 0;
+            for (final String object : new LsS3ClusterInput.S3PathIterator(s3cfg, finishedMap)) {
+                found++;
+                LOGGER.info("Enqueuing task to process {}", object);
+                tasks.pushTask(new LsS3ClusterInput.S3Task(s3cfg, object));
+                finishedMap.put(object, PROCESSING_STATE);
             }
+            LOGGER.info(
+                "Found {} objects to download.\nListening for new objects in S3.",
+                found
+            );
         } catch (final Exception ex) {
             LOGGER.error("Exception in S3 Input Main Loop:", ex);
-            throw new IllegalStateException(ex);
-        } finally {
-            stopped.set(true);
-            stopLatch.countDown();
-            LOGGER.info("Finished shutting down S3 Input Leader on {}", localId);
         }
     }
 

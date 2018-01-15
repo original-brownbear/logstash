@@ -28,6 +28,22 @@ import static org.hamcrest.Matchers.is;
  */
 public final class ClusterInputTest extends LsClusterIntegTestCase {
 
+    public static void waitAllPartitionsAssigned(final EsClient client, final int count)
+        throws InterruptedException {
+        int waits = 1000;
+        while (
+            client.getPartitions().size() != count ||
+                client.getPartitions().stream().anyMatch(partition -> partition.getOwner() != null
+                    && partition.getOwner().isEmpty())
+            ) {
+            waits -= 1;
+            TimeUnit.MILLISECONDS.sleep(100L);
+            if (waits == 0) {
+                Assert.fail();
+            }
+        }
+    }
+
     @Test
     public void clusterBootstrapTest() throws Exception {
         final ExecutorService exec = Executors.newSingleThreadExecutor();
@@ -108,22 +124,6 @@ public final class ClusterInputTest extends LsClusterIntegTestCase {
                 );
             } finally {
                 exec.shutdownNow();
-            }
-        }
-    }
-
-    private static void waitAllPartitionsAssigned(final EsClient client, final int count)
-        throws InterruptedException {
-        int waits = 1000;
-        while (
-            client.getPartitions().size() != count ||
-                client.getPartitions().stream().anyMatch(partition -> partition.getOwner() != null
-                    && partition.getOwner().isEmpty())
-            ) {
-            waits -= 1;
-            TimeUnit.MILLISECONDS.sleep(100L);
-            if (waits == 0) {
-                Assert.fail();
             }
         }
     }

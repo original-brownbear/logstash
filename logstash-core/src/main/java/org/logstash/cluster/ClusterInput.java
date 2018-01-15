@@ -82,19 +82,21 @@ public final class ClusterInput implements Runnable, Closeable {
             while (running.get()) {
                 final Task task = tasks.nextTask();
                 if (task != null) {
+                    final int partition = task.getPartition().getId();
                     LOGGER.info(
                         "Running new task number {} for partition {}",
-                        task.getId(), task.getPartition().getId(), localNode
+                        task.getId(), partition, localNode
                     );
                     task.getTask().enqueueEvents(this, queue);
                     task.complete();
                     LOGGER.info(
                         "Completed task {} on {} for partition {}",
-                        task.getId(), task.getPartition().getId(), localNode);
+                        task.getId(), localNode, partition
+                    );
                 }
             }
         } catch (final Exception ex) {
-            LOGGER.error("Cluster input main loop died because of:", ex);
+            LOGGER.error("Cluster input main loop stopped because of:", ex);
             throw new IllegalStateException(ex);
         } finally {
             leaderLock.unlock();
