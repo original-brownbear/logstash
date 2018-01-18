@@ -271,19 +271,6 @@ public final class JrubyTimestampExtLibrary {
                 ? context.tru : context.fals;
         }
 
-        @JRubyMethod(name = "+", required = 1)
-        public IRubyObject plus(final ThreadContext context, final IRubyObject val) {
-            return this.ruby_time(context).callMethod(context, "+", val);
-        }
-
-        @JRubyMethod(name = "-", required = 1)
-        public IRubyObject minus(final ThreadContext context, final IRubyObject val) {
-            return this.ruby_time(context).callMethod(
-                context, "-",
-                val instanceof RubyTimestamp ? ((RubyTimestamp)val).ruby_time(context) : val
-            );
-        }
-
         private int compare(final ThreadContext context, final IRubyObject other) {
             return op_cmp(context, other).convertToInteger().getIntValue();
         }
