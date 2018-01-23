@@ -66,6 +66,7 @@ task javaTests(type: Test) {
   systemProperty 'tests.security.manager', "false"
   exclude '/org/logstash/RSpecTests.class'
   exclude '/org/logstash/config/ir/ConfigCompilerTest.class'
+  exclude '/org/logstash/config/ir/CompiledPipelineTest.class'
 }
 
 task rubyTests(type: Test) {
@@ -75,6 +76,7 @@ task rubyTests(type: Test) {
   systemProperty 'tests.security.manager', "false"
   include '/org/logstash/RSpecTests.class'
   include '/org/logstash/config/ir/ConfigCompilerTest.class'
+  include '/org/logstash/config/ir/CompiledPipelineTest.class'
 }
 
 test {
@@ -127,7 +129,7 @@ dependencies {
   compile "com.fasterxml.jackson.core:jackson-core:${jacksonVersion}"
   compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
   compile "com.fasterxml.jackson.core:jackson-annotations:${jacksonVersion}"
-  compile 'org.codehaus.janino:janino:3.0.7'
+  compile 'org.codehaus.janino:janino:3.0.8'
   compile('com.amazonaws:aws-java-sdk-s3:1.11.254') {
     exclude group: 'joda-time', module: 'joda-time'
   }
@@ -138,6 +140,7 @@ dependencies {
   compile "org.jruby:jruby-complete:${jrubyVersion}"
   runtime 'org.apache.logging.log4j:log4j-slf4j-impl:2.9.1'
   compile("org.jruby:jruby-complete:${jrubyVersion}")
+  compile 'com.google.googlejavaformat:google-java-format:1.5'
   testCompile group: 'net.jodah', name: 'concurrentunit', version: '0.4.3'
   testCompile 'net.jodah:concurrentunit:0.4.3'
   testCompile("org.elasticsearch.test:framework:${esVersion}") {

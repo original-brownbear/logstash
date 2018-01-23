@@ -4,7 +4,6 @@ require "stud/interval"
 require "concurrent"
 require "logstash/namespace"
 require "logstash/errors"
-require "logstash-core/logstash-core"
 require "logstash/event"
 require "logstash/filters/base"
 require "logstash/inputs/base"
@@ -16,13 +15,10 @@ require "logstash/instrument/namespaced_metric"
 require "logstash/instrument/null_metric"
 require "logstash/instrument/namespaced_null_metric"
 require "logstash/instrument/collector"
-require "logstash/instrument/wrapped_write_client"
 require "logstash/util/dead_letter_queue_manager"
-require "logstash/output_delegator"
 require "logstash/java_filter_delegator"
 require "logstash/queue_factory"
 require "logstash/compiler"
-require "logstash/execution_context"
 require "securerandom"
 
 java_import org.logstash.common.DeadLetterQueueFactory
@@ -34,7 +30,7 @@ java_import org.logstash.config.ir.ConfigCompiler
 module LogStash; class JavaBasePipeline
   include LogStash::Util::Loggable
 
-  attr_reader :settings, :config_str, :config_hash, :inputs, :filters, :outputs, :pipeline_id, :lir, :execution_context, :ephemeral_id
+  attr_reader :settings, :config_str, :config_hash, :inputs, :filters, :outputs, :pipeline_id, :lir, :ephemeral_id
   attr_reader :pipeline_config
 
   def initialize(pipeline_config, namespaced_metric = nil, agent = nil)
@@ -57,7 +53,7 @@ module LogStash; class JavaBasePipeline
     @plugin_factory = LogStash::Plugins::PluginFactory.new(
       # use NullMetric if called in the BasePipeline context otherwise use the @metric value
       @lir, LogStash::Plugins::PluginMetricFactory.new(pipeline_id, @metric || Instrument::NullMetric.new),
-      @logger, LogStash::Plugins::ExecutionContextFactory.new(@agent, self, @dlq_writer),
+      LogStash::Plugins::ExecutionContextFactory.new(@agent, self, @dlq_writer),
       JavaFilterDelegator
     )
     @lir_execution = CompiledPipeline.new(@lir, @plugin_factory)
@@ -374,20 +370,14 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
       pipeline_workers.times do |t|
         batched_execution = @lir_execution.buildExecution
-        if t.eql? 0
-          @logger.debug ("Generated Java pipeline entry class: " + batched_execution.class.to_s)
-        end
         thread = Thread.new(self, batched_execution) do |_pipeline, _batched_execution|
-          _pipeline.worker_loop(_batched_execution)
+          org.logstash.execution.WorkerLoop.new(_batched_execution, @signal_queue,
+                                                @filter_queue_client, @events_filtered,
+                                                @events_consumed, @flushing,
+                                                @drain_queue).run
         end
         thread.name="[#{pipeline_id}]>worker#{t}"
         @worker_threads << thread
-      end
-
-      if @logger.debug? || @logger.trace?
-        @lir_execution.getGeneratedSource.each do |line|
-          @logger.debug line
-        end
       end
 
       # inputs should be started last, after all workers
@@ -408,30 +398,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
   def dlq_enabled?
     @settings.get("dead_letter_queue.enable")
-  end
-
-  # Main body of what a worker thread does
-  # Repeatedly takes batches off the queue, filters, then outputs them
-  def worker_loop(batched_execution)
-    shutdown_requested = false
-    while true
-      signal = @signal_queue.poll || NO_SIGNAL
-      shutdown_requested |= signal.shutdown? # latch on shutdown signal
-
-      batch = @filter_queue_client.read_batch # metrics are started in read_batch
-      @events_consumed.increment(batch.size)
-      execute_batch(batched_execution, batch, signal.flush?)
-      @filter_queue_client.close_batch(batch)
-      # keep break at end of loop, after the read_batch operation, some pipeline specs rely on this "final read_batch" before shutdown.
-      break if (shutdown_requested && !draining_queue?)
-    end
-
-    # we are shutting down, queue is drained if it was required, now  perform a final flush.
-    # for this we need to create a new empty batch to contain the final flushed events
-    batch = @filter_queue_client.new_batch
-    @filter_queue_client.start_metrics(batch) # explicitly call start_metrics since we dont do a read_batch here
-    batched_execution.compute(batch.to_a, true, true)
-    @filter_queue_client.close_batch(batch)
   end
 
   def wait_inputs
@@ -463,7 +429,7 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   def inputworker(plugin)
     Util::set_thread_name("[#{pipeline_id}]<#{plugin.class.config_name}")
     begin
-      input_queue_client = wrapped_write_client(plugin)
+      input_queue_client = wrapped_write_client(plugin.id.to_sym)
       plugin.run(input_queue_client)
     rescue => e
       if plugin.stop?
@@ -657,26 +623,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
   private
 
-  def execute_batch(batched_execution, batch, flush)
-    batched_execution.compute(batch.to_a, flush, false)
-    @events_filtered.increment(batch.size)
-    filtered_size = batch.filtered_size
-    @filter_queue_client.add_output_metrics(filtered_size)
-    @filter_queue_client.add_filtered_metrics(filtered_size)
-    @flushing.set(false) if flush
-  rescue Exception => e
-    # Plugins authors should manage their own exceptions in the plugin code
-    # but if an exception is raised up to the worker thread they are considered
-    # fatal and logstash will not recover from this situation.
-    #
-    # Users need to check their configuration or see if there is a bug in the
-    # plugin.
-    @logger.error("Exception in pipelineworker, the pipeline stopped processing new events, please check your filter configuration and restart Logstash.",
-                  default_logging_keys("exception" => e.message, "backtrace" => e.backtrace))
-
-    raise e
-  end
-
   def maybe_setup_out_plugins
     if @outputs_registered.make_true
       register_plugins(@outputs)
@@ -694,10 +640,10 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     @drain_queue ? !@filter_queue_client.empty? : false
   end
 
-  def wrapped_write_client(plugin)
+  def wrapped_write_client(plugin_id)
     #need to ensure that metrics are initialized one plugin at a time, else a race condition can exist.
     @mutex.synchronize do
-      LogStash::Instrument::WrappedWriteClient.new(@input_queue_client, self, metric, plugin)
+      LogStash::WrappedWriteClient.new(@input_queue_client, @pipeline_id.to_s.to_sym, metric, plugin_id)
     end
   end
 end; end

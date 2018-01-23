@@ -1,5 +1,6 @@
 package org.logstash;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -21,19 +22,9 @@ public final class Logstash implements Runnable, AutoCloseable {
     private static final Logger LOGGER = LogManager.getLogger(Logstash.class);
 
     /**
-     * Configuration for {@link #ruby}.
-     */
-    private final RubyInstanceConfig config;
-
-    /**
      * JRuby Runtime Environment.
      */
     private final Ruby ruby;
-
-    /**
-     * Ruby Entrypoint Script.
-     */
-    private final InputStream script;
 
     /**
      * Main Entrypoint.
@@ -69,11 +60,10 @@ public final class Logstash implements Runnable, AutoCloseable {
      */
     Logstash(final Path home, final String[] args, final PrintStream output,
         final PrintStream error, final InputStream input) {
-        config = buildConfig(home, args);
+        final RubyInstanceConfig config = buildConfig(home, args);
         config.setOutput(output);
         config.setError(error);
         config.setInput(input);
-        script = config.getScriptSource();
         ruby = Ruby.newInstance(config);
     }
 
@@ -85,7 +75,8 @@ public final class Logstash implements Runnable, AutoCloseable {
                 "More than one JRuby Runtime detected in the current JVM!"
             );
         }
-        try {
+        final RubyInstanceConfig config = ruby.getInstanceConfig();
+        try (InputStream script = config.getScriptSource()) {
             Thread.currentThread().setContextClassLoader(ruby.getJRubyClassLoader());
             ruby.runFromMain(script, config.displayedFileName());
         } catch (final RaiseException ex) {
@@ -94,16 +85,19 @@ public final class Logstash implements Runnable, AutoCloseable {
                 final IRubyObject status =
                     rexep.callMethod(ruby.getCurrentContext(), "status");
                 if (status != null && !status.isNil() && RubyNumeric.fix2int(status) != 0) {
-                    throw new IllegalStateException(ex);
+                    uncleanShutdown(ex);
                 }
+            } else {
+                uncleanShutdown(ex);
             }
+        } catch (final IOException ex) {
+            uncleanShutdown(ex);
         }
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         ruby.tearDown(false);
-        script.close();
     }
 
     /**
@@ -142,5 +136,9 @@ public final class Logstash implements Runnable, AutoCloseable {
             throw new IllegalArgumentException(String.format("Missing: %s.", resolved));
         }
         return resolved.toString();
+    }
+
+    private static void uncleanShutdown(final Exception ex) {
+        throw new IllegalStateException("Logstash stopped processing because of an error:", ex);
     }
 }

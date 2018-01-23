@@ -18,12 +18,6 @@ module LogStash; module Util
     class QueueClosedError < ::StandardError; end
     class NotImplementedError < ::StandardError; end
 
-    def self.create_memory_based(path, capacity, max_events, max_bytes)
-      self.allocate.with_queue(
-        LogStash::AckedMemoryQueue.new(path, capacity, max_events, max_bytes)
-      )
-    end
-
     def self.create_file_based(path, capacity, max_events, checkpoint_max_writes, checkpoint_max_acks, checkpoint_max_interval, max_bytes)
       self.allocate.with_queue(
         LogStash::AckedQueue.new(path, capacity, max_events, checkpoint_max_writes, checkpoint_max_acks, checkpoint_max_interval, max_bytes)
@@ -54,12 +48,6 @@ module LogStash; module Util
       @queue.write(obj)
     end
     alias_method(:<<, :push)
-
-    # Block for X millis
-    def poll(millis)
-      check_closed("read")
-      @queue.read_batch(1, millis).get_elements.first
-    end
 
     def read_batch(size, wait)
       check_closed("read a batch")
@@ -96,10 +84,9 @@ module LogStash; module Util
 
       def initialize(queue, batch_size = 125, wait_for = 50)
         @queue = queue
-        @mutex = Mutex.new
         # Note that @inflight_batches as a central mechanism for tracking inflight
         # batches will fail if we have multiple read clients in the pipeline.
-        @inflight_batches = {}
+        @inflight_batches = Concurrent::Map.new
         # allow the worker thread to report the execution time of the filter + output
         @inflight_clocks = Concurrent::Map.new
         @batch_size = batch_size
@@ -111,12 +98,7 @@ module LogStash; module Util
       end
 
       def empty?
-        @mutex.lock
-        begin
-          @queue.is_empty?
-        ensure
-          @mutex.unlock
-        end
+        @queue.is_empty?
       end
 
       def set_batch_dimensions(batch_size, wait_for)
@@ -141,18 +123,13 @@ module LogStash; module Util
       end
 
       def inflight_batches
-        @mutex.lock
-        begin
-          yield(@inflight_batches)
-        ensure
-          @mutex.unlock
-        end
+        @inflight_batches
       end
 
       # create a new empty batch
       # @return [ReadBatch] a new empty read batch
       def new_batch
-        ReadBatch.new(@queue, @batch_size, @wait_for)
+        ReadBatch.new(@queue, 0, 0)
       end
 
       def read_batch
@@ -160,32 +137,21 @@ module LogStash; module Util
           raise QueueClosedError.new("Attempt to take a batch from a closed AckedQueue")
         end
 
-        batch = new_batch
-        batch.read_next
+        batch = ReadBatch.new(@queue, @batch_size, @wait_for)
         start_metrics(batch)
         batch
       end
 
       def start_metrics(batch)
         thread = Thread.current
-        @mutex.lock
-        begin
-          @inflight_batches[thread] = batch
-        ensure
-          @mutex.unlock
-        end
+        @inflight_batches[thread] = batch
         @inflight_clocks[thread] = java.lang.System.nano_time
       end
 
       def close_batch(batch)
         thread = Thread.current
-        @mutex.lock
-        begin
-          batch.close
-          @inflight_batches.delete(thread)
-        ensure
-          @mutex.unlock
-        end
+        batch.close
+        @inflight_batches.delete(thread)
         start_time = @inflight_clocks.get_and_set(thread, nil)
         unless start_time.nil?
           if batch.size > 0
@@ -212,23 +178,9 @@ module LogStash; module Util
 
     class ReadBatch
       def initialize(queue, size, wait)
-        @queue = queue
-        @size = size
-        @wait = wait
-
-        @originals = Hash.new
-
-        # TODO: disabled for https://github.com/elastic/logstash/issues/6055 - will have to properly refactor
-        # @cancelled = Hash.new
-
         @generated = Hash.new
-        @acked_batch = nil
-      end
-
-      def read_next
-        @acked_batch = @queue.read_batch(@size, @wait)
-        return if @acked_batch.nil?
-        @acked_batch.get_elements.each { |e| @originals[e] = true }
+        @acked_batch = queue.read_batch(size, wait)
+        @originals = @acked_batch.nil? ? Hash.new : @acked_batch.get_elements
       end
 
       def close
@@ -250,8 +202,6 @@ module LogStash; module Util
       end
 
       def each(&blk)
-        # below the checks for @cancelled.include?(e) have been replaced by e.cancelled?
-        # TODO: for https://github.com/elastic/logstash/issues/6055 = will have to properly refactor
         @originals.each do |e, _|
           blk.call(e) unless e.cancelled?
         end
@@ -270,14 +220,6 @@ module LogStash; module Util
 
       def filtered_size
         @originals.size + @generated.size
-      end
-
-      def shutdown_signal_received?
-        false
-      end
-
-      def flush_signal_received?
-        false
       end
     end
 

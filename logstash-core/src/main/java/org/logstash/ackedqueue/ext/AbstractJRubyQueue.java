@@ -16,9 +16,7 @@ import org.logstash.RubyUtil;
 import org.logstash.ackedqueue.Batch;
 import org.logstash.ackedqueue.Queue;
 import org.logstash.ackedqueue.SettingsImpl;
-import org.logstash.ackedqueue.io.ByteBufferPageIO;
 import org.logstash.ackedqueue.io.FileCheckpointIO;
-import org.logstash.ackedqueue.io.MemoryCheckpointIO;
 import org.logstash.ackedqueue.io.MmapPageIO;
 import org.logstash.ext.JrubyEventExtLibrary;
 
@@ -138,44 +136,6 @@ public abstract class AbstractJRubyQueue extends RubyObject {
             throw RubyUtil.newRubyIOError(context.runtime, e);
         }
         return context.nil;
-    }
-
-    @JRubyClass(name = "AckedMemoryQueue", parent = "AbstractAckedQueue")
-    public static final class RubyAckedMemoryQueue extends AbstractJRubyQueue {
-
-        private static final long serialVersionUID = 1L;
-
-        public RubyAckedMemoryQueue(Ruby runtime, RubyClass klass) {
-            super(runtime, klass);
-        }
-
-        @JRubyMethod(name = "initialize", optional = 4)
-        public IRubyObject ruby_initialize(ThreadContext context, IRubyObject[] args)
-        {
-            args = Arity.scanArgs(context.runtime, args, 4, 0);
-
-            int capacity = RubyFixnum.num2int(args[1]);
-            int maxUnread = RubyFixnum.num2int(args[2]);
-            long queueMaxBytes = RubyFixnum.num2long(args[3]);
-            this.queue = new Queue(
-                SettingsImpl.memorySettingsBuilder(args[0].asJavaString())
-                    .capacity(capacity)
-                    .maxUnread(maxUnread)
-                    .queueMaxBytes(queueMaxBytes)
-                    .elementIOFactory(ByteBufferPageIO::new)
-                    .checkpointIOFactory(MemoryCheckpointIO::new)
-                    .elementClass(Event.class)
-                    .build()
-            );
-            return context.nil;
-        }
-
-        @JRubyMethod(name = "open")
-        @Override
-        public IRubyObject ruby_open(ThreadContext context) {
-            this.queue.getCheckpointIO().purge();
-            return super.ruby_open(context);
-        }
     }
 
     @JRubyClass(name = "AckedQueue", parent = "AbstractAckedQueue")
