@@ -32,6 +32,7 @@ namespace "vendor" do
   task "gems", [:bundle] do |task, args|
     require "bootstrap/environment"
 
+    Rake::Task["dependency:clamp"].invoke
     Rake::Task["dependency:bundler"].invoke
 
     puts("Invoking bundler install...")
