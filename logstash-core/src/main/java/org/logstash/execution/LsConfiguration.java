@@ -66,10 +66,19 @@ public final class LsConfiguration {
     }
 
     @SuppressWarnings("unchecked")
-    public static PluginConfigSpec<Map<String, LsConfiguration>> requiredHashSetting(
-        final String name, final Collection<PluginConfigSpec<?>> spec) {
+    public static <T> PluginConfigSpec<Map<String, T>> requiredFlatHashSetting(
+        final String name, Class<T> type) {
+        //TODO: enforce subtype
         return new PluginConfigSpec(
             name, Map.class, null, false, true
+        );
+    }
+
+    @SuppressWarnings("unchecked")
+    public static PluginConfigSpec<Map<String, LsConfiguration>> requiredNestedHashSetting(
+        final String name, final Collection<PluginConfigSpec<?>> spec) {
+        return new PluginConfigSpec(
+            name, Map.class, null, false, true, spec
         );
     }
 }

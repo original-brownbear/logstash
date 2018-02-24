@@ -28,7 +28,7 @@ public final class HttpPoller implements Input {
         LsConfiguration.stringSetting("method");
 
     private static final PluginConfigSpec<Map<String, LsConfiguration>> URLS_CONFIG =
-        LsConfiguration.requiredHashSetting(
+        LsConfiguration.requiredNestedHashSetting(
             "urls", Arrays.asList(URL_METHOD_CONFIG, USER_CONFIG)
         );
 
