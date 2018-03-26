@@ -41,7 +41,7 @@ public final class InputExecution {
             registered.forEach(reg -> reg.callMethod(context, "do_close"));
             throw new IllegalStateException(ex);
         }
-        //TODO: Run in Threadpool
+        //TODO: Run in Threadpool and do java_pipeline.rb#inputworker things
     }
 
     public void stop() {

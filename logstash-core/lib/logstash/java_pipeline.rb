@@ -537,8 +537,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
   def start_inputs
     @input_execution.start
-    # then after all input plugins are successfully registered, start them
-    @inputs.each { |input| @input_threads << Thread.new { inputworker(input) } }
   end
 
   def inputworker(plugin)
