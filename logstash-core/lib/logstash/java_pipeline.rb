@@ -536,17 +536,7 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   private
 
   def start_inputs
-    moreinputs = []
-    @inputs.each do |input|
-      if input.threadable && input.threads > 1
-        (input.threads - 1).times {moreinputs << input.clone}
-      end
-    end
-    @inputs += moreinputs
-
-    # first make sure we can register all input plugins
-    register_plugins(@inputs)
-
+    @input_execution.start
     # then after all input plugins are successfully registered, start them
     @inputs.each { |input| @input_threads << Thread.new { inputworker(input) } }
   end

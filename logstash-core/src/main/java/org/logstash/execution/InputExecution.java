@@ -30,9 +30,17 @@ public final class InputExecution {
     }
 
     public void start() {
-        rubyInputs.forEach(input -> {
-            //TODO: Register
-        });
+        final Collection<IRubyObject> registered = new ArrayList<>();
+        final ThreadContext context = RubyUtil.RUBY.getCurrentContext();
+        try {
+            rubyInputs.forEach(input -> {
+                input.callMethod(context, "register");
+                registered.add(input);
+            });
+        } catch (final Exception ex) {
+            registered.forEach(reg -> reg.callMethod(context, "do_close"));
+            throw new IllegalStateException(ex);
+        }
         //TODO: Run in Threadpool
     }
 
