@@ -5,11 +5,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import org.logstash.execution.Input;
+import org.logstash.execution.LogstashPlugin;
 import org.logstash.execution.LsConfiguration;
 import org.logstash.execution.LsContext;
 import org.logstash.execution.PluginConfigSpec;
 import org.logstash.execution.queue.QueueWriter;
 
+@LogstashPlugin(name = "http-poller")
 public final class HttpPoller implements Input {
 
     private static final PluginConfigSpec<String> USER_CONFIG =
