@@ -8,7 +8,7 @@ import org.logstash.execution.Input;
 import org.logstash.execution.LogstashPlugin;
 import org.logstash.execution.LsConfiguration;
 import org.logstash.execution.LsContext;
-import org.logstash.execution.PluginConfigSpec;
+import org.logstash.execution.plugins.PluginConfigSpec;
 import org.logstash.execution.queue.QueueWriter;
 
 @LogstashPlugin(name = "http-poller")

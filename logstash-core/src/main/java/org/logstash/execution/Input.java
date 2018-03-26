@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Scanner;
 import java.util.concurrent.CountDownLatch;
+import org.logstash.execution.plugins.PluginConfigSpec;
 import org.logstash.execution.queue.QueueWriter;
 
 /**

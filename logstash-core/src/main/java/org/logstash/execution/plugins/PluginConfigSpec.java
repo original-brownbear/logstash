@@ -1,4 +1,4 @@
-package org.logstash.execution;
+package org.logstash.execution.plugins;
 
 import java.util.Collection;
 import java.util.Collections;

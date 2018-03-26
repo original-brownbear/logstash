@@ -3,6 +3,7 @@ package org.logstash.execution;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
+import org.logstash.execution.plugins.PluginConfigSpec;
 
 /**
  * LS Configuration example. Should be implemented like Spark config or Hadoop job config classes.
