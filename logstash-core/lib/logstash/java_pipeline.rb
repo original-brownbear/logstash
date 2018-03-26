@@ -59,7 +59,8 @@ module LogStash; class JavaBasePipeline
     if settings.get_value("config.debug") && @logger.debug?
       @logger.debug("Compiled pipeline code", default_logging_keys(:code => @lir.get_graph.to_string))
     end
-    @inputs = @lir_execution.inputs
+    @input_execution = org.logstash.execution.InputExecution.new(@lir_execution.inputs)
+    @inputs = @input_execution.inputs
     @filters = @lir_execution.filters
     @outputs = @lir_execution.outputs
   end
@@ -175,7 +176,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     @events_filtered = java.util.concurrent.atomic.LongAdder.new
     @events_consumed = java.util.concurrent.atomic.LongAdder.new
 
-    @input_threads = []
     # @ready requires thread safety since it is typically polled from outside the pipeline thread
     @ready = Concurrent::AtomicBoolean.new(false)
     @running = Concurrent::AtomicBoolean.new(false)
@@ -322,19 +322,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     settings.get_value("pipeline.system")
   end
 
-  # register_plugins calls #register_plugin on the plugins list and upon exception will call Plugin#do_close on all registered plugins
-  # @param plugins [Array[Plugin]] the list of plugins to register
-  def register_plugins(plugins)
-    registered = []
-    plugins.each do |plugin|
-      plugin.register
-      registered << plugin
-    end
-  rescue => e
-    registered.each(&:do_close)
-    raise e
-  end
-
   def start_workers
     @worker_threads.clear # In case we're restarting the pipeline
     @outputs_registered.make_false
@@ -402,57 +389,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     @input_threads.each(&:join)
   end
 
-  def start_inputs
-    moreinputs = []
-    @inputs.each do |input|
-      if input.threadable && input.threads > 1
-        (input.threads - 1).times do |i|
-          moreinputs << input.clone
-        end
-      end
-    end
-    @inputs += moreinputs
-
-    # first make sure we can register all input plugins
-    register_plugins(@inputs)
-
-    # then after all input plugins are successfully registered, start them
-    @inputs.each { |input| start_input(input) }
-  end
-
-  def start_input(plugin)
-    @input_threads << Thread.new { inputworker(plugin) }
-  end
-
-  def inputworker(plugin)
-    Util::set_thread_name("[#{pipeline_id}]<#{plugin.class.config_name}")
-    begin
-      input_queue_client = wrapped_write_client(plugin.id.to_sym)
-      plugin.run(input_queue_client)
-    rescue => e
-      if plugin.stop?
-        @logger.debug("Input plugin raised exception during shutdown, ignoring it.",
-                      default_logging_keys(:plugin => plugin.class.config_name, :exception => e.message, :backtrace => e.backtrace))
-        return
-      end
-
-      # otherwise, report error and restart
-      @logger.error(I18n.t("logstash.pipeline.worker-error-debug",
-                            default_logging_keys(
-                              :plugin => plugin.inspect,
-                              :error => e.message,
-                              :exception => e.class,
-                              :stacktrace => e.backtrace.join("\n"))))
-
-      # Assuming the failure that caused this exception is transient,
-      # let's sleep for a bit and execute #run again
-      sleep(1)
-      retry
-    ensure
-      plugin.do_close
-    end
-  end # def inputworker
-
   # initiate the pipeline shutdown sequence
   # this method is intended to be called from outside the pipeline thread
   # @param before_stop [Proc] code block called before performing stop operation on input plugins
@@ -466,7 +402,7 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
     before_stop.call if block_given?
 
-    stop_inputs
+    @input_execution.stop
 
     # We make this call blocking, so we know for sure when the method return the shtudown is
     # stopped
@@ -479,12 +415,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     @logger.debug("Closing inputs", default_logging_keys)
     @worker_threads.map(&:join)
     @logger.debug("Worker closed", default_logging_keys)
-  end
-
-  def stop_inputs
-    @logger.debug("Closing inputs", default_logging_keys)
-    @inputs.each(&:do_stop)
-    @logger.debug("Closed inputs", default_logging_keys)
   end
 
   # After `shutdown` is called from an external thread this is called from the main thread to
@@ -604,6 +534,64 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   end
 
   private
+
+  def start_inputs
+    moreinputs = []
+    @inputs.each do |input|
+      if input.threadable && input.threads > 1
+        (input.threads - 1).times {moreinputs << input.clone}
+      end
+    end
+    @inputs += moreinputs
+
+    # first make sure we can register all input plugins
+    register_plugins(@inputs)
+
+    # then after all input plugins are successfully registered, start them
+    @inputs.each { |input| @input_threads << Thread.new { inputworker(input) } }
+  end
+
+  def inputworker(plugin)
+    Util::set_thread_name("[#{pipeline_id}]<#{plugin.class.config_name}")
+    begin
+      input_queue_client = wrapped_write_client(plugin.id.to_sym)
+      plugin.run(input_queue_client)
+    rescue => e
+      if plugin.stop?
+        @logger.debug("Input plugin raised exception during shutdown, ignoring it.",
+                      default_logging_keys(:plugin => plugin.class.config_name, :exception => e.message, :backtrace => e.backtrace))
+        return
+      end
+
+      # otherwise, report error and restart
+      @logger.error(I18n.t("logstash.pipeline.worker-error-debug",
+                           default_logging_keys(
+                               :plugin => plugin.inspect,
+                               :error => e.message,
+                               :exception => e.class,
+                               :stacktrace => e.backtrace.join("\n"))))
+
+      # Assuming the failure that caused this exception is transient,
+      # let's sleep for a bit and execute #run again
+      sleep(1)
+      retry
+    ensure
+      plugin.do_close
+    end
+  end
+
+  # register_plugins calls #register_plugin on the plugins list and upon exception will call Plugin#do_close on all registered plugins
+  # @param plugins [Array[Plugin]] the list of plugins to register
+  def register_plugins(plugins)
+    registered = []
+    plugins.each do |plugin|
+      plugin.register
+      registered << plugin
+    end
+  rescue => e
+    registered.each(&:do_close)
+    raise e
+  end
 
   def maybe_setup_out_plugins
     if @outputs_registered.make_true
