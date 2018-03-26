@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import org.logstash.Event;
+import org.logstash.execution.queue.QueueReader;
 
 /**
  * A Filter is simply a mapping of {@link QueueReader} to a new {@link QueueReader}.

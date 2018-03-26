@@ -1,4 +1,4 @@
-package org.logstash.execution;
+package org.logstash.execution.queue;
 
 import java.util.Map;
 

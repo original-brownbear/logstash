@@ -8,7 +8,7 @@ import org.logstash.execution.Input;
 import org.logstash.execution.LsConfiguration;
 import org.logstash.execution.LsContext;
 import org.logstash.execution.PluginConfigSpec;
-import org.logstash.execution.QueueWriter;
+import org.logstash.execution.queue.QueueWriter;
 
 public final class HttpPoller implements Input {
 
