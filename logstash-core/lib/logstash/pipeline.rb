@@ -183,11 +183,11 @@ module LogStash; class Pipeline < BasePipeline
     @filter_queue_client.set_pipeline_metric(
         metric.namespace([:stats, :pipelines, pipeline_id.to_s.to_sym, :events])
     )
-    @drain_queue =  @settings.get_value("queue.drain")
+    @drain_queue =  @settings.get_value("queue.drain") || settings.get("queue.type") == "memory"
 
 
-    @events_filtered = Concurrent::AtomicFixnum.new(0)
-    @events_consumed = Concurrent::AtomicFixnum.new(0)
+    @events_filtered = java.util.concurrent.atomic.LongAdder.new
+    @events_consumed = java.util.concurrent.atomic.LongAdder.new
 
     @input_threads = []
     # @ready requires thread safety since it is typically polled from outside the pipeline thread
@@ -195,6 +195,7 @@ module LogStash; class Pipeline < BasePipeline
     @running = Concurrent::AtomicBoolean.new(false)
     @flushing = Concurrent::AtomicReference.new(false)
     @outputs_registered = Concurrent::AtomicBoolean.new(false)
+    @worker_shutdown = java.util.concurrent.atomic.AtomicBoolean.new(false)
   end # def initialize
 
   def ready?
@@ -410,32 +411,29 @@ module LogStash; class Pipeline < BasePipeline
   # Main body of what a worker thread does
   # Repeatedly takes batches off the queue, filters, then outputs them
   def worker_loop(batch_size, batch_delay)
-    shutdown_requested = false
-
     @filter_queue_client.set_batch_dimensions(batch_size, batch_delay)
     output_events_map = Hash.new { |h, k| h[k] = [] }
     while true
       signal = @signal_queue.poll || NO_SIGNAL
-      shutdown_requested |= signal.shutdown? # latch on shutdown signal
 
-      batch = @filter_queue_client.read_batch # metrics are started in read_batch
-      batch_size = batch.size
+      batch = @filter_queue_client.read_batch.to_java # metrics are started in read_batch
+      batch_size = batch.filteredSize
       if batch_size > 0
-        @events_consumed.increment(batch_size)
+        @events_consumed.add(batch_size)
         filter_batch(batch)
       end
       flush_filters_to_batch(batch, :final => false) if signal.flush?
-      if batch.size > 0
+      if batch.filteredSize > 0
         output_batch(batch, output_events_map)
         @filter_queue_client.close_batch(batch)
       end
       # keep break at end of loop, after the read_batch operation, some pipeline specs rely on this "final read_batch" before shutdown.
-      break if (shutdown_requested && !draining_queue?)
+      break if (@worker_shutdown.get && !draining_queue?)
     end
 
     # we are shutting down, queue is drained if it was required, now  perform a final flush.
     # for this we need to create a new empty batch to contain the final flushed events
-    batch = @filter_queue_client.new_batch
+    batch = @filter_queue_client.to_java.newBatch
     @filter_queue_client.start_metrics(batch) # explicitly call start_metrics since we dont do a read_batch here
     flush_filters_to_batch(batch, :final => true)
     output_batch(batch, output_events_map)
@@ -448,7 +446,7 @@ module LogStash; class Pipeline < BasePipeline
       batch.merge(e) unless e.cancelled?
     end
     @filter_queue_client.add_filtered_metrics(batch.filtered_size)
-    @events_filtered.increment(batch.size)
+    @events_filtered.add(batch.filteredSize)
   rescue Exception => e
     # Plugins authors should manage their own exceptions in the plugin code
     # but if an exception is raised up to the worker thread they are considered
@@ -465,7 +463,7 @@ module LogStash; class Pipeline < BasePipeline
   # Take an array of events and send them to the correct output
   def output_batch(batch, output_events_map)
     # Build a mapping of { output_plugin => [events...]}
-    batch.each do |event|
+    batch.to_a.each do |event|
       # We ask the AST to tell us which outputs to send each event to
       # Then, we stick it in the correct bin
       output_func(event).each do |output|
@@ -575,11 +573,8 @@ module LogStash; class Pipeline < BasePipeline
   # tell the worker threads to stop and then block until they've fully stopped
   # This also stops all filter and output plugins
   def shutdown_workers
-    # Each worker thread will receive this exactly once!
-    @worker_threads.each do |t|
-      @logger.debug("Pushing shutdown", default_logging_keys(:thread => t.inspect))
-      @signal_queue.put(SHUTDOWN)
-    end
+    @logger.debug("Setting shutdown", default_logging_keys)
+    @worker_shutdown.set(true)
 
     @worker_threads.each do |t|
       @logger.debug("Shutdown waiting for worker thread" , default_logging_keys(:thread => t.inspect))
@@ -679,7 +674,7 @@ module LogStash; class Pipeline < BasePipeline
   def collect_stats
     pipeline_metric = @metric.namespace([:stats, :pipelines, pipeline_id.to_s.to_sym, :queue])
     pipeline_metric.gauge(:type, settings.get("queue.type"))
-    if @queue.is_a?(LogStash::Util::WrappedAckedQueue) && @queue.queue.is_a?(LogStash::AckedQueue)
+    if @queue.is_a?(LogStash::WrappedAckedQueue) && @queue.queue.is_a?(LogStash::AckedQueue)
       queue = @queue.queue
       dir_path = queue.dir_path
       file_store = Files.get_file_store(Paths.get(dir_path))

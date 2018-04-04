@@ -1,14 +1,5 @@
 package org.logstash.ackedqueue;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.logstash.FileLockFactory;
-import org.logstash.LockException;
-import org.logstash.ackedqueue.io.CheckpointIO;
-import org.logstash.ackedqueue.io.LongVector;
-import org.logstash.ackedqueue.io.PageIO;
-import org.logstash.ackedqueue.io.PageIOFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -24,6 +15,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.logstash.FileLockFactory;
+import org.logstash.LockException;
+import org.logstash.ackedqueue.io.CheckpointIO;
+import org.logstash.ackedqueue.io.FileCheckpointIO;
+import org.logstash.ackedqueue.io.LongVector;
+import org.logstash.ackedqueue.io.MmapPageIO;
+import org.logstash.ackedqueue.io.PageIO;
+import org.logstash.common.FsUtil;
 
 public final class Queue implements Closeable {
 
@@ -44,10 +45,8 @@ public final class Queue implements Closeable {
     private final Set<Integer> preservedCheckpoints;
 
     protected volatile long unreadCount;
-    private volatile long currentByteSize;
 
     private final CheckpointIO checkpointIO;
-    private final PageIOFactory pageIOFactory;
     private final int pageCapacity;
     private final long maxBytes;
     private final String dirPath;
@@ -76,8 +75,7 @@ public final class Queue implements Closeable {
         this.dirPath = settings.getDirPath();
         this.pageCapacity = settings.getCapacity();
         this.maxBytes = settings.getQueueMaxBytes();
-        this.checkpointIO = settings.getCheckpointIOFactory().build(dirPath);
-        this.pageIOFactory = settings.getPageIOFactory();
+        this.checkpointIO = new FileCheckpointIO(dirPath);
         this.elementClass = settings.getElementClass();
         this.tailPages = new ArrayList<>();
         this.unreadTailPages = new ArrayList<>();
@@ -87,7 +85,6 @@ public final class Queue implements Closeable {
         this.checkpointMaxAcks = settings.getCheckpointMaxAcks();
         this.checkpointMaxWrites = settings.getCheckpointMaxWrites();
         this.unreadCount = 0L;
-        this.currentByteSize = 0L;
 
         // retrieve the deserialize method
         try {
@@ -109,10 +106,6 @@ public final class Queue implements Closeable {
 
     public long getMaxUnread() {
         return this.maxUnread;
-    }
-
-    public long getCurrentByteSize() {
-        return this.currentByteSize;
     }
 
     public long getPersistedByteSize() {
@@ -161,6 +154,8 @@ public final class Queue implements Closeable {
 
                 logger.debug("No head checkpoint found at: {}, creating new head page", checkpointIO.headFileName());
 
+                this.ensureDiskAvailable(this.maxBytes);
+
                 this.seqNum = 0;
                 headPageNum = 0;
 
@@ -172,6 +167,9 @@ public final class Queue implements Closeable {
 
             // at this point we have a head checkpoint to figure queue recovery
 
+            // as we load pages, compute actuall disk needed substracting existing pages size to the required maxBytes
+            long diskNeeded = this.maxBytes;
+
             // reconstruct all tail pages state upto but excluding the head page
             for (int pageNum = headCheckpoint.getFirstUnackedPageNum(); pageNum < headCheckpoint.getPageNum(); pageNum++) {
 
@@ -180,14 +178,15 @@ public final class Queue implements Closeable {
 
                 logger.debug("opening tail page: {}, in: {}, with checkpoint: {}", pageNum, this.dirPath, cp.toString());
 
-                PageIO pageIO = this.pageIOFactory.build(pageNum, this.pageCapacity, this.dirPath);
+                PageIO pageIO = new MmapPageIO(pageNum, this.pageCapacity, this.dirPath);
                 // important to NOT pageIO.open() just yet, we must first verify if it is fully acked in which case
                 // we can purge it and we don't care about its integrity for example if it is of zero-byte file size.
                 if (cp.isFullyAcked()) {
                     purgeTailPage(cp, pageIO);
                 } else {
                     pageIO.open(cp.getMinSeqNum(), cp.getElementCount());
-                    addTailPage(cp, PageFactory.newTailPage(cp, this, pageIO));
+                    addTailPage(PageFactory.newTailPage(cp, this, pageIO));
+                    diskNeeded -= (long)pageIO.getHead();
                 }
 
                 // track the seqNum as we rebuild tail pages, prevent empty pages with a minSeqNum of 0 to reset seqNum
@@ -201,8 +200,10 @@ public final class Queue implements Closeable {
 
             logger.debug("opening head page: {}, in: {}, with checkpoint: {}", headCheckpoint.getPageNum(), this.dirPath, headCheckpoint.toString());
 
-            PageIO pageIO = this.pageIOFactory.build(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);
+            PageIO pageIO = new MmapPageIO(headCheckpoint.getPageNum(), this.pageCapacity, this.dirPath);
             pageIO.recover(); // optimistically recovers the head page data file and set minSeqNum and elementCount to the actual read/recovered data
+
+            ensureDiskAvailable(diskNeeded - (long)pageIO.getHead());
 
             if (pageIO.getMinSeqNum() != headCheckpoint.getMinSeqNum() || pageIO.getElementCount() != headCheckpoint.getElementCount()) {
                 // the recovered page IO shows different minSeqNum or elementCount than the checkpoint, use the page IO attributes
@@ -221,9 +222,6 @@ public final class Queue implements Closeable {
 
             if (this.headPage.getMinSeqNum() <= 0 && this.headPage.getElementCount() <= 0) {
                 // head page is empty, let's keep it as-is
-
-                this.currentByteSize += pageIO.getCapacity();
-
                 // but checkpoint it to update the firstUnackedPageNum if it changed
                 this.headPage.checkpoint();
             } else {
@@ -233,7 +231,7 @@ public final class Queue implements Closeable {
                 if (headCheckpoint.isFullyAcked()) {
                     purgeTailPage(headCheckpoint, pageIO);
                 } else {
-                    addTailPage(headCheckpoint, this.headPage);
+                    addTailPage(this.headPage);
                 }
 
                 // track the seqNum as we add this new tail page, prevent empty tailPage with a minSeqNum of 0 to reset seqNum
@@ -287,15 +285,13 @@ public final class Queue implements Closeable {
     /**
      * add a not fully-acked tail page into this queue structures and un-mmap it.
      *
-     * @param checkpoint the tail page {@link Checkpoint}
      * @param page the tail {@link Page}
      * @throws IOException
      */
-    private void addTailPage(Checkpoint checkpoint, Page page) throws IOException {
+    private void addTailPage(Page page) throws IOException {
         this.tailPages.add(page);
         this.unreadTailPages.add(page);
         this.unreadCount += page.unreadCount();
-        this.currentByteSize += page.getPageIO().getCapacity();
 
         // for now deactivate all tail pages, we will only reactivate the first one at the end
         page.getPageIO().deactivate();
@@ -308,11 +304,10 @@ public final class Queue implements Closeable {
      * @throws IOException
      */
     private void newCheckpointedHeadpage(int pageNum) throws IOException {
-        PageIO headPageIO = this.pageIOFactory.build(pageNum, this.pageCapacity, this.dirPath);
+        PageIO headPageIO = new MmapPageIO(pageNum, this.pageCapacity, this.dirPath);
         headPageIO.create();
         this.headPage = PageFactory.newHeadPage(pageNum, this, headPageIO);
         this.headPage.forceCheckpoint();
-        this.currentByteSize += headPageIO.getCapacity();
     }
 
     /**
@@ -351,7 +346,6 @@ public final class Queue implements Closeable {
                     // to add this fully hacked page into tailPages. a new head page will just be created.
                     // TODO: we could possibly reuse the same page file but just rename it?
                     this.headPage.purge();
-                    currentByteSize -= this.headPage.getPageIO().getCapacity();
                 } else {
                     behead();
                 }
@@ -363,7 +357,7 @@ public final class Queue implements Closeable {
             long seqNum = this.seqNum += 1;
             this.headPage.write(data, seqNum, this.checkpointMaxWrites);
             this.unreadCount++;
-            
+
             notEmpty.signal();
 
             // now check if we reached a queue full state and block here until it is not full
@@ -420,14 +414,14 @@ public final class Queue implements Closeable {
      * <p>Checks if the Queue is full, with "full" defined as either of:</p>
      * <p>Assuming a maximum size of the queue larger than 0 is defined:</p>
      * <ul>
-     *     <li>The sum of the size of all allocated pages is more than the allowed maximum Queue 
+     *     <li>The sum of the size of all allocated pages is more than the allowed maximum Queue
      *     size</li>
-     *     <li>The sum of the size of all allocated pages equal to the allowed maximum Queue size 
+     *     <li>The sum of the size of all allocated pages equal to the allowed maximum Queue size
      *     and the current head page has no remaining capacity.</li>
      * </ul>
      * <p>or assuming a max unread count larger than 0, is defined "full" is also defined as:</p>
      * <ul>
-     *     <li>The current number of unread events exceeds or is equal to the configured maximum 
+     *     <li>The current number of unread events exceeds or is equal to the configured maximum
      *     number of allowed unread events.</li>
      * </ul>
      * @return True iff the queue is full
@@ -435,17 +429,19 @@ public final class Queue implements Closeable {
     public boolean isFull() {
         lock.lock();
         try {
-            if (this.maxBytes > 0L && (
-                this.currentByteSize > this.maxBytes
-                    || this.currentByteSize == this.maxBytes && !this.headPage.hasSpace(1)
-            )) {
+            if (this.maxBytes > 0L && isMaxBytesReached()) {
                 return true;
             } else {
-                return ((this.maxUnread > 0) && this.unreadCount >= this.maxUnread);
+                return (this.maxUnread > 0 && this.unreadCount >= this.maxUnread);
             }
         } finally {
             lock.unlock();
         }
+    }
+
+    private boolean isMaxBytesReached() {
+        final long persistedByteSize = getPersistedByteSize();
+        return ((persistedByteSize > this.maxBytes) || (persistedByteSize == this.maxBytes && !this.headPage.hasSpace(1)));
     }
 
     /**
@@ -688,7 +684,6 @@ public final class Queue implements Closeable {
 
                     // remove page data file regardless if it is the first or a middle tail page to free resources
                     result.page.purge();
-                    this.currentByteSize -= result.page.getPageIO().getCapacity();
 
                     if (result.index != 0) {
                         // this an in-between page, we don't purge it's checkpoint to preserve checkpoints sequence on disk
@@ -719,7 +714,7 @@ public final class Queue implements Closeable {
     public CheckpointIO getCheckpointIO() {
         return this.checkpointIO;
     }
-    
+
     /**
      *  deserialize a byte array into the required element class.
      *
@@ -852,5 +847,11 @@ public final class Queue implements Closeable {
      */
     private boolean isTailPage(Page p) {
         return !isHeadPage(p);
+    }
+
+    private void ensureDiskAvailable(final long diskNeeded) throws IOException {
+        if (!FsUtil.hasFreeSpace(this.dirPath, diskNeeded)) {
+            throw new IOException("Not enough free disk space available to allocate persisted queue.");
+        }
     }
 }

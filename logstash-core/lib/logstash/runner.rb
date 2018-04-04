@@ -3,6 +3,15 @@ Thread.abort_on_exception = true
 Encoding.default_external = Encoding::UTF_8
 $DEBUGLIST = (ENV["DEBUG"] || "").split(",")
 
+require 'pathname'
+LogStash::ROOT = Pathname.new(File.join(File.expand_path(File.dirname(__FILE__)), "..", "..", "..")).cleanpath.to_s
+LogStash::XPACK_PATH = File.join(LogStash::ROOT, "x-pack")
+LogStash::OSS = ENV["OSS"] == "true" || !File.exists?(LogStash::XPACK_PATH)
+
+if !LogStash::OSS
+  $LOAD_PATH << File.join(LogStash::XPACK_PATH, "lib")
+end
+
 require "clamp"
 require "net/http"
 
@@ -25,6 +34,7 @@ require "logstash/modules/util"
 require "logstash/bootstrap_check/default_config"
 require "logstash/bootstrap_check/bad_java"
 require "logstash/bootstrap_check/bad_ruby"
+require "logstash/bootstrap_check/persisted_queue_config"
 require "set"
 
 java_import 'org.logstash.FileLockFactory'
@@ -39,7 +49,8 @@ class LogStash::Runner < Clamp::StrictCommand
   DEFAULT_BOOTSTRAP_CHECKS = [
       LogStash::BootstrapCheck::BadRuby,
       LogStash::BootstrapCheck::BadJava,
-      LogStash::BootstrapCheck::DefaultConfig
+      LogStash::BootstrapCheck::DefaultConfig,
+      LogStash::BootstrapCheck::PersistedQueueConfig
   ]
 
   # Node Settings

@@ -23,8 +23,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.logstash.ackedqueue.io.AbstractByteBufferPageIO;
 import org.logstash.ackedqueue.io.LongVector;
+import org.logstash.ackedqueue.io.MmapPageIO;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -32,7 +32,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.fail;
-import static org.logstash.ackedqueue.QueueTestHelpers.singleElementCapacityForByteBufferPageIO;
+import static org.logstash.ackedqueue.QueueTestHelpers.computeCapacityForMmapPageIO;
 
 public class QueueTest {
 
@@ -91,7 +91,7 @@ public class QueueTest {
     @Test(timeout = 5000)
     public void writeToFullyAckedHeadpage() throws IOException {
         final Queueable element = new StringElement("foobarbaz");
-        final int page = element.serialize().length * 2 + AbstractByteBufferPageIO.MIN_CAPACITY;
+        final int page = element.serialize().length * 2 + MmapPageIO.MIN_CAPACITY;
         // Queue that can only hold one element per page.
         try (Queue q = new Queue(
             TestSettings.persistedQueueSettings(page, page * 2 - 1, dataPath))) {
@@ -174,9 +174,8 @@ public class QueueTest {
     @Test
     public void writeMultiPage() throws IOException {
         List<Queueable> elements = Arrays.asList(new StringElement("foobarbaz1"), new StringElement("foobarbaz2"), new StringElement("foobarbaz3"), new StringElement("foobarbaz4"));
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(elements.get(0));
         try (Queue q = new Queue(
-            TestSettings.persistedQueueSettings(2 * singleElementCapacity, dataPath))) {
+            TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(elements.get(0), 2), dataPath))) {
             q.open();
 
             for (Queueable e : elements) {
@@ -218,9 +217,8 @@ public class QueueTest {
     @Test
     public void writeMultiPageWithInOrderAcking() throws IOException {
         List<Queueable> elements = Arrays.asList(new StringElement("foobarbaz1"), new StringElement("foobarbaz2"), new StringElement("foobarbaz3"), new StringElement("foobarbaz4"));
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(elements.get(0));
         try (Queue q = new Queue(
-            TestSettings.persistedQueueSettings(2 * singleElementCapacity, dataPath))) {
+            TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(elements.get(0), 2), dataPath))) {
             q.open();
 
             for (Queueable e : elements) {
@@ -260,10 +258,9 @@ public class QueueTest {
     public void writeMultiPageWithInOrderAckingCheckpoints() throws IOException {
         List<Queueable> elements1 = Arrays.asList(new StringElement("foobarbaz1"), new StringElement("foobarbaz2"));
         List<Queueable> elements2 = Arrays.asList(new StringElement("foobarbaz3"), new StringElement("foobarbaz4"));
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(elements1.get(0));
 
         Settings settings = SettingsImpl.builder(
-            TestSettings.persistedQueueSettings(2 * singleElementCapacity, dataPath)
+            TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(elements1.get(0), 2), dataPath)
         ).checkpointMaxWrites(1024) // arbitrary high enough threshold so that it's not reached (default for TestSettings is 1)
         .build();
         try (Queue q = new Queue(settings)) {
@@ -360,9 +357,8 @@ public class QueueTest {
             for (int i = 0; i < page_count; i++) {
                 elements.add(new StringElement(String.format("%0" + digits + "d", i)));
             }
-            int singleElementCapacity = singleElementCapacityForByteBufferPageIO(elements.get(0));
             try (Queue q = new Queue(
-                TestSettings.persistedQueueSettings(singleElementCapacity, dataPath))) {
+                TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(elements.get(0)), dataPath))) {
                 q.open();
 
                 for (Queueable e : elements) {
@@ -392,7 +388,7 @@ public class QueueTest {
     @Test(timeout = 50_000)
     public void reachMaxUnread() throws IOException, InterruptedException, ExecutionException {
         Queueable element = new StringElement("foobarbaz");
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
+        int singleElementCapacity = computeCapacityForMmapPageIO(element);
 
         Settings settings = SettingsImpl.builder(
             TestSettings.persistedQueueSettings(singleElementCapacity, dataPath)
@@ -485,11 +481,9 @@ public class QueueTest {
     public void reachMaxSizeTest() throws IOException, InterruptedException {
         Queueable element = new StringElement("0123456789"); // 10 bytes
 
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-
         // allow 10 elements per page but only 100 events in total
         Settings settings = TestSettings.persistedQueueSettings(
-            singleElementCapacity * 10, singleElementCapacity * 100L, dataPath
+                computeCapacityForMmapPageIO(element, 10), computeCapacityForMmapPageIO(element, 100), dataPath
         );
         try (Queue q = new Queue(settings)) {
             q.open();
@@ -515,11 +509,9 @@ public class QueueTest {
 
         Queueable element = new StringElement("0123456789"); // 10 bytes
 
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-
         // allow 10 elements per page but only 100 events in total
         Settings settings = TestSettings.persistedQueueSettings(
-            singleElementCapacity * 10, singleElementCapacity * 100L, dataPath
+                computeCapacityForMmapPageIO(element, 10), computeCapacityForMmapPageIO(element, 100), dataPath
         );
         try (Queue q = new Queue(settings)) {
             q.open();
@@ -553,11 +545,9 @@ public class QueueTest {
     public void resumeWriteOnNoLongerFullQueueTest() throws IOException, InterruptedException, ExecutionException {
         Queueable element = new StringElement("0123456789"); // 10 bytes
 
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-
         // allow 10 elements per page but only 100 events in total
         Settings settings = TestSettings.persistedQueueSettings(
-            singleElementCapacity * 10, singleElementCapacity * 100L, dataPath
+                computeCapacityForMmapPageIO(element, 10),  computeCapacityForMmapPageIO(element, 100), dataPath
         );
         try (Queue q = new Queue(settings)) {
             q.open();
@@ -593,11 +583,9 @@ public class QueueTest {
 
         Queueable element = new StringElement("0123456789"); // 10 bytes
 
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-
         // allow 10 elements per page but only 100 events in total
         Settings settings = TestSettings.persistedQueueSettings(
-            singleElementCapacity * 10, singleElementCapacity * 100L, dataPath
+                computeCapacityForMmapPageIO(element, 10), computeCapacityForMmapPageIO(element, 100), dataPath
         );
         try (Queue q = new Queue(settings)) {
             q.open();
@@ -743,9 +731,8 @@ public class QueueTest {
     @Test
     public void fullyAckedHeadPageBeheadingTest() throws IOException {
         Queueable element = new StringElement("foobarbaz1");
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
         try (Queue q = new Queue(
-            TestSettings.persistedQueueSettings(2 * singleElementCapacity, dataPath))) {
+            TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(element, 2), dataPath))) {
             q.open();
 
             Batch b;
@@ -777,6 +764,20 @@ public class QueueTest {
     }
 
     @Test
+    public void getsPersistedByteSizeCorrectly() throws Exception {
+        Settings settings = TestSettings.persistedQueueSettings(100, dataPath);
+        try (Queue queue = new Queue(settings)) {
+            queue.open();
+            long seqNum = 0;
+            for (int i = 0; i < 50; ++i) {
+                seqNum = queue.write(new StringElement("foooo"));
+            }
+            queue.ensurePersistedUpto(seqNum);
+            assertThat(queue.getPersistedByteSize(), is(1063L));
+        }
+    }
+
+    @Test
     public void getsPersistedByteSizeCorrectlyForUnopened() throws Exception {
         Settings settings = TestSettings.persistedQueueSettings(100, dataPath);
         try (Queue q = new Queue(settings)) {
@@ -787,8 +788,7 @@ public class QueueTest {
     @Test
     public void getsPersistedByteSizeCorrectlyForFullyAckedDeletedTailPages() throws Exception {
         final Queueable element = new StringElement("0123456789"); // 10 bytes
-        final int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-        final Settings settings = TestSettings.persistedQueueSettings(singleElementCapacity, dataPath);
+        final Settings settings = TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(element), dataPath);
 
         try (Queue q = new Queue(settings)) {
             q.open();
@@ -889,8 +889,7 @@ public class QueueTest {
     @Test
     public void testZeroByteFullyAckedPageOnOpen() throws IOException {
         Queueable element = new StringElement("0123456789"); // 10 bytes
-        int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-        Settings settings = TestSettings.persistedQueueSettings(singleElementCapacity, dataPath);
+        Settings settings = TestSettings.persistedQueueSettings(computeCapacityForMmapPageIO(element), dataPath);
 
         // the goal here is to recreate a condition where the queue has a tail page of size zero with
         // a checkpoint that indicates it is full acknowledged
@@ -940,9 +939,8 @@ public class QueueTest {
     @Test
     public void pageCapacityChangeOnExistingQueue() throws IOException {
         final Queueable element = new StringElement("foobarbaz1");
-        final int singleElementCapacity = singleElementCapacityForByteBufferPageIO(element);
-        final int ORIGINAL_CAPACITY = 2 * singleElementCapacity;
-        final int NEW_CAPACITY = 10 * singleElementCapacity;
+        final int ORIGINAL_CAPACITY = computeCapacityForMmapPageIO(element, 2);
+        final int NEW_CAPACITY = computeCapacityForMmapPageIO(element, 10);
 
         try (Queue q = new Queue(TestSettings.persistedQueueSettings(ORIGINAL_CAPACITY, dataPath))) {
             q.open();
@@ -1000,6 +998,16 @@ public class QueueTest {
             Batch b = q.readBatch(10, TimeUnit.SECONDS.toMillis(1));
 
             assertThat(b.size(), is(2));
+        }
+    }
+
+    @Test(expected = IOException.class)
+    public void throwsWhenNotEnoughDiskFree() throws Exception {
+        Settings settings = SettingsImpl.builder(TestSettings.persistedQueueSettings(100, dataPath))
+            .queueMaxBytes(Long.MAX_VALUE)
+            .build();
+        try (Queue queue = new Queue(settings)) {
+            queue.open();
         }
     }
 }

@@ -86,7 +86,7 @@ public final class JrubyEventExtLibrary {
         public IRubyObject ruby_set_field(ThreadContext context, RubyString reference, IRubyObject value)
         {
             final FieldReference r = FieldReference.from(reference.getByteList());
-            if (r  == FieldReference.TIMESTAMP_REFERENCE) {
+            if (r.equals(FieldReference.TIMESTAMP_REFERENCE)) {
                 if (!(value instanceof JrubyTimestampExtLibrary.RubyTimestamp)) {
                     throw context.runtime.newTypeError("wrong argument type " + value.getMetaClass() + " (expected LogStash::Timestamp)");
                 }
@@ -101,14 +101,14 @@ public final class JrubyEventExtLibrary {
         public IRubyObject ruby_cancel(ThreadContext context)
         {
             this.event.cancel();
-            return RubyBoolean.createTrueClass(context.runtime);
+            return context.runtime.getTrue();
         }
 
         @JRubyMethod(name = "uncancel")
         public IRubyObject ruby_uncancel(ThreadContext context)
         {
             this.event.uncancel();
-            return RubyBoolean.createFalseClass(context.runtime);
+            return context.runtime.getFalse();
         }
 
         @JRubyMethod(name = "cancelled?")

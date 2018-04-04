@@ -10,8 +10,6 @@ import org.logstash.Timestamp;
 import org.logstash.ackedqueue.Queue;
 import org.logstash.ackedqueue.Settings;
 import org.logstash.ackedqueue.SettingsImpl;
-import org.logstash.ackedqueue.io.FileCheckpointIO;
-import org.logstash.ackedqueue.io.MmapPageIO;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -74,10 +72,8 @@ public class QueueWriteBenchmark {
         return SettingsImpl.fileSettingsBuilder(Files.createTempDir().getPath())
             .capacity(256 * 1024 * 1024)
             .queueMaxBytes(Long.MAX_VALUE)
-            .elementIOFactory(MmapPageIO::new)
             .checkpointMaxWrites(1024)
             .checkpointMaxAcks(1024)
-            .checkpointIOFactory(FileCheckpointIO::new)
             .elementClass(Event.class).build();
     }
 }

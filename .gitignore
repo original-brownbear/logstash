@@ -3,6 +3,9 @@
 logstash*/*.gem
 pkg/*.deb
 pkg/*.rpm
+pkg/jvm.options
+pkg/log4j2.properties
+pkg/startup.options
 *.class
 .rbx
 *.tar.gz
@@ -54,3 +57,4 @@ qa/integration/fixtures/offline_wrapper/offline.o
 logstash-core/versions-gem-copy.yml
 logstash-core-plugin-api/versions-gem-copy.yml
 config/logstash.keystore
+html_docs

@@ -187,7 +187,7 @@ public class JavaKeyStoreTest {
      */
     @Test
     public void notLogstashKeystore() throws Exception {
-        thrown.expect(SecretStoreException.LoadException.class);
+        thrown.expect(SecretStoreException.class);
         SecureConfig altConfig = new SecureConfig();
         Path altPath = folder.newFolder().toPath().resolve("alt.not.a.logstash.keystore");
         try (OutputStream out = Files.newOutputStream(altPath)) {
@@ -332,7 +332,7 @@ public class JavaKeyStoreTest {
         // if we got attributes, lets assert them.
         if (attrs != null) {
             Set<PosixFilePermission> permissions = attrs.readAttributes().permissions();
-            EnumSet<PosixFilePermission> expected = EnumSet.of(OWNER_READ, OWNER_WRITE, GROUP_READ, GROUP_WRITE);
+            EnumSet<PosixFilePermission> expected = EnumSet.of(OWNER_READ, OWNER_WRITE, GROUP_READ, OTHERS_READ);
             assertThat(permissions.toArray()).containsExactlyInAnyOrder(expected.toArray());
         }
     }

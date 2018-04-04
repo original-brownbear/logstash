@@ -1,6 +1,5 @@
 # encoding: utf-8
 require "thread"
-require "stud/interval"
 require "concurrent"
 require "logstash/namespace"
 require "logstash/errors"
@@ -165,23 +164,24 @@ module LogStash; class JavaPipeline < JavaBasePipeline
 
     @input_queue_client = @queue.write_client
     @filter_queue_client = @queue.read_client
-    @signal_queue = java.util.concurrent.LinkedBlockingQueue.new
     # Note that @inflight_batches as a central mechanism for tracking inflight
     # batches will fail if we have multiple read clients here.
     @filter_queue_client.set_events_metric(metric.namespace([:stats, :events]))
     @filter_queue_client.set_pipeline_metric(
         metric.namespace([:stats, :pipelines, pipeline_id.to_s.to_sym, :events])
     )
-    @drain_queue =  @settings.get_value("queue.drain")
+    @drain_queue =  @settings.get_value("queue.drain") || settings.get("queue.type") == "memory"
 
-    @events_filtered = Concurrent::AtomicFixnum.new(0)
-    @events_consumed = Concurrent::AtomicFixnum.new(0)
+    @events_filtered = java.util.concurrent.atomic.LongAdder.new
+    @events_consumed = java.util.concurrent.atomic.LongAdder.new
 
     @input_threads = []
     # @ready requires thread safety since it is typically polled from outside the pipeline thread
     @ready = Concurrent::AtomicBoolean.new(false)
     @running = Concurrent::AtomicBoolean.new(false)
-    @flushing = Concurrent::AtomicReference.new(false)
+    @flushing = java.util.concurrent.atomic.AtomicBoolean.new(false)
+    @flushRequested = java.util.concurrent.atomic.AtomicBoolean.new(false)
+    @shutdownRequested = java.util.concurrent.atomic.AtomicBoolean.new(false)
     @outputs_registered = Concurrent::AtomicBoolean.new(false)
     @finished_execution = Concurrent::AtomicBoolean.new(false)
   end # def initialize
@@ -369,12 +369,10 @@ module LogStash; class JavaPipeline < JavaBasePipeline
       @filter_queue_client.set_batch_dimensions(batch_size, batch_delay)
 
       pipeline_workers.times do |t|
-        batched_execution = @lir_execution.buildExecution
-        thread = Thread.new(self, batched_execution) do |_pipeline, _batched_execution|
-          org.logstash.execution.WorkerLoop.new(_batched_execution, @signal_queue,
-                                                @filter_queue_client, @events_filtered,
-                                                @events_consumed, @flushing,
-                                                @drain_queue).run
+        thread = Thread.new do
+          org.logstash.execution.WorkerLoop.new(
+              @lir_execution, @filter_queue_client, @events_filtered, @events_consumed,
+              @flushRequested, @flushing, @shutdownRequested, @drain_queue).run
         end
         thread.name="[#{pipeline_id}]>worker#{t}"
         @worker_threads << thread
@@ -493,11 +491,7 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   # tell the worker threads to stop and then block until they've fully stopped
   # This also stops all filter and output plugins
   def shutdown_workers
-    # Each worker thread will receive this exactly once!
-    @worker_threads.each do |t|
-      @logger.debug("Pushing shutdown", default_logging_keys(:thread => t.inspect))
-      @signal_queue.put(SHUTDOWN)
-    end
+    @shutdownRequested.set(true)
 
     @worker_threads.each do |t|
       @logger.debug("Shutdown waiting for worker thread" , default_logging_keys(:thread => t.inspect))
@@ -521,24 +515,12 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   def start_flusher
     # Invariant to help detect improper initialization
     raise "Attempted to start flusher on a stopped pipeline!" if stopped?
-
-    @flusher_thread = Thread.new do
-      while Stud.stoppable_sleep(5, 0.1) { stopped? }
-        flush
-        break if stopped?
-      end
-    end
+    @flusher_thread = org.logstash.execution.PeriodicFlush.new(@flushRequested, @flushing)
+    @flusher_thread.start
   end
 
   def shutdown_flusher
-    @flusher_thread.join
-  end
-
-  def flush
-    if @flushing.compare_and_set(false, true)
-      @logger.debug? && @logger.debug("Pushing flush onto pipeline", default_logging_keys)
-      @signal_queue.put(FLUSH)
-    end
+    @flusher_thread.close
   end
 
   # Calculate the uptime in milliseconds
@@ -573,7 +555,7 @@ module LogStash; class JavaPipeline < JavaBasePipeline
   def collect_stats
     pipeline_metric = @metric.namespace([:stats, :pipelines, pipeline_id.to_s.to_sym, :queue])
     pipeline_metric.gauge(:type, settings.get("queue.type"))
-    if @queue.is_a?(LogStash::Util::WrappedAckedQueue) && @queue.queue.is_a?(LogStash::AckedQueue)
+    if @queue.is_a?(LogStash::WrappedAckedQueue) && @queue.queue.is_a?(LogStash::AckedQueue)
       queue = @queue.queue
       dir_path = queue.dir_path
       file_store = Files.get_file_store(Paths.get(dir_path))
@@ -634,10 +616,6 @@ module LogStash; class JavaPipeline < JavaBasePipeline
     keys = super
     keys[:thread] ||= thread.inspect if thread
     keys
-  end
-
-  def draining_queue?
-    @drain_queue ? !@filter_queue_client.empty? : false
   end
 
   def wrapped_write_client(plugin_id)

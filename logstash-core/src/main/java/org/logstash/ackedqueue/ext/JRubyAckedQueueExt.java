@@ -8,31 +8,63 @@ import org.jruby.RubyFixnum;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyClass;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.javasupport.JavaObject;
 import org.jruby.runtime.Arity;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.Event;
 import org.logstash.RubyUtil;
+import org.logstash.ackedqueue.AckedBatch;
 import org.logstash.ackedqueue.Batch;
 import org.logstash.ackedqueue.Queue;
 import org.logstash.ackedqueue.SettingsImpl;
-import org.logstash.ackedqueue.io.FileCheckpointIO;
-import org.logstash.ackedqueue.io.MmapPageIO;
 import org.logstash.ext.JrubyEventExtLibrary;
 
-@JRubyClass(name = "AbstractAckedQueue")
-public abstract class AbstractJRubyQueue extends RubyObject {
+@JRubyClass(name = "AckedQueue")
+public final class JRubyAckedQueueExt extends RubyObject {
 
     private static final long serialVersionUID = 1L;
 
-    protected Queue queue;
+    private Queue queue;
 
-    AbstractJRubyQueue(final Ruby runtime, final RubyClass metaClass) {
+    public JRubyAckedQueueExt(final Ruby runtime, final RubyClass metaClass) {
         super(runtime, metaClass);
     }
 
-    public final Queue getQueue() {
+    public Queue getQueue() {
         return this.queue;
+    }
+
+    public static JRubyAckedQueueExt create(String path, int capacity, int maxEvents, int checkpointMaxWrites, int checkpointMaxAcks, long maxBytes) {
+        JRubyAckedQueueExt queueExt = new JRubyAckedQueueExt(RubyUtil.RUBY, RubyUtil.ACKED_QUEUE_CLASS);
+        queueExt.initializeQueue(path, capacity, maxEvents, checkpointMaxWrites, checkpointMaxAcks, maxBytes);
+        return queueExt;
+    }
+
+    @JRubyMethod(name = "initialize", optional = 7)
+    public IRubyObject ruby_initialize(ThreadContext context, IRubyObject[] args) {
+        args = Arity.scanArgs(context.runtime, args, 7, 0);
+        int capacity = RubyFixnum.num2int(args[1]);
+        int maxUnread = RubyFixnum.num2int(args[2]);
+        int checkpointMaxAcks = RubyFixnum.num2int(args[3]);
+        int checkpointMaxWrites = RubyFixnum.num2int(args[4]);
+        long queueMaxBytes = RubyFixnum.num2long(args[6]);
+        initializeQueue(args[0].asJavaString(), capacity, maxUnread, checkpointMaxWrites, checkpointMaxAcks, queueMaxBytes);
+
+        return context.nil;
+    }
+
+    private void initializeQueue(String path, int capacity, int maxEvents, int checkpointMaxWrites, int checkpointMaxAcks, long maxBytes) {
+        this.queue = new Queue(
+            SettingsImpl.fileSettingsBuilder(path)
+                .capacity(capacity)
+                .maxUnread(maxEvents)
+                .queueMaxBytes(maxBytes)
+                .checkpointMaxAcks(checkpointMaxAcks)
+                .checkpointMaxWrites(checkpointMaxWrites)
+                .elementClass(Event.class)
+                .build()
+        );
     }
 
     @JRubyMethod(name = "max_unread_events")
@@ -53,11 +85,6 @@ public abstract class AbstractJRubyQueue extends RubyObject {
     @JRubyMethod(name = "dir_path")
     public IRubyObject ruby_dir_path(ThreadContext context) {
         return context.runtime.newString(queue.getDirPath());
-    }
-
-    @JRubyMethod(name = "current_byte_size")
-    public IRubyObject ruby_current_byte_size(ThreadContext context) {
-        return context.runtime.newFixnum(queue.getCurrentByteSize());
     }
 
     @JRubyMethod(name = "persisted_size_in_bytes")
@@ -83,11 +110,15 @@ public abstract class AbstractJRubyQueue extends RubyObject {
     @JRubyMethod(name = "open")
     public IRubyObject ruby_open(ThreadContext context) {
         try {
-            this.queue.open();
+            open();
         } catch (IOException e) {
             throw RubyUtil.newRubyIOError(context.runtime, e);
         }
         return context.nil;
+    }
+
+    public void open() throws IOException {
+        queue.open();
     }
 
     @JRubyMethod(name = {"write", "<<"}, required = 1)
@@ -108,14 +139,19 @@ public abstract class AbstractJRubyQueue extends RubyObject {
     @JRubyMethod(name = "read_batch", required = 2)
     public IRubyObject ruby_read_batch(ThreadContext context, IRubyObject limit,
         IRubyObject timeout) {
-        Batch b;
+        AckedBatch b;
         try {
-            b = this.queue.readBatch(RubyFixnum.num2int(limit), RubyFixnum.num2int(timeout));
+            b = readBatch(RubyFixnum.num2int(limit), RubyFixnum.num2int(timeout));
         } catch (IOException e) {
             throw RubyUtil.newRubyIOError(context.runtime, e);
         }
         // TODO: return proper Batch object
-        return (b == null) ? context.nil : RubyAckedBatch.create(context.runtime, b);
+        return (b == null) ? context.nil : JavaObject.wrap(context.runtime, b);
+    }
+
+    public AckedBatch readBatch(int limit, long timeout) throws IOException {
+        Batch b = queue.readBatch(limit, timeout);
+        return (b == null) ? null : AckedBatch.create(b);
     }
 
     @JRubyMethod(name = "is_fully_acked?")
@@ -128,46 +164,21 @@ public abstract class AbstractJRubyQueue extends RubyObject {
         return RubyBoolean.newBoolean(context.runtime, this.queue.isEmpty());
     }
 
+    public boolean isEmpty() {
+        return queue.isEmpty();
+    }
+
     @JRubyMethod(name = "close")
     public IRubyObject ruby_close(ThreadContext context) {
         try {
-            this.queue.close();
+            close();
         } catch (IOException e) {
             throw RubyUtil.newRubyIOError(context.runtime, e);
         }
         return context.nil;
     }
 
-    @JRubyClass(name = "AckedQueue", parent = "AbstractAckedQueue")
-    public static final class RubyAckedQueue extends AbstractJRubyQueue {
-
-        private static final long serialVersionUID = 1L;
-
-        public RubyAckedQueue(Ruby runtime, RubyClass klass) {
-            super(runtime, klass);
-        }
-
-        @JRubyMethod(name = "initialize", optional = 7)
-        public IRubyObject ruby_initialize(ThreadContext context, IRubyObject[] args) {
-            args = Arity.scanArgs(context.runtime, args, 7, 0);
-            int capacity = RubyFixnum.num2int(args[1]);
-            int maxUnread = RubyFixnum.num2int(args[2]);
-            int checkpointMaxAcks = RubyFixnum.num2int(args[3]);
-            int checkpointMaxWrites = RubyFixnum.num2int(args[4]);
-            long queueMaxBytes = RubyFixnum.num2long(args[6]);
-            this.queue = new Queue(
-                SettingsImpl.fileSettingsBuilder(args[0].asJavaString())
-                    .capacity(capacity)
-                    .maxUnread(maxUnread)
-                    .queueMaxBytes(queueMaxBytes)
-                    .checkpointMaxAcks(checkpointMaxAcks)
-                    .checkpointMaxWrites(checkpointMaxWrites)
-                    .elementIOFactory(MmapPageIO::new)
-                    .checkpointIOFactory(FileCheckpointIO::new)
-                    .elementClass(Event.class)
-                    .build()
-            );
-            return context.nil;
-        }
+    public void close() throws IOException {
+        queue.close();
     }
 }

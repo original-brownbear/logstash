@@ -10,23 +10,9 @@ import java.util.stream.Collectors;
  */
 final class ClassFields {
 
-    private final Collection<FieldDefinition> definitions;
+    private final Collection<FieldDefinition> definitions = new ArrayList<>();
 
-    ClassFields() {
-        definitions = new ArrayList<>();
-    }
-
-    /**
-     * Add a field of given type that is initialized by the given {@link SyntaxElement} that will
-     * be executed in the class body.
-     * Renders as e.g. {@code private final Ruby field5 = RubyUtil.RUBY}.
-     * @param type Type of the field
-     * @param initializer Syntax to initialize it in-line.
-     * @return The field's syntax element that can be used in method bodies
-     */
-    public ValueSyntaxElement add(final Class<?> type, final SyntaxElement initializer) {
-        return addField(FieldDefinition.withInitializer(definitions.size(), type, initializer));
-    }
+    private final Collection<Closure> afterInit = new ArrayList<>();
 
     /**
      * Adds a field holding the given {@link Object}.
@@ -46,6 +32,24 @@ final class ClassFields {
      */
     public ValueSyntaxElement add(final Class<?> type) {
         return addField(FieldDefinition.mutableUnassigned(definitions.size(), type));
+    }
+
+    /**
+     * Add a {@link Closure} that should be executed in the constructor after field assignments
+     * have been executed.
+     * @param closure Closure to run after field assignments
+     */
+    public void addAfterInit(final Closure closure) {
+        afterInit.add(closure);
+    }
+
+    /**
+     * Returns a closure of actions that should be run in the constructor after all field
+     * assignments have been executed.
+     * @return Closure that should be executed after field assignments are done
+     */
+    public Closure afterInit() {
+        return Closure.wrap(afterInit.toArray(new Closure[0]));
     }
 
     /**
