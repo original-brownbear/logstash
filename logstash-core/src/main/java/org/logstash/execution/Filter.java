@@ -5,14 +5,13 @@ import java.util.Collection;
 import java.util.Collections;
 import org.logstash.Event;
 import org.logstash.execution.plugins.PluginConfigSpec;
-import org.logstash.execution.queue.QueueReader;
 
 /**
- * A Filter is simply a mapping of {@link QueueReader} to a new {@link QueueReader}.
+ * A Logstash Filter.
  */
 public interface Filter extends LsPlugin {
 
-    QueueReader filter(QueueReader reader);
+    Collection<Event> filter(Collection<Event> events);
 
     @LogstashPlugin(name = "mutate")
     final class Mutate implements Filter {
@@ -38,31 +37,9 @@ public interface Filter extends LsPlugin {
         }
 
         @Override
-        public QueueReader filter(final QueueReader reader) {
-            return new QueueReader() {
-                @Override
-                public long poll(final Event event) {
-                    final long seq = reader.poll(event);
-                    if (seq > -1L) {
-                        event.setField(field, value);
-                    }
-                    return seq;
-                }
-
-                @Override
-                public long poll(final Event event, final long millis) {
-                    final long seq = reader.poll(event, millis);
-                    if (seq > -1L) {
-                        event.setField(field, value);
-                    }
-                    return seq;
-                }
-
-                @Override
-                public void acknowledge(final long sequenceNum) {
-                    reader.acknowledge(sequenceNum);
-                }
-            };
+        public Collection<Event> filter(final Collection<Event> events) {
+            //TODO: Impl.
+            return events;
         }
 
         @Override
@@ -87,43 +64,9 @@ public interface Filter extends LsPlugin {
         }
 
         @Override
-        public QueueReader filter(final QueueReader reader) {
-            return new QueueReader() {
-                @Override
-                public long poll(final Event event) {
-                    if (clone != null) {
-                        event.overwrite(clone);
-                        clone = null;
-                        return lastSeq;
-                    }
-                    final long seq = reader.poll(event);
-                    lastSeq = seq;
-                    if (seq > -1L) {
-                        clone = event.clone();
-                    }
-                    return seq;
-                }
-
-                @Override
-                public long poll(final Event event, final long millis) {
-                    if (clone != null) {
-                        event.overwrite(clone);
-                        clone = null;
-                        return lastSeq;
-                    }
-                    final long seq = reader.poll(event, millis);
-                    lastSeq = seq;
-                    if (seq > -1L) {
-                        clone = event.clone();
-                    }
-                    return seq;
-                }
-
-                @Override
-                public void acknowledge(final long sequenceNum) {
-                    reader.acknowledge(sequenceNum);
-                }
-            };
+        public Collection<Event> filter(final Collection<Event> events) {
+            //TODO: Impl.
+            return events;
         }
 
         @Override

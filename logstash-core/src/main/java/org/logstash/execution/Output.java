@@ -1,24 +1,22 @@
 package org.logstash.execution;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import org.logstash.Event;
 import org.logstash.execution.plugins.PluginConfigSpec;
-import org.logstash.execution.queue.QueueReader;
 
 /**
- * A Logstash Pipeline Output consumes a {@link QueueReader}.
+ * A Logstash Pipeline Output.
  */
 public interface Output extends LsPlugin {
 
     /**
-     * Polls events from event reader and runs output action.
-     * @param reader Reader to poll events from.
+     * Outputs Collection of {@link Event}.
+     * @param events Events to Output
      */
-    void output(QueueReader reader);
+    void output(Collection<Event> events);
 
     void stop();
 
@@ -43,19 +41,9 @@ public interface Output extends LsPlugin {
         }
 
         @Override
-        public void output(final QueueReader reader) {
-            final Event event = new Event();
+        public void output(final Collection<Event> events) {
             try {
-                long sequence = reader.poll(event);
-                while (!stopped && sequence > -1L) {
-                    try {
-                        outpt.println(event.toJson());
-                        reader.acknowledge(sequence);
-                    } catch (final IOException ex) {
-                        throw new IllegalStateException(ex);
-                    }
-                    sequence = reader.poll(event);
-                }
+
             } finally {
                 stopped = true;
                 done.countDown();
