@@ -21,6 +21,7 @@ import org.logstash.RubyUtil;
 import org.logstash.config.ir.compiler.PluginFactory;
 import org.logstash.config.ir.compiler.RubyIntegration;
 import org.logstash.execution.Filter;
+import org.logstash.execution.Input;
 import org.logstash.execution.LsConfiguration;
 import org.logstash.execution.LsContext;
 import org.logstash.ext.JrubyEventExtLibrary;
@@ -219,6 +220,11 @@ public final class CompiledPipelineTest extends RubyEnvTestCase {
                 );
             }
             return suppliers.get(name.asJavaString()).get();
+        }
+
+        @Override
+        public Input buildInput(final String name, final String id, final LsConfiguration configuration, final LsContext context) {
+            return null;
         }
 
         @Override
