@@ -47,6 +47,7 @@ public interface Input extends LsPlugin {
          */
         public StreamInput(final LsConfiguration configuration, final LsContext context) {
             // Do whatever
+            System.out.println("Stream instantiated");
         }
 
         @Override
