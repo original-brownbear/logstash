@@ -1,16 +1,10 @@
 package org.logstash.execution.plugins;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import org.logstash.execution.Filter;
-import org.logstash.execution.Input;
 import org.logstash.execution.LogstashPlugin;
-import org.logstash.execution.LsConfiguration;
-import org.logstash.execution.LsContext;
-import org.logstash.execution.Output;
 import org.reflections.Reflections;
 
 /**
@@ -31,27 +25,5 @@ public final class DiscoverPlugins {
             }
         }
         return results;
-    }
-
-    public static void main(final String... args) {
-        discoverPlugins().forEach((name, cls) -> {
-            System.out.println(cls.getName());
-            System.out.println(name);
-            try {
-                final Constructor<?> ctor = cls.getConstructor(LsConfiguration.class, LsContext.class);
-                System.out.println("Found Ctor at : " + ctor.getName());
-            } catch (final NoSuchMethodException ex) {
-                throw new IllegalStateException(ex);
-            }
-            if (Filter.class.isAssignableFrom(cls)) {
-                System.out.println("Filter");
-            }
-            if (Output.class.isAssignableFrom(cls)) {
-                System.out.println("Output");
-            }
-            if (Input.class.isAssignableFrom(cls)) {
-                System.out.println("Input");
-            }
-        });
     }
 }
