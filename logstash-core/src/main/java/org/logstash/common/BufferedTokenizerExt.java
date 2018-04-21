@@ -10,11 +10,11 @@ import org.jruby.runtime.builtin.IRubyObject;
 import org.logstash.RubyUtil;
 
 @JRubyClass(name ="BufferedTokenizer")
-public class BufferedTokenizer extends RubyObject {
+public class BufferedTokenizerExt extends RubyObject {
 
     private IRubyObject input = RubyUtil.RUBY.newArray();
 
-    public BufferedTokenizer(final Ruby runtime, final RubyClass metaClass) {
+    public BufferedTokenizerExt(final Ruby runtime, final RubyClass metaClass) {
         super(runtime, metaClass);
     }
 

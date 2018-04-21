@@ -10,7 +10,7 @@ import org.jruby.exceptions.RaiseException;
 import org.jruby.runtime.ObjectAllocator;
 import org.logstash.ackedqueue.ext.JRubyAckedQueueExt;
 import org.logstash.ackedqueue.ext.JRubyWrappedAckedQueueExt;
-import org.logstash.common.BufferedTokenizer;
+import org.logstash.common.BufferedTokenizerExt;
 import org.logstash.config.ir.compiler.FilterDelegatorExt;
 import org.logstash.config.ir.compiler.OutputDelegatorExt;
 import org.logstash.config.ir.compiler.OutputStrategyExt;
@@ -98,7 +98,7 @@ public final class RubyUtil {
         );
         final RubyModule fileWatch = RUBY.getOrCreateModule("FileWatch");
         BUFFERED_TOKENIZER = fileWatch.defineClassUnder(
-            "BufferedTokenizer", RUBY.getObject(), BufferedTokenizer::new
+            "BufferedTokenizer", RUBY.getObject(), BufferedTokenizerExt::new
         );
         OUTPUT_DELEGATOR_STRATEGIES =
             RUBY.defineModuleUnder("OutputDelegatorStrategies", LOGSTASH_MODULE);

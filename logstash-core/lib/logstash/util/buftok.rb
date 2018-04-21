@@ -124,9 +124,6 @@ module FileWatch; class BufferedTokenizer
     entities
   end
 
-  # Flush the contents of the input buffer, i.e. return the input buffer even though
-  # a token has not yet been encountered
-
   # Is the buffer empty?
   def empty?
     @input.empty?
