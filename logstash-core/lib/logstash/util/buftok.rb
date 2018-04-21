@@ -6,7 +6,7 @@
 #----------------------------------------------------------------------------
 #
 # Copyright (C) 2006-07 by Tony Arcieri and Martin Emde
-# 
+#
 # Distributed under the Ruby license (http://www.ruby-lang.org/en/LICENSE.txt)
 #
 #---------------------------------------------------------------------------
@@ -60,7 +60,7 @@ module FileWatch; class BufferedTokenizer
   def extract(data)
     # Extract token-delimited entities from the input string with the split command.
     # There's a bit of craftiness here with the -1 parameter.  Normally split would
-    # behave no differently regardless of if the token lies at the very end of the 
+    # behave no differently regardless of if the token lies at the very end of the
     # input buffer or not (i.e. a literal edge case)  Specifying -1 forces split to
     # return "" in this case, meaning that the last entry in the list represents a
     # new segment of data where the token has not been encountered
@@ -71,7 +71,7 @@ module FileWatch; class BufferedTokenizer
       raise 'input buffer full' if @input_size + entities.first.size > @size_limit
       @input_size += entities.first.size
     end
-    
+
     # Move the first entry in the resulting array into the input buffer.  It represents
     # the last segment of a token-delimited entity unless it's the only entry in the list.
     @input << entities.shift
@@ -110,12 +110,12 @@ module FileWatch; class BufferedTokenizer
     # list, we can go ahead and clear the input buffer.  All of the segments that were
     # stored before the join can now be garbage collected.
     @input.clear
-    
+
     # The last entity in the list is not token delimited, however, thanks to the -1
-    # passed to split.  It represents the beginning of a new list of as-yet-untokenized  
+    # passed to split.  It represents the beginning of a new list of as-yet-untokenized
     # data, so we add it to the start of the list.
     @input << entities.pop
-    
+
     # Set the new input buffer size, provided we're keeping track
     @input_size = @input.first.size if @size_limit
 
@@ -123,14 +123,9 @@ module FileWatch; class BufferedTokenizer
     # in the first place.  Hooray!
     entities
   end
-  
+
   # Flush the contents of the input buffer, i.e. return the input buffer even though
   # a token has not yet been encountered
-  def flush
-    buffer = @input.join
-    @input.clear
-    buffer
-  end
 
   # Is the buffer empty?
   def empty?
