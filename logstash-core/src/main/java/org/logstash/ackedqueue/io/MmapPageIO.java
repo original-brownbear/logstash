@@ -13,11 +13,11 @@ import java.util.zip.CRC32;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.logstash.LogstashJavaCompat;
+import org.logstash.ackedqueue.QueueVersioning;
 import org.logstash.ackedqueue.SequencedList;
 
 public final class MmapPageIO implements PageIO {
 
-    public static final byte VERSION_ONE = 1;
     public static final int VERSION_SIZE = Byte.BYTES;
     public static final int CHECKSUM_SIZE = Integer.BYTES;
     public static final int LENGTH_SIZE = Integer.BYTES;
@@ -169,7 +169,7 @@ public final class MmapPageIO implements PageIO {
             this.buffer = raf.getChannel().map(FileChannel.MapMode.READ_WRITE, 0, this.capacity);
         }
         buffer.position(0);
-        buffer.put(VERSION_ONE);
+        buffer.put(QueueVersioning.VERSION_ONE);
         this.head = 1;
         this.minSeqNum = 0L;
         this.elementCount = 0;
@@ -365,9 +365,9 @@ public final class MmapPageIO implements PageIO {
     // and if an unexpected version byte is read throw PageIOInvalidVersionException
     private static void validateVersion(byte version)
         throws MmapPageIO.PageIOInvalidVersionException {
-        if (version != VERSION_ONE) {
+        if (version != QueueVersioning.VERSION_ONE) {
             throw new MmapPageIO.PageIOInvalidVersionException(String
-                .format("Expected page version=%d but found version=%d", VERSION_ONE, version));
+                .format("Expected page version=%d but found version=%d", QueueVersioning.VERSION_ONE, version));
         }
     }
 
