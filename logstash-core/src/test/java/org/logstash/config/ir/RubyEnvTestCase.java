@@ -29,6 +29,12 @@ public abstract class RubyEnvTestCase {
                 .resolve("jruby").resolve("2.3.0").toFile().getAbsolutePath();
             environment.put("GEM_HOME", gems);
             environment.put("GEM_PATH", gems);
+            RubyUtil.RUBY.executeScript(
+                String.format(
+                    "require_relative \"%s\"\n",
+                    root.getParent().resolve("lib").resolve("bootstrap").resolve("environment")
+                ) + "LogStash::Bundler.setup!({:without => [:build]})", ""
+            );
             loader.addPaths(root.resolve("lib").toFile().getAbsolutePath());
         }
     }
