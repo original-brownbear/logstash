@@ -47,7 +47,7 @@ module LogStash
     end
 
     def logstash_gem_home
-      ::File.join(BUNDLE_DIR, ruby_engine, gem_ruby_version)
+      ::File.join(BUNDLE_DIR, ruby_engine, '2.3.0')
     end
 
     def vendor_path(path)
